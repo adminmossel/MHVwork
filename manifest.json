@@ -1,0 +1,17 @@
+{
+  "name": "MHVwork",
+  "short_name": "MHVwork",
+  "description": "Roosterbeheer voor MHV barhulp",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0d0d1a",
+  "theme_color": "#0d0d1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/jpeg;base64,LOGO_MANIFEST",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    }
+  ]
+}

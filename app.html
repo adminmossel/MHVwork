@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MHVwork</title>
+<meta name="theme-color" content="#0d0d1a">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
+  updateDoc, deleteDoc, onSnapshot, orderBy, Timestamp, serverTimestamp, limit, writeBatch, arrayUnion, arrayRemove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
+  authDomain: "mhvwork-2376d.firebaseapp.com",
+  projectId: "mhvwork-2376d",
+  storageBucket: "mhvwork-2376d.firebasestorage.app",
+  messagingSenderId: "292563349134",
+  appId: "1:292563349134:web:6897c6e23536baf56ba3df"
+};
+
+  const EMAILJS_PUBLIC_KEY  = "Z3mEA1NvfsMY2HtKX";
+  const EMAILJS_SERVICE_ID  = "service_ejkc0fh";
+  const EMAILJS_TPL_INVITE  = "template_hu9i9uo";
+  const EMAILJS_TPL_NOTIF   = "template_bnql805";
+  const EMAILJS_TPL_PAYMENT = "template_bnql805";
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+window._f = { auth, db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
+  updateDoc, deleteDoc, onSnapshot, orderBy, Timestamp, serverTimestamp, limit,
+  writeBatch, arrayUnion, arrayRemove, signOut, updatePassword,
+  reauthenticateWithCredential, EmailAuthProvider,
+  EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TPL_INVITE, EMAILJS_TPL_NOTIF, EMAILJS_TPL_PAYMENT };
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href="index.html"; return; }
+  const snap = await getDoc(doc(db,"users",user.uid));
+  if (!snap.exists()) { window.location.href="index.html"; return; }
+  window._user = { uid: user.uid, email: user.email, ...snap.data() };
+  window.dispatchEvent(new Event("mhv:ready"));
+});
+</script>
+
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────────── */
+:root {
+  --bg:#0d0d1a; --surface:#13132a; --surface2:#1c1c3a; --surface3:#252550;
+  --accent:#f5c800; --accent-dim:rgba(245,200,0,0.15); --accent2:#3a5fcf;
+  --text:#f0f0f8; --text2:#b0b0cc; --muted:#666688;
+  --danger:#e05555; --danger-dim:rgba(224,85,85,0.12);
+  --success:#4caf7d; --success-dim:rgba(76,175,125,0.12);
+  --warn:#f59d00; --warn-dim:rgba(245,157,0,0.12);
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --radius:14px; --radius-sm:8px; --radius-lg:20px;
+  --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif;
+  --nav-h:64px; --bottom-h:72px;
+  --shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden;}
+button{cursor:pointer;font-family:var(--font-body);}
+input,select,textarea{font-family:var(--font-body);}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+#app { display:flex; flex-direction:column; height:100vh; max-width:600px; margin:0 auto; position:relative; }
+#topbar {
+  height:var(--nav-h); background:rgba(13,13,26,0.95); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border); display:flex; align-items:center;
+  padding:0 20px; gap:12px; flex-shrink:0; position:relative; z-index:50;
+}
+#topbar img { width:34px; height:34px; object-fit:contain; border-radius:50%; }
+#topbar .t-title { font-family:var(--font-head); font-size:18px; font-weight:800; flex:1; }
+#topbar .t-title span { color:var(--accent); }
+.notif-btn {
+  width:38px; height:38px; border-radius:50%; background:var(--surface2);
+  border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
+  position:relative; color:var(--text2); font-size:17px; transition:background 0.2s;
+}
+.notif-btn:hover { background:var(--surface3); }
+.notif-badge {
+  position:absolute; top:3px; right:3px; width:8px; height:8px;
+  background:var(--danger); border-radius:50%; border:2px solid var(--bg);
+}
+
+#main-content { flex:1; overflow-y:auto; overflow-x:hidden; }
+#main-content::-webkit-scrollbar { width:4px; }
+#main-content::-webkit-scrollbar-track { background:transparent; }
+#main-content::-webkit-scrollbar-thumb { background:var(--surface3); border-radius:2px; }
+
+#bottomnav {
+  height:var(--bottom-h); background:rgba(13,13,26,0.97); backdrop-filter:blur(16px);
+  border-top:1px solid var(--border); display:flex; align-items:center;
+  padding:0 8px 8px; flex-shrink:0; z-index:50;
+}
+.nav-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:8px 4px; border-radius:12px; border:none; background:transparent;
+  color:var(--muted); transition:color 0.2s, background 0.2s;
+  font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;
+}
+.nav-item svg { width:22px; height:22px; }
+.nav-item.active { color:var(--accent); background:var(--accent-dim); }
+
+/* ── VIEWS ──────────────────────────────────────────────── */
+.view { display:none; padding:20px; animation:fadeIn 0.25s ease; min-height:100%; }
+.view.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── CARDS ──────────────────────────────────────────────── */
+.card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px; margin-bottom:14px;
+}
+.card-title { font-family:var(--font-head); font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+
+/* ── SECTION HEADER ─────────────────────────────────────── */
+.section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.section-header h2 { font-family:var(--font-head); font-size:22px; font-weight:800; }
+.section-header h2 span { color:var(--accent); }
+
+/* ── BADGE / CHIPS ──────────────────────────────────────── */
+.badge {
+  display:inline-flex; align-items:center; padding:3px 10px; border-radius:99px;
+  font-size:11px; font-weight:600; letter-spacing:0.04em;
+}
+.badge-green { background:var(--success-dim); color:var(--success); }
+.badge-yellow { background:var(--warn-dim); color:var(--warn); }
+.badge-red { background:var(--danger-dim); color:var(--danger); }
+.badge-blue { background:rgba(58,95,207,0.15); color:#7a9fff; }
+.badge-gray { background:var(--surface2); color:var(--muted); }
+
+/* ── SHIFT ITEM ─────────────────────────────────────────── */
+.shift-item {
+  background:var(--surface2); border-radius:var(--radius-sm); padding:14px 16px;
+  margin-bottom:10px; border-left:3px solid transparent; transition:border-color 0.2s;
+}
+.shift-item.mine { border-left-color:var(--accent); }
+.shift-item.pending { border-left-color:var(--warn); }
+.shift-item.confirmed { border-left-color:var(--success); }
+.shift-item-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.shift-time { font-family:var(--font-head); font-size:20px; font-weight:800; color:var(--accent); line-height:1; }
+.shift-date { font-size:12px; color:var(--muted); margin-top:3px; }
+.shift-persons { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.person-chip {
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
+  background:var(--surface3); border-radius:99px; font-size:12px;
+}
+.person-chip.me { background:var(--accent-dim); color:var(--accent); }
+.person-avatar {
+  width:20px; height:20px; border-radius:50%; background:var(--accent2);
+  display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#fff;
+}
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn { padding:11px 20px; border-radius:var(--radius-sm); border:none; font-size:14px; font-weight:600; transition:all 0.15s; }
+.btn-accent { background:var(--accent); color:#1a1000; font-family:var(--font-head); }
+.btn-accent:hover { box-shadow:0 4px 16px rgba(245,200,0,0.3); }
+.btn-ghost { background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+.btn-ghost:hover { background:var(--surface3); }
+.btn-danger { background:var(--danger-dim); color:var(--danger); border:1px solid rgba(224,85,85,0.2); }
+.btn-success { background:var(--success-dim); color:var(--success); border:1px solid rgba(76,175,125,0.2); }
+.btn-sm { padding:7px 14px; font-size:12px; }
+.btn-full { width:100%; }
+.btn-icon { width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:16px; }
+
+/* ── FORMS ──────────────────────────────────────────────── */
+.form-group { margin-bottom:16px; }
+.form-label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:7px; }
+.form-input {
+  width:100%; padding:12px 14px; border-radius:var(--radius-sm);
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text); font-size:14px; outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,200,0,0.1); }
+.form-input::placeholder { color:var(--muted); }
+select.form-input option { background:var(--surface2); }
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px);
+  z-index:100; display:none; align-items:flex-end; justify-content:center;
+  animation:none;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:28px 24px 32px; width:min(520px,100%);
+  animation:slideUp 0.35s cubic-bezier(.16,1,.3,1);
+  max-height:90vh; overflow-y:auto;
+}
+.modal-box.center { border-radius:var(--radius-lg); margin:auto; }
+@keyframes slideUp { from{transform:translateY(100px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; }
+.modal-title { font-family:var(--font-head); font-size:18px; font-weight:800; }
+.modal-close { width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center; }
+
+/* ── NOTIFICATION PANEL ─────────────────────────────────── */
+#notif-panel {
+  position:absolute; top:calc(var(--nav-h) + 8px); right:12px;
+  width:min(360px, 92vw); background:var(--surface);
+  border:1px solid var(--border2); border-radius:var(--radius);
+  z-index:200; box-shadow:var(--shadow); display:none;
+  max-height:70vh; overflow-y:auto;
+}
+#notif-panel.open { display:block; animation:fadeIn 0.2s ease; }
+.notif-panel-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.notif-panel-header h3 { font-family:var(--font-head); font-size:14px; font-weight:700; }
+.notif-item { padding:14px 18px; border-bottom:1px solid var(--border); }
+.notif-item:last-child { border-bottom:none; }
+.notif-item.unread { background:var(--accent-dim); }
+.notif-item-title { font-size:13px; font-weight:600; margin-bottom:3px; }
+.notif-item-body { font-size:12px; color:var(--text2); line-height:1.5; }
+.notif-item-time { font-size:11px; color:var(--muted); margin-top:5px; }
+
+/* ── CALENDAR ───────────────────────────────────────────── */
+.cal-header { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.cal-header h3 { flex:1; font-family:var(--font-head); font-weight:800; font-size:18px; text-align:center; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-day-name { text-align:center; font-size:10px; font-weight:700; text-transform:uppercase; color:var(--muted); padding:6px 2px; }
+.cal-day {
+  aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-size:12px; cursor:pointer;
+  position:relative; transition:background 0.15s;
+}
+.cal-day:hover { background:var(--surface2); }
+.cal-day.today { background:var(--accent); color:#1a1000; font-weight:700; }
+.cal-day.has-shift::after { content:''; position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:var(--accent2); }
+.cal-day.today.has-shift::after { background:#1a1000; }
+.cal-day.blocked { background:rgba(224,85,85,0.12); color:var(--danger); }
+.cal-day.empty { cursor:default; }
+
+/* ── TABS ───────────────────────────────────────────────── */
+.tabs { display:flex; background:var(--surface2); border-radius:var(--radius-sm); padding:3px; gap:2px; margin-bottom:18px; }
+.tab-btn { flex:1; padding:9px; border-radius:6px; border:none; background:transparent; color:var(--muted); font-size:12px; font-weight:600; transition:all 0.2s; }
+.tab-btn.active { background:var(--surface); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+
+/* ── STATS ROW ──────────────────────────────────────────── */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 14px; text-align:center; }
+.stat-num { font-family:var(--font-head); font-size:26px; font-weight:800; color:var(--accent); line-height:1; }
+.stat-lbl { font-size:11px; color:var(--muted); margin-top:5px; font-weight:500; }
+
+/* ── ROSTER TABLE (admin day view) ──────────────────────── */
+.roster-day { margin-bottom:16px; }
+.roster-day-header { font-family:var(--font-head); font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em; }
+.roster-row { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--surface2); border-radius:8px; margin-bottom:6px; }
+.roster-row-time { font-weight:700; font-size:14px; min-width:90px; }
+.roster-row-name { flex:1; font-size:14px; }
+.roster-row-pay { font-size:13px; color:var(--success); font-weight:600; }
+
+/* ── AVAILABILITY BLOCK ─────────────────────────────────── */
+.avail-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface2); border-radius:8px; margin-bottom:8px; }
+.avail-item-info { flex:1; }
+.avail-item-date { font-size:13px; font-weight:600; }
+.avail-item-note { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* ── USER PROFILE CARD ──────────────────────────────────── */
+.profile-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:12px; display:flex; align-items:center; gap:14px; }
+.profile-avatar { width:48px;height:48px;border-radius:50%;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:18px;font-weight:700;color:#fff;flex-shrink:0; }
+.profile-info { flex:1; min-width:0; }
+.profile-name { font-family:var(--font-head); font-size:16px; font-weight:700; }
+.profile-role { font-size:12px; color:var(--muted); margin-top:2px; }
+.profile-wage { font-size:13px; color:var(--success); font-weight:600; margin-top:4px; }
+
+/* ── EMPTY STATE ────────────────────────────────────────── */
+.empty-state { text-align:center; padding:48px 24px; color:var(--muted); }
+.empty-state .icon { font-size:40px; margin-bottom:12px; opacity:0.5; }
+.empty-state p { font-size:14px; line-height:1.6; }
+
+/* ── TOAST ──────────────────────────────────────────────── */
+#toast {
+  position:fixed; bottom:calc(var(--bottom-h) + 16px); left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--surface3); border:1px solid var(--border2); border-radius:99px;
+  padding:10px 22px; font-size:13px; font-weight:500; z-index:999;
+  opacity:0; transition:all 0.3s; pointer-events:none; white-space:nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.success { background:var(--success-dim); border-color:rgba(76,175,125,0.3); color:var(--success); }
+#toast.error { background:var(--danger-dim); border-color:rgba(224,85,85,0.3); color:var(--danger); }
+
+/* ── LOADING ────────────────────────────────────────────── */
+#loader { position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:16px; }
+.spinner { width:40px;height:40px;border:3px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite; }
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── CONFIRM DIALOG ─────────────────────────────────────── */
+#confirm-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:none;align-items:center;justify-content:center;padding:20px; }
+#confirm-overlay.open { display:flex; }
+.confirm-box { background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:28px 24px;max-width:340px;width:100%; }
+.confirm-title { font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:10px; }
+.confirm-msg { font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px; }
+.confirm-btns { display:flex;gap:10px; }
+.confirm-btns .btn { flex:1; }
+
+/* ── DESKTOP OVERRIDE ───────────────────────────────────── */
+@media(min-width:600px){
+  #app{border-left:1px solid var(--border);border-right:1px solid var(--border);}
+  body{background:radial-gradient(ellipse at 20% 50%,#1a1a4a,#0d0d1a 60%);}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spinner"></div>
+  <span style="font-size:13px;color:var(--muted);font-family:var(--font-head)">MHVwork laden...</span>
+</div>
+
+<div id="app" style="display:none">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <img id="topLogo" src="" alt="MHV">
+    <div class="t-title">MHV<span>work</span></div>
+    <button class="notif-btn" onclick="toggleNotifPanel()" id="notifBtn">
+      🔔
+      <div class="notif-badge" id="notifBadge" style="display:none"></div>
+    </button>
+  </div>
+
+  <!-- NOTIFICATION PANEL -->
+  <div id="notif-panel">
+    <div class="notif-panel-header">
+      <h3>Meldingen</h3>
+      <button class="btn btn-ghost btn-sm" onclick="markAllNotifsRead()">Alles gelezen</button>
+    </div>
+    <div id="notif-list"><div class="empty-state"><div class="icon">🔕</div><p>Geen meldingen</p></div></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="main-content">
+    <!-- HOME VIEW -->
+    <div class="view active" id="view-home">
+      <div class="section-header" style="margin-top:4px">
+        <div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.08em">Welkom terug</div>
+          <h2 id="homeGreet">Hey <span>—</span></h2>
+        </div>
+        <div id="homeRoleBadge" class="badge badge-blue">Medewerker</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" id="homeStats"></div>
+
+      <!-- Vandaag -->
+      <div class="card">
+        <div class="card-title">⚡ Jouw volgende dienst</div>
+        <div id="homeNextShift"></div>
+      </div>
+
+      <!-- Openstaande bevestigingen -->
+      <div id="homePending"></div>
+    </div>
+
+    <!-- ROOSTER VIEW -->
+    <div class="view" id="view-roster">
+      <div class="section-header">
+        <h2>Rooster</h2>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchRosterTab('mine',this)">Mijn rooster</button>
+        <button class="tab-btn" onclick="switchRosterTab('all',this)">Algemeen</button>
+      </div>
+      <!-- Calendar -->
+      <div class="card" style="padding:16px">
+        <div class="cal-header">
+          <button class="btn-icon" onclick="calNav(-1)">‹</button>
+          <h3 id="calTitle"></h3>
+          <button class="btn-icon" onclick="calNav(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <!-- Shifts for selected day -->
+      <div>
+        <div class="card-title" id="shiftDayTitle">Selecteer een dag</div>
+        <div id="shiftDayList"></div>
+      </div>
+    </div>
+
+    <!-- BESCHIKBAARHEID VIEW -->
+    <div class="view" id="view-avail">
+      <div class="section-header">
+        <h2>Beschikbaarheid</h2>
+        <button class="btn btn-accent btn-sm" onclick="openAvailModal()">+ Toevoegen</button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6">Geef hier aan wanneer je <strong style="color:var(--danger)">niet</strong> beschikbaar bent. Beheerders zien dit bij het inplannen.</p>
+      <div id="availList"></div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div class="view" id="view-admin">
+      <div class="section-header">
+        <h2>Beheer<span>r</span></h2>
+      </div>
+      <div class="tabs" id="adminTabs">
+        <button class="tab-btn active" onclick="switchAdminTab('roster',this)">Rooster</button>
+        <button class="tab-btn" onclick="switchAdminTab('employees',this)">Medewerkers</button>
+        <button class="tab-btn" onclick="switchAdminTab('payments',this)">Uitbetaling</button>
+        <button class="tab-btn" onclick="switchAdminTab('messages',this)">Berichten</button>
+      </div>
+      <div id="adminContent"></div>
+    </div>
+
+    <!-- PROFIEL VIEW -->
+    <div class="view" id="view-profile">
+      <div class="section-header">
+        <h2>Profiel</h2>
+      </div>
+      <div id="profileContent"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottomnav">
+    <button class="nav-item active" onclick="showView('home',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="nav-item" onclick="showView('roster',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Rooster
+    </button>
+    <button class="nav-item" onclick="showView('avail',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Beschikbaar
+    </button>
+    <button class="nav-item" id="adminNavBtn" style="display:none" onclick="showView('admin',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Beheer
+    </button>
+    <button class="nav-item" onclick="showView('profile',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profiel
+    </button>
+  </nav>
+</div>
+
+<!-- MODALS (injected by JS) -->
+<div id="modal-root"></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONFIRM -->
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" id="confirm-cancel">Annuleren</button>
+      <button class="btn btn-danger" id="confirm-ok">Verwijderen</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN LOGO BASE64 -->
+<script>
+const LOGO_B64 = "data:image/jpeg;base64,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";
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// MHVwork — Main App Logic
+// ════════════════════════════════════════════════════════════════
+
+let currentUser = null;
+let currentRosterTab = 'mine';
+let currentAdminTab = 'roster';
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selectedCalDay = null;
+let allShifts = [];
+let allUsers = [];
+let allAvailability = [];
+let allNotifs = [];
+let unsubShifts = null, unsubNotifs = null, unsubAvail = null;
+
+const DAYS_NL  = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
+const MONTHS_NL = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('mhv:ready', async () => {
+  currentUser = window._user;
+  document.getElementById('topLogo').src = LOGO_B64;
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  if (currentUser.role === 'admin') {
+    document.getElementById('adminNavBtn').style.display = 'flex';
+    document.getElementById('homeRoleBadge').textContent = 'Beheerder';
+    document.getElementById('homeRoleBadge').className = 'badge badge-yellow';
+  }
+
+  await loadAllUsers();
+  subscribeShifts();
+  subscribeNotifs();
+  subscribeAvailability();
+  renderHome();
+  renderCalendar();
+  renderProfile();
+});
+
+// ── HELPERS ──────────────────────────────────────────────────
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._t); t._t = setTimeout(() => t.className = '', 3000);
+}
+function fmtMoney(n) { return '€ ' + Number(n||0).toFixed(2).replace('.',','); }
+function fmtDate(d) {
+  const dt = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
+  return dt.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});
+}
+function fmtTime(str) { return str || '--:--'; }
+function roundQuarter(h, m) {
+  const total = h * 60 + m;
+  const rounded = Math.round(total / 15) * 15;
+  return { h: Math.floor(rounded/60) % 24, m: rounded % 60 };
+}
+function minsFromStr(s) {
+  if (!s) return 0;
+  const [h,m] = s.split(':').map(Number);
+  return h*60+(m||0);
+}
+function calcHours(start, end) {
+  const s = minsFromStr(start), e = minsFromStr(end);
+  const diff = e > s ? e - s : 0;
+  return diff / 60;
+}
+function calcPay(start, end, wage) {
+  return calcHours(start, end) * (wage || 0);
+}
+function getInitials(name) {
+  return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+function getUserName(uid) {
+  const u = allUsers.find(x=>x.uid===uid);
+  return u ? u.name : 'Onbekend';
+}
+function getUserWage(uid) {
+  const u = allUsers.find(x=>x.uid===uid);
+  return u?.wage || 0;
+}
+function dateKey(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function confirm2(title, msg, okLabel, okClass) {
+  return new Promise(res => {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = msg;
+    const ok = document.getElementById('confirm-ok');
+    const cancel = document.getElementById('confirm-cancel');
+    ok.textContent = okLabel || 'Verwijderen';
+    ok.className = 'btn ' + (okClass||'btn-danger');
+    document.getElementById('confirm-overlay').classList.add('open');
+    const cleanup = () => { document.getElementById('confirm-overlay').classList.remove('open'); ok.onclick=null; cancel.onclick=null; };
+    ok.onclick = () => { cleanup(); res(true); };
+    cancel.onclick = () => { cleanup(); res(false); };
+  });
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  // Close notif panel
+  document.getElementById('notif-panel').classList.remove('open');
+  if (name === 'home') renderHome();
+  if (name === 'roster') renderCalendar();
+  if (name === 'avail') renderAvailability();
+  if (name === 'admin') renderAdminTab(currentAdminTab);
+  if (name === 'profile') renderProfile();
+}
+
+// ── FIREBASE SUBSCRIPTIONS ───────────────────────────────────
+function subscribeShifts() {
+  const { db, collection, onSnapshot, orderBy, query } = window._f;
+  const q = query(collection(db,'shifts'), orderBy('date','asc'));
+  unsubShifts = onSnapshot(q, snap => {
+    allShifts = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderHome();
+    renderCalendar();
+    if (currentAdminTab === 'roster') renderAdminTab('roster');
+  });
+}
+function subscribeNotifs() {
+  const { db, collection, onSnapshot, orderBy, query, where } = window._f;
+  const q = query(collection(db,'notifications'), where('to','array-contains',currentUser.uid), orderBy('createdAt','desc'));
+  unsubNotifs = onSnapshot(q, snap => {
+    allNotifs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderNotifPanel();
+    const unread = allNotifs.filter(n=>!n.readBy?.includes(currentUser.uid)).length;
+    document.getElementById('notifBadge').style.display = unread > 0 ? 'block' : 'none';
+  });
+}
+function subscribeAvailability() {
+  const { db, collection, onSnapshot, orderBy, query, where } = window._f;
+  const col = collection(db,'availability');
+  const q = currentUser.role === 'admin'
+    ? query(col, orderBy('date','asc'))
+    : query(col, where('uid','==',currentUser.uid), orderBy('date','asc'));
+  unsubAvail = onSnapshot(q, snap => {
+    allAvailability = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAvailability();
+    renderCalendar();
+  });
+}
+async function loadAllUsers() {
+  const { db, collection, getDocs } = window._f;
+  const snap = await getDocs(collection(db,'users'));
+  allUsers = snap.docs.map(d=>({uid:d.id,...d.data()}));
+}
+
+// ── HOME VIEW ────────────────────────────────────────────────
+function renderHome() {
+  if (!currentUser) return;
+  document.getElementById('homeGreet').innerHTML = `Hey <span>${currentUser.name?.split(' ')[0] || '—'}</span>`;
+
+  const myShifts = allShifts.filter(s => s.workers?.includes(currentUser.uid));
+  const now = new Date();
+  const upcoming = myShifts.filter(s => { const d = s.date?.toDate ? s.date.toDate() : new Date(s.date); return d >= new Date(now.toDateString()); });
+  const thisMonth = myShifts.filter(s => { const d = s.date?.toDate ? s.date.toDate() : new Date(s.date); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+  const pending = myShifts.filter(s => s.workerConfirmations?.[currentUser.uid] === 'pending');
+  const totalPay = thisMonth.reduce((sum,s) => {
+    const conf = s.workerConfirmations?.[currentUser.uid];
+    const start = (conf === 'confirmed' || conf === 'approved') ? (s.finalTimes?.[currentUser.uid]?.start || s.startTime) : s.startTime;
+    const end   = (conf === 'confirmed' || conf === 'approved') ? (s.finalTimes?.[currentUser.uid]?.end   || s.endTime)   : s.endTime;
+    return sum + calcPay(start, end, getUserWage(currentUser.uid));
+  }, 0);
+
+  document.getElementById('homeStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${upcoming.length}</div><div class="stat-lbl">Komende diensten</div></div>
+    <div class="stat-card"><div class="stat-num">${pending.length}</div><div class="stat-lbl">Te bevestigen</div></div>
+    <div class="stat-card"><div class="stat-num">${fmtMoney(totalPay)}</div><div class="stat-lbl">Deze maand</div></div>
+  `;
+
+  // Next shift
+  const next = upcoming[0];
+  const ns = document.getElementById('homeNextShift');
+  if (!next) {
+    ns.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="icon">📅</div><p>Geen aankomende diensten</p></div>`;
+  } else {
+    const date = next.date?.toDate ? next.date.toDate() : new Date(next.date);
+    const colleagues = (next.workers||[]).filter(u=>u!==currentUser.uid).map(u=>`<span class="person-chip">${getInitials(getUserName(u))} ${getUserName(u)}</span>`).join('');
+    ns.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="shift-time">${next.startTime} – ${next.endTime}</div>
+          <div class="shift-date">${fmtDate(date)}</div>
+        </div>
+        <span class="badge ${shiftStatusBadge(next, currentUser.uid)}">${shiftStatusLabel(next, currentUser.uid)}</span>
+      </div>
+      ${colleagues ? `<div style="margin-top:10px;font-size:12px;color:var(--muted);margin-bottom:6px">Samen met:</div><div class="shift-persons">${colleagues}</div>` : '<div style="margin-top:8px;font-size:12px;color:var(--muted)">Je werkt alleen</div>'}
+    `;
+  }
+
+  // Pending confirmations
+  const pp = document.getElementById('homePending');
+  if (pending.length > 0 && currentUser.role !== 'admin') {
+    pp.innerHTML = `<div class="card"><div class="card-title">⏳ Te bevestigen (${pending.length})</div>${pending.map(s=>renderPendingShift(s)).join('')}</div>`;
+  } else {
+    pp.innerHTML = '';
+  }
+}
+
+function shiftStatusBadge(shift, uid) {
+  const s = shift.workerConfirmations?.[uid];
+  if (s === 'approved') return 'badge-green';
+  if (s === 'confirmed') return 'badge-yellow';
+  if (s === 'pending') return 'badge-yellow';
+  return 'badge-gray';
+}
+function shiftStatusLabel(shift, uid) {
+  const s = shift.workerConfirmations?.[uid];
+  if (s === 'approved') return 'Goedgekeurd';
+  if (s === 'confirmed') return 'In beoordeling';
+  if (s === 'pending') return 'Bevestig jij';
+  return 'Gepland';
+}
+
+function renderPendingShift(shift) {
+  const date = shift.date?.toDate ? shift.date.toDate() : new Date(shift.date);
+  return `
+    <div class="shift-item pending" style="margin-bottom:10px">
+      <div class="shift-item-top">
+        <div>
+          <div class="shift-time">${shift.startTime} – ${shift.endTime}</div>
+          <div class="shift-date">${fmtDate(date)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-success btn-sm" onclick="confirmShift('${shift.id}', true)">✓ Klopt</button>
+        <button class="btn btn-ghost btn-sm" onclick="openCorrectShift('${shift.id}')">✏ Aanpassen</button>
+      </div>
+    </div>`;
+}
+
+async function confirmShift(shiftId, correct) {
+  const shift = allShifts.find(s=>s.id===shiftId);
+  if (!shift) return;
+  const { db, doc, updateDoc } = window._f;
+  await updateDoc(doc(db,'shifts',shiftId), {
+    [`workerConfirmations.${currentUser.uid}`]: 'confirmed',
+    [`finalTimes.${currentUser.uid}`]: { start: shift.startTime, end: shift.endTime }
+  });
+  toast('Dienst bevestigd!', 'success');
+}
+
+function openCorrectShift(shiftId) {
+  const shift = allShifts.find(s=>s.id===shiftId);
+  if (!shift) return;
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Tijden doorgeven</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Doorgegeven: <strong style="color:var(--text)">${shift.startTime} – ${shift.endTime}</strong></p>
+    <div style="display:flex;gap:12px">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Starttijd</label>
+        <input type="time" class="form-input" id="corrStart" value="${shift.startTime}">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Eindtijd</label>
+        <input type="time" class="form-input" id="corrEnd" value="${shift.endTime}">
+      </div>
+    </div>
+    <button class="btn btn-accent btn-full" onclick="submitCorrection('${shiftId}')">Definitieve tijden doorgeven</button>
+  `);
+}
+
+async function submitCorrection(shiftId) {
+  const s = document.getElementById('corrStart').value;
+  const e = document.getElementById('corrEnd').value;
+  if (!s || !e) { toast('Vul beide tijden in', 'error'); return; }
+  const sq = roundQuarter(...s.split(':').map(Number));
+  const eq = roundQuarter(...e.split(':').map(Number));
+  const startR = `${String(sq.h).padStart(2,'0')}:${String(sq.m).padStart(2,'0')}`;
+  const endR   = `${String(eq.h).padStart(2,'0')}:${String(eq.m).padStart(2,'0')}`;
+  const { db, doc, updateDoc } = window._f;
+  await updateDoc(doc(db,'shifts',shiftId), {
+    [`workerConfirmations.${currentUser.uid}`]: 'confirmed',
+    [`finalTimes.${currentUser.uid}`]: { start: startR, end: endR }
+  });
+  closeModal();
+  toast('Tijden doorgegeven!', 'success');
+}
+
+// ── CALENDAR ─────────────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = `${MONTHS_NL[calMonth]} ${calYear}`;
+  const grid = document.getElementById('calGrid');
+  const today = new Date();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  // Day name headers
+  let html = DAYS_NL.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+
+  // Empty cells before first day
+  for (let i=0; i<firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let d=1; d<=daysInMonth; d++) {
+    const dt = new Date(calYear, calMonth, d);
+    const key = dateKey(dt);
+    const isToday = dateKey(today) === key;
+    const isSelected = selectedCalDay === key;
+
+    // Check if has shift for current user (or any, if general tab)
+    const dayShifts = allShifts.filter(s => {
+      const sd = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+      if (dateKey(sd) !== key) return false;
+      return currentRosterTab === 'all' ? true : s.workers?.includes(currentUser.uid);
+    });
+    const hasShift = dayShifts.length > 0;
+
+    // Check blocked
+    const blocked = allAvailability.some(a => {
+      const ad = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+      return dateKey(ad) === key && a.uid === currentUser.uid;
+    });
+
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (hasShift) cls += ' has-shift';
+    if (blocked && !isToday) cls += ' blocked';
+    if (isSelected && !isToday) cls += ' selected';
+
+    html += `<div class="${cls}" onclick="selectCalDay('${key}')" style="${isSelected&&!isToday?'background:var(--surface3);outline:2px solid var(--accent)':''}">${d}</div>`;
+  }
+  grid.innerHTML = html;
+  if (selectedCalDay) renderDayShifts(selectedCalDay);
+}
+function calNav(dir) { calMonth += dir; if(calMonth>11){calMonth=0;calYear++;} if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function selectCalDay(key) { selectedCalDay=key; renderCalendar(); renderDayShifts(key); }
+
+function renderDayShifts(key) {
+  const [y,m,d] = key.split('-').map(Number);
+  const dt = new Date(y,m-1,d);
+  document.getElementById('shiftDayTitle').textContent = fmtDate(dt);
+
+  const dayShifts = allShifts.filter(s => {
+    const sd = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+    if (dateKey(sd) !== key) return false;
+    return currentRosterTab === 'all' ? true : s.workers?.includes(currentUser.uid);
+  });
+
+  const container = document.getElementById('shiftDayList');
+  if (!dayShifts.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="icon">📅</div><p>Geen diensten op deze dag</p></div>`;
+    return;
+  }
+
+  container.innerHTML = dayShifts.map(shift => {
+    const workers = (shift.workers||[]).map(uid => {
+      const isMe = uid === currentUser.uid;
+      const wage = getUserWage(uid);
+      const conf = shift.workerConfirmations?.[uid];
+      const ft = shift.finalTimes?.[uid];
+      const start = ft?.start || shift.startTime;
+      const end = ft?.end || shift.endTime;
+      const pay = calcPay(start, end, wage);
+      return `<div class="roster-row">
+        <div class="roster-row-time">${start} – ${end}</div>
+        <div class="roster-row-name ${isMe?'':''}">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="person-avatar" style="${isMe?'background:var(--accent);color:#1a1000':''}">${getInitials(getUserName(uid))}</div>
+            <span style="${isMe?'font-weight:700':''}">${getUserName(uid)}${isMe?' (jij)':''}</span>
+          </div>
+        </div>
+        ${currentUser.role==='admin' ? `<div class="roster-row-pay">${fmtMoney(pay)}</div>` : ''}
+        <span class="badge ${conf==='approved'?'badge-green':conf==='confirmed'?'badge-yellow':'badge-gray'}" style="font-size:10px">${conf==='approved'?'✓':conf==='confirmed'?'…':'⏳'}</span>
+      </div>`;
+    }).join('');
+
+    // Show blocked employees for admins
+    const blockedOnDay = currentUser.role==='admin' ? getBlockedUsersOnDate(key).filter(b=>!shift.workers?.includes(b.uid)) : [];
+    const blockedHtml = blockedOnDay.length ? `<div style="padding:8px 14px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">Niet beschikbaar</div>
+      ${blockedOnDay.map(b=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div class="person-avatar" style="background:var(--danger);opacity:0.7;width:24px;height:24px;font-size:9px">${getInitials(b.name)}</div>
+        <span style="font-size:12px;color:var(--muted)">${b.name}${b.note?` — ${b.note}`:''}</span>
+      </div>`).join('')}
+    </div>` : '';
+
+    return `<div class="card" style="padding:12px 0;overflow:hidden">
+      <div style="padding:0 14px 10px;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--muted)">Dienst</div>
+        <div style="font-family:var(--font-head);font-weight:800;font-size:18px;color:var(--accent)">${shift.startTime} – ${shift.endTime}</div>
+      </div>
+      ${workers}
+      ${blockedHtml}
+      ${currentUser.role==='admin' ? `<div style="padding:10px 14px 0;display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="openEditShift('${shift.id}')">✏ Bewerken</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteShift('${shift.id}')">🗑 Verwijderen</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function switchRosterTab(tab, btn) {
+  currentRosterTab = tab;
+  document.querySelectorAll('#view-roster .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCalendar();
+  if (selectedCalDay) renderDayShifts(selectedCalDay);
+}
+
+// ── AVAILABILITY ─────────────────────────────────────────────
+function renderAvailability() {
+  const list = document.getElementById('availList');
+  const myAvail = allAvailability.filter(a => a.uid === currentUser.uid);
+  if (!myAvail.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Geen blokkades ingevoerd. Je bent altijd beschikbaar!</p></div>`;
+    return;
+  }
+  const now = new Date();
+  const upcoming = myAvail.filter(a => { const d = a.date?.toDate ? a.date.toDate() : new Date(a.date); return d >= new Date(now.toDateString()); });
+  const past = myAvail.filter(a => { const d = a.date?.toDate ? a.date.toDate() : new Date(a.date); return d < new Date(now.toDateString()); });
+
+  const renderItems = (arr) => arr.map(a => {
+    const d = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+    return `<div class="avail-item">
+      <div style="font-size:22px">🚫</div>
+      <div class="avail-item-info">
+        <div class="avail-item-date">${fmtDate(d)}</div>
+        ${a.note ? `<div class="avail-item-note">${a.note}</div>` : ''}
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteAvail('${a.id}')">Verwijder</button>
+    </div>`;
+  }).join('');
+
+  list.innerHTML = (upcoming.length ? `<div class="card-title">Aankomend</div>${renderItems(upcoming)}` : '') +
+    (past.length ? `<div class="card-title" style="margin-top:16px">Verleden</div>${renderItems(past)}` : '');
+}
+
+function openAvailModal() {
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Niet beschikbaar</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Datum</label>
+      <input type="date" class="form-input" id="availDate" min="${new Date().toISOString().split('T')[0]}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reden (optioneel)</label>
+      <input type="text" class="form-input" id="availNote" placeholder="bijv. verjaardag, vakantie...">
+    </div>
+    <button class="btn btn-accent btn-full" onclick="saveAvail()">Opslaan</button>
+  `);
+}
+async function saveAvail() {
+  const dateVal = document.getElementById('availDate').value;
+  const note = document.getElementById('availNote').value;
+  if (!dateVal) { toast('Kies een datum','error'); return; }
+  const { db, collection, addDoc, Timestamp } = window._f;
+  const [y,m,d] = dateVal.split('-').map(Number);
+  await addDoc(collection(db,'availability'), {
+    uid: currentUser.uid, date: Timestamp.fromDate(new Date(y,m-1,d)),
+    note, createdAt: window._f.serverTimestamp()
+  });
+  closeModal(); toast('Beschikbaarheid opgeslagen!','success');
+}
+async function deleteAvail(id) {
+  const ok = await confirm2('Blokkade verwijderen','Weet je zeker dat je deze datum wilt verwijderen?','Verwijderen','btn-danger');
+  if (!ok) return;
+  const { db, doc, deleteDoc } = window._f;
+  await deleteDoc(doc(db,'availability',id));
+  toast('Verwijderd','success');
+}
+
+// ── ADMIN TABS ────────────────────────────────────────────────
+function switchAdminTab(tab, btn) {
+  currentAdminTab = tab;
+  document.querySelectorAll('#adminTabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAdminTab(tab);
+}
+function renderAdminTab(tab) {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const c = document.getElementById('adminContent');
+  if (tab==='roster')    renderAdminRoster(c);
+  if (tab==='employees') renderAdminEmployees(c);
+  if (tab==='payments')  renderAdminPayments(c);
+  if (tab==='messages')  renderAdminMessages(c);
+}
+
+// ADMIN: ROSTER
+function renderAdminRoster(c) {
+  const days = {};
+  allShifts.forEach(s => {
+    const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+    const key = dateKey(d);
+    if (!days[key]) days[key] = [];
+    days[key].push(s);
+  });
+  const sorted = Object.keys(days).sort();
+  if (!sorted.length) {
+    c.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Geen diensten gepland</p></div><button class="btn btn-accent btn-full" onclick="openAddShift()">+ Dienst toevoegen</button>`;
+    return;
+  }
+  const now = new Date();
+  const upcoming = sorted.filter(k => { const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d) >= new Date(now.toDateString()); });
+  const past = sorted.filter(k => { const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d) < new Date(now.toDateString()); });
+
+  function renderDay(key) {
+    const [y,m,d] = key.split('-').map(Number);
+    const dt = new Date(y,m-1,d);
+    return `<div class="roster-day">
+      <div class="roster-day-header">${fmtDate(dt)}</div>
+      ${days[key].map(shift => {
+        const workers = (shift.workers||[]).map(uid => {
+          const conf = shift.workerConfirmations?.[uid];
+          const ft = shift.finalTimes?.[uid];
+          const start = ft?.start || shift.startTime;
+          const end = ft?.end || shift.endTime;
+          const pay = calcPay(start, end, getUserWage(uid));
+          return `<div class="roster-row">
+            <div class="roster-row-time">${start}–${end}</div>
+            <div class="roster-row-name">${getUserName(uid)}</div>
+            <div class="roster-row-pay">${fmtMoney(pay)}</div>
+            ${conf === 'confirmed' ? `<button class="btn btn-success btn-sm" onclick="approveShift('${shift.id}','${uid}')">✓</button><button class="btn btn-danger btn-sm" onclick="openAdminCorrect('${shift.id}','${uid}')">✏</button>` : `<span class="badge badge-gray" style="font-size:10px">${conf==='approved'?'✓':conf||'…'}</span>`}
+          </div>`;
+        }).join('');
+        return `<div class="card" style="padding:10px 0;margin-bottom:8px;overflow:hidden">
+          <div style="padding:0 14px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+            <span style="font-family:var(--font-head);font-weight:700;color:var(--accent)">${shift.startTime} – ${shift.endTime}</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="openEditShift('${shift.id}')">✏</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteShift('${shift.id}')">🗑</button>
+            </div>
+          </div>
+          ${workers}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  c.innerHTML = `
+    <button class="btn btn-accent btn-full" style="margin-bottom:18px" onclick="openAddShift()">+ Dienst toevoegen</button>
+    ${upcoming.length ? upcoming.map(renderDay).join('') : ''}
+    ${past.length ? `<div class="card-title" style="margin-top:8px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">▾ Verleden (${past.length} dagen)</div><div style="display:none">${past.map(renderDay).join('')}</div>` : ''}
+  `;
+}
+
+function openAddShift() {
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowKey = dateKey(tomorrow);
+  const blocked = getBlockedUsersOnDate(tomorrowKey);
+
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Dienst toevoegen</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Datum</label>
+      <input type="date" class="form-input" id="shiftDate" value="${tomorrow.toISOString().split('T')[0]}" onchange="refreshWorkerList(this.value)">
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Starttijd</label>
+        <input type="time" class="form-input" id="shiftStart" value="10:00">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Eindtijd</label>
+        <input type="time" class="form-input" id="shiftEnd" value="14:00">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Medewerkers</label>
+      <div id="workerCheckboxes">
+        ${renderWorkerCheckboxes(tomorrowKey)}
+      </div>
+    </div>
+    <button class="btn btn-accent btn-full" onclick="saveNewShift()">Dienst opslaan</button>
+  `);
+}
+
+function renderWorkerCheckboxes(dayKey) {
+  const blocked = getBlockedUsersOnDate(dayKey);
+  const blockedUids = blocked.map(b=>b.uid);
+  return allUsers.filter(u=>u.role!=='admin').map(u=>{
+    const isBlocked = blockedUids.includes(u.uid);
+    const blockedNote = blocked.find(b=>b.uid===u.uid)?.note;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;cursor:pointer;margin-bottom:6px;${isBlocked?'border:1px solid rgba(224,85,85,0.3)':''}">
+      <input type="checkbox" value="${u.uid}" ${isBlocked?'disabled':''} style="width:16px;height:16px;accent-color:var(--accent)">
+      <div class="person-avatar" style="${isBlocked?'background:var(--danger);opacity:0.7':''}">${getInitials(u.name)}</div>
+      <span style="${isBlocked?'color:var(--muted)':''}">${u.name}</span>
+      ${isBlocked ? `<span class="badge badge-red" style="margin-left:auto;font-size:10px">🚫 Niet beschikbaar${blockedNote?': '+blockedNote:''}</span>` : `<span style="margin-left:auto;font-size:12px;color:var(--success)">${fmtMoney(u.wage||0)}/uur</span>`}
+    </label>`;
+  }).join('');
+}
+
+function refreshWorkerList(dateVal) {
+  if (!dateVal) return;
+  const [y,m,d] = dateVal.split('-').map(Number);
+  const key = dateKey(new Date(y,m-1,d));
+  const box = document.getElementById('workerCheckboxes');
+  if (box) box.innerHTML = renderWorkerCheckboxes(key);
+}
+
+async function saveNewShift() {
+  const dateVal = document.getElementById('shiftDate').value;
+  const start = document.getElementById('shiftStart').value;
+  const end   = document.getElementById('shiftEnd').value;
+  const checked = [...document.querySelectorAll('#workerCheckboxes input:checked')].map(i=>i.value);
+  if (!dateVal || !start || !end) { toast('Vul alle velden in','error'); return; }
+  if (!checked.length) { toast('Kies minstens één medewerker','error'); return; }
+  const [y,m,d] = dateVal.split('-').map(Number);
+  const sq = roundQuarter(...start.split(':').map(Number));
+  const eq = roundQuarter(...end.split(':').map(Number));
+  const startR = `${String(sq.h).padStart(2,'0')}:${String(sq.m).padStart(2,'0')}`;
+  const endR   = `${String(eq.h).padStart(2,'0')}:${String(eq.m).padStart(2,'0')}`;
+  const confirmations = {};
+  checked.forEach(uid => confirmations[uid] = 'pending');
+  const { db, collection, addDoc, Timestamp, serverTimestamp } = window._f;
+  await addDoc(collection(db,'shifts'), {
+    date: Timestamp.fromDate(new Date(y,m-1,d)),
+    startTime: startR, endTime: endR,
+    workers: checked, workerConfirmations: confirmations,
+    finalTimes: {}, createdBy: currentUser.uid, createdAt: serverTimestamp()
+  });
+  // Send notifications
+  for (const uid of checked) {
+    await sendNotification(uid, 'Nieuwe dienst', `Je hebt een nieuwe dienst op ${new Date(y,m-1,d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})} van ${startR}–${endR}.`);
+  }
+  closeModal(); toast('Dienst aangemaakt!','success');
+}
+
+function openEditShift(shiftId) {
+  const shift = allShifts.find(s=>s.id===shiftId);
+  if (!shift) return;
+  const date = shift.date?.toDate ? shift.date.toDate() : new Date(shift.date);
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Dienst bewerken</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Datum</label>
+      <input type="date" class="form-input" id="editDate" value="${dateKey(date)}">
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Starttijd</label>
+        <input type="time" class="form-input" id="editStart" value="${shift.startTime}">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Eindtijd</label>
+        <input type="time" class="form-input" id="editEnd" value="${shift.endTime}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Medewerkers</label>
+      <div id="editWorkerBoxes" style="display:flex;flex-direction:column;gap:8px">
+        ${allUsers.filter(u=>!u.isAdmin||u.role==='employee').map(u=>`
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;cursor:pointer">
+            <input type="checkbox" value="${u.uid}" ${shift.workers?.includes(u.uid)?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)">
+            <div class="person-avatar">${getInitials(u.name)}</div>
+            <span>${u.name}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+    <button class="btn btn-accent btn-full" onclick="saveEditShift('${shiftId}')">Opslaan</button>
+  `);
+}
+
+async function saveEditShift(shiftId) {
+  const dateVal = document.getElementById('editDate').value;
+  const start = document.getElementById('editStart').value;
+  const end   = document.getElementById('editEnd').value;
+  const checked = [...document.querySelectorAll('#editWorkerBoxes input:checked')].map(i=>i.value);
+  if (!dateVal || !start || !end || !checked.length) { toast('Vul alle velden in','error'); return; }
+  const [y,m,d] = dateVal.split('-').map(Number);
+  const sq = roundQuarter(...start.split(':').map(Number));
+  const eq = roundQuarter(...end.split(':').map(Number));
+  const startR = `${String(sq.h).padStart(2,'0')}:${String(sq.m).padStart(2,'0')}`;
+  const endR   = `${String(eq.h).padStart(2,'0')}:${String(eq.m).padStart(2,'0')}`;
+  const shift = allShifts.find(s=>s.id===shiftId);
+  const prevConf = shift?.workerConfirmations || {};
+  const newConf = {};
+  checked.forEach(uid => newConf[uid] = prevConf[uid] || 'pending');
+  const { db, doc, updateDoc, Timestamp } = window._f;
+  await updateDoc(doc(db,'shifts',shiftId), {
+    date: Timestamp.fromDate(new Date(y,m-1,d)),
+    startTime: startR, endTime: endR,
+    workers: checked, workerConfirmations: newConf
+  });
+  closeModal(); toast('Dienst bijgewerkt!','success');
+}
+
+async function deleteShift(shiftId) {
+  const ok = await confirm2('Dienst verwijderen','Weet je zeker dat je deze dienst wilt verwijderen?','Verwijderen','btn-danger');
+  if (!ok) return;
+  const { db, doc, deleteDoc } = window._f;
+  await deleteDoc(doc(db,'shifts',shiftId));
+  toast('Dienst verwijderd','success');
+}
+
+async function approveShift(shiftId, uid) {
+  const { db, doc, updateDoc } = window._f;
+  await updateDoc(doc(db,'shifts',shiftId), { [`workerConfirmations.${uid}`]: 'approved' });
+  await sendNotification(uid,'Dienst goedgekeurd',`Je tijden zijn goedgekeurd door de beheerder.`);
+  toast('Goedgekeurd!','success');
+}
+
+function openAdminCorrect(shiftId, uid) {
+  const shift = allShifts.find(s=>s.id===shiftId);
+  const ft = shift?.finalTimes?.[uid];
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Definitieve tijden — ${getUserName(uid)}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Doorgegeven: <strong style="color:var(--text)">${ft?.start||shift?.startTime} – ${ft?.end||shift?.endTime}</strong></p>
+    <div style="display:flex;gap:12px">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Definitief start</label>
+        <input type="time" class="form-input" id="adminCorrStart" value="${ft?.start||shift?.startTime}">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Definitief eind</label>
+        <input type="time" class="form-input" id="adminCorrEnd" value="${ft?.end||shift?.endTime}">
+      </div>
+    </div>
+    <button class="btn btn-accent btn-full" onclick="saveAdminCorrect('${shiftId}','${uid}')">Opslaan & goedkeuren</button>
+  `);
+}
+async function saveAdminCorrect(shiftId, uid) {
+  const s = document.getElementById('adminCorrStart').value;
+  const e = document.getElementById('adminCorrEnd').value;
+  const sq = roundQuarter(...s.split(':').map(Number));
+  const eq = roundQuarter(...e.split(':').map(Number));
+  const startR = `${String(sq.h).padStart(2,'0')}:${String(sq.m).padStart(2,'0')}`;
+  const endR   = `${String(eq.h).padStart(2,'0')}:${String(eq.m).padStart(2,'0')}`;
+  const { db, doc, updateDoc } = window._f;
+  await updateDoc(doc(db,'shifts',shiftId), {
+    [`workerConfirmations.${uid}`]: 'approved',
+    [`finalTimes.${uid}`]: { start: startR, end: endR }
+  });
+  await sendNotification(uid,'Tijden aangepast','Je definitieve tijden zijn vastgesteld door de beheerder.');
+  closeModal(); toast('Opgeslagen!','success');
+}
+
+// ADMIN: EMPLOYEES
+function renderAdminEmployees(c) {
+  const employees = allUsers.filter(u=>u.role!=='admin');
+  c.innerHTML = `
+    <button class="btn btn-accent btn-full" style="margin-bottom:18px" onclick="openAddEmployee()">+ Medewerker uitnodigen</button>
+    ${employees.length ? employees.map(u=>`
+      <div class="profile-card">
+        <div class="person-avatar" style="width:44px;height:44px;font-size:16px">${getInitials(u.name)}</div>
+        <div class="profile-info">
+          <div class="profile-name">${u.name}</div>
+          <div class="profile-role">${u.email||'—'}</div>
+          <div class="profile-wage">${fmtMoney(u.wage||0)} / uur</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openEditEmployee('${u.uid}')">✏ Bewerken</button>
+          <button class="btn btn-ghost btn-sm" onclick="makeAdmin('${u.uid}','${u.name}')">👑</button>
+        </div>
+      </div>
+    `).join('') : '<div class="empty-state"><div class="icon">👥</div><p>Geen medewerkers</p></div>'}
+  `;
+}
+function openAddEmployee() {
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Medewerker uitnodigen</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Naam</label>
+      <input type="text" class="form-input" id="newEmpName" placeholder="Volledige naam">
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-mailadres</label>
+      <input type="email" class="form-input" id="newEmpEmail" placeholder="naam@email.nl">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Uurtarief (€)</label>
+      <input type="number" class="form-input" id="newEmpWage" placeholder="12.50" step="0.01" min="0">
+    </div>
+    <button class="btn btn-accent btn-full" onclick="createInvite()">Uitnodigingslink genereren</button>
+    <div id="inviteResult" style="margin-top:16px;display:none"></div>
+  `);
+}
+async function createInvite() {
+  const name  = document.getElementById('newEmpName').value.trim();
+  const email = document.getElementById('newEmpEmail').value.trim();
+  const wage  = parseFloat(document.getElementById('newEmpWage').value) || 0;
+  if (!name || !email) { toast('Naam en e-mail zijn verplicht','error'); return; }
+  // Create invite doc in Firestore
+  const { db, collection, addDoc, serverTimestamp } = window._f;
+  const ref = await addDoc(collection(db,'invites'),{
+    name, email, wage, used: false, createdBy: currentUser.uid, createdAt: serverTimestamp()
+  });
+  const link = `${window.location.origin}/register.html?invite=${ref.id}`;
+  const res = document.getElementById('inviteResult');
+  res.style.display = 'block';
+  res.innerHTML = `
+    <div style="background:var(--success-dim);border:1px solid rgba(76,175,125,0.3);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:8px">✓ Uitnodigingslink aangemaakt</div>
+      <div style="font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:10px">${link}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-success btn-sm" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','success'))">Kopieer link</button>
+        <button class="btn btn-ghost btn-sm" onclick="sendInviteEmail('${email}','${name}','${link}')">📧 Verstuur email</button>
+      </div>
+    </div>`;
+}
+async function sendInviteEmail(email, name, link) {
+  try {
+    await emailjs.send(window._f.EMAILJS_SERVICE_ID, window._f.EMAILJS_TPL_INVITE, { to_email:email, to_name:name, invite_link:link, club_name:'MHV' });
+    toast('Uitnodiging verstuurd!','success');
+  } catch(e) { toast('Email versturen mislukt','error'); console.error(e); }
+}
+function openEditEmployee(uid) {
+  const u = allUsers.find(x=>x.uid===uid);
+  if (!u) return;
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Medewerker bewerken</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Naam</label>
+      <input type="text" class="form-input" id="editEmpName" value="${u.name||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Uurtarief (€)</label>
+      <input type="number" class="form-input" id="editEmpWage" value="${u.wage||0}" step="0.01" min="0">
+    </div>
+    <button class="btn btn-accent btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
+  `);
+}
+async function saveEmployee(uid) {
+  const name = document.getElementById('editEmpName').value.trim();
+  const wage = parseFloat(document.getElementById('editEmpWage').value) || 0;
+  if (!name) { toast('Naam is verplicht','error'); return; }
+  const { db, doc, updateDoc } = window._f;
+  await updateDoc(doc(db,'users',uid), { name, wage });
+  await loadAllUsers();
+  closeModal(); toast('Medewerker bijgewerkt!','success');
+}
+async function makeAdmin(uid, name) {
+  const ok = await confirm2(`Beheerder maken`, `Weet je zeker dat je ${name} beheerderrechten wilt geven?`, 'Bevestigen', 'btn-accent');
+  if (!ok) return;
+  const { db, doc, updateDoc } = window._f;
+  await updateDoc(doc(db,'users',uid), { role:'admin' });
+  await loadAllUsers();
+  toast(`${name} is nu beheerder`,'success');
+}
+
+// ADMIN: PAYMENTS
+function renderAdminPayments(c) {
+  const now = new Date();
+  const months = [];
+  for (let i=0; i<6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({ y: d.getFullYear(), m: d.getMonth(), label: `${MONTHS_NL[d.getMonth()]} ${d.getFullYear()}` });
+  }
+  const selectedM = window._payMonth || 0;
+  const { y, m } = months[selectedM];
+
+  const monthShifts = allShifts.filter(s => {
+    const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+    return d.getFullYear()===y && d.getMonth()===m;
+  });
+
+  const employees = allUsers.filter(u=>u.role!=='admin');
+  const payData = employees.map(u => {
+    const myShifts = monthShifts.filter(s=>s.workers?.includes(u.uid));
+    const totalHours = myShifts.reduce((sum,s) => {
+      const ft = s.finalTimes?.[u.uid];
+      const start = ft?.start || s.startTime;
+      const end   = ft?.end   || s.endTime;
+      return sum + calcHours(start, end);
+    }, 0);
+    const totalPay = totalHours * (u.wage||0);
+    const paid = myShifts.some(s=>s.paidFor?.[u.uid]);
+    return { ...u, totalHours, totalPay, paid, shifts: myShifts.length };
+  }).filter(u=>u.shifts>0);
+
+  const totalOut = payData.reduce((s,u)=>s+u.totalPay,0);
+
+  c.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Maand</label>
+      <select class="form-input" onchange="window._payMonth=parseInt(this.value);renderAdminTab('payments')">
+        ${months.map((m,i)=>`<option value="${i}" ${i===selectedM?'selected':''}>${m.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat-card"><div class="stat-num">${fmtMoney(totalOut)}</div><div class="stat-lbl">Totaal uit te betalen</div></div>
+      <div class="stat-card"><div class="stat-num">${payData.length}</div><div class="stat-lbl">Medewerkers actief</div></div>
+    </div>
+    ${payData.length ? payData.map(u=>`
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div class="person-avatar">${getInitials(u.name)}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:15px">${u.name}</div>
+            <div style="font-size:12px;color:var(--muted)">${u.shifts} dienst(en) · ${u.totalHours.toFixed(2)} uur · ${fmtMoney(u.wage||0)}/uur</div>
+          </div>
+          <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:${u.paid?'var(--success)':'var(--accent)'}">${fmtMoney(u.totalPay)}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          ${u.paid
+            ? `<span class="badge badge-green">✓ Uitbetaald</span>`
+            : `<button class="btn btn-success btn-sm" onclick="markPaid('${u.uid}','${months[selectedM].y}','${months[selectedM].m}','${u.name}','${u.totalPay.toFixed(2)}')">✓ Markeer uitbetaald</button>`}
+          <button class="btn btn-ghost btn-sm" onclick="showPayDetail('${u.uid}')">Details</button>
+        </div>
+      </div>
+    `).join('') : '<div class="empty-state"><div class="icon">💶</div><p>Geen gewerkte diensten deze maand</p></div>'}
+  `;
+}
+
+async function markPaid(uid, year, month, name, amount) {
+  const ok = await confirm2('Uitbetaling registreren',`Markeer ${name} als uitbetaald voor ${fmtMoney(amount)}?`,'Bevestigen','btn-success');
+  if (!ok) return;
+  const { db, collection, addDoc, serverTimestamp } = window._f;
+  // Mark all shifts that month as paid for this user
+  const y = parseInt(year); const m = parseInt(month);
+  const toMark = allShifts.filter(s => {
+    const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+    return d.getFullYear()===y && d.getMonth()===m && s.workers?.includes(uid);
+  });
+  const { doc, updateDoc } = window._f;
+  for (const s of toMark) await updateDoc(doc(db,'shifts',s.id), { [`paidFor.${uid}`]: true });
+  // Log payment
+  await addDoc(collection(db,'payments'), { uid, year:y, month:m, amount:parseFloat(amount), paidBy:currentUser.uid, paidAt:serverTimestamp() });
+  // Send notification
+  await sendNotification(uid,'Uitbetaling ontvangen',`Je hebt ${fmtMoney(amount)} ontvangen voor ${MONTHS_NL[m]} ${y}.`);
+  // Email
+  const u = allUsers.find(x=>x.uid===uid);
+  if (u?.email) {
+    try {
+      await emailjs.send(window._f.EMAILJS_SERVICE_ID, window._f.EMAILJS_TPL_PAYMENT, { to_email:u.email, to_name:u.name, amount: fmtMoney(amount), month:`${MONTHS_NL[m]} ${y}` });
+    } catch(e) { console.warn('Email fout:',e); }
+  }
+  toast('Uitbetaling geregistreerd!','success');
+}
+
+// ADMIN: MESSAGES
+function renderAdminMessages(c) {
+  const employees = allUsers.filter(u=>u.role!=='admin');
+  c.innerHTML = `
+    <div class="card">
+      <div class="card-title">📣 Pop-up sturen</div>
+      <div class="form-group">
+        <label class="form-label">Ontvanger(s)</label>
+        <div id="msgRecipients" style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;cursor:pointer">
+            <input type="checkbox" id="msgAll" onchange="toggleAllRecipients(this)" style="width:16px;height:16px;accent-color:var(--accent)">
+            <span style="font-weight:600">Iedereen</span>
+          </label>
+          ${employees.map(u=>`
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;cursor:pointer">
+              <input type="checkbox" class="msg-recipient" value="${u.uid}" style="width:16px;height:16px;accent-color:var(--accent)">
+              <div class="person-avatar" style="width:28px;height:28px;font-size:11px">${getInitials(u.name)}</div>
+              <span>${u.name}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Titel</label>
+        <input type="text" class="form-input" id="msgTitle" placeholder="Bijv. Roosterwijziging">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bericht</label>
+        <textarea class="form-input" id="msgBody" rows="3" placeholder="Typ hier je bericht..."></textarea>
+      </div>
+      <button class="btn btn-accent btn-full" onclick="sendMessage()">Verstuur melding</button>
+    </div>
+  `;
+}
+function toggleAllRecipients(cb) {
+  document.querySelectorAll('.msg-recipient').forEach(r=>r.checked=cb.checked);
+}
+async function sendMessage() {
+  const recipients = [...document.querySelectorAll('.msg-recipient:checked')].map(i=>i.value);
+  const title = document.getElementById('msgTitle').value.trim();
+  const body  = document.getElementById('msgBody').value.trim();
+  if (!recipients.length) { toast('Kies minstens één ontvanger','error'); return; }
+  if (!title || !body) { toast('Titel en bericht zijn verplicht','error'); return; }
+  const { db, collection, addDoc, serverTimestamp } = window._f;
+  await addDoc(collection(db,'notifications'), {
+    to: recipients, title, body, from: currentUser.uid,
+    readBy: [], createdAt: serverTimestamp()
+  });
+  // Email to each
+  for (const uid of recipients) {
+    const u = allUsers.find(x=>x.uid===uid);
+    if (u?.email) {
+      try {
+        await emailjs.send(window._f.EMAILJS_SERVICE_ID, window._f.EMAILJS_TPL_NOTIF, { to_email:u.email, to_name:u.name, title, body });
+      } catch(e) { console.warn('Email fout:',e); }
+    }
+  }
+  document.getElementById('msgTitle').value='';
+  document.getElementById('msgBody').value='';
+  document.querySelectorAll('.msg-recipient').forEach(r=>r.checked=false);
+  document.getElementById('msgAll').checked=false;
+  toast(`Melding verstuurd naar ${recipients.length} persoon/personen!`,'success');
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────
+async function sendNotification(uid, title, body) {
+  const { db, collection, addDoc, serverTimestamp } = window._f;
+  await addDoc(collection(db,'notifications'), {
+    to: [uid], title, body, from: currentUser.uid,
+    readBy: [], createdAt: serverTimestamp()
+  });
+}
+function renderNotifPanel() {
+  const list = document.getElementById('notif-list');
+  if (!allNotifs.length) { list.innerHTML = '<div class="empty-state" style="padding:24px"><div class="icon">🔕</div><p>Geen meldingen</p></div>'; return; }
+  list.innerHTML = allNotifs.slice(0,20).map(n => {
+    const unread = !n.readBy?.includes(currentUser.uid);
+    const t = n.createdAt?.toDate ? n.createdAt.toDate() : new Date();
+    return `<div class="notif-item ${unread?'unread':''}" onclick="markNotifRead('${n.id}')">
+      <div class="notif-item-title">${n.title}</div>
+      <div class="notif-item-body">${n.body}</div>
+      <div class="notif-item-time">${t.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`;
+  }).join('');
+}
+function toggleNotifPanel() {
+  document.getElementById('notif-panel').classList.toggle('open');
+}
+async function markNotifRead(id) {
+  const { db, doc, updateDoc, arrayUnion } = window._f;
+  await updateDoc(doc(db,'notifications',id), { readBy: arrayUnion(currentUser.uid) });
+}
+async function markAllNotifsRead() {
+  const { db, doc, updateDoc, arrayUnion } = window._f;
+  const unread = allNotifs.filter(n=>!n.readBy?.includes(currentUser.uid));
+  for (const n of unread) await updateDoc(doc(db,'notifications',n.id), { readBy: arrayUnion(currentUser.uid) });
+}
+
+// ── PROFILE VIEW ─────────────────────────────────────────────
+function renderProfile() {
+  const c = document.getElementById('profileContent');
+  if (!currentUser) return;
+  c.innerHTML = `
+    <div class="card" style="text-align:center;padding:28px 20px">
+      <div class="person-avatar" style="width:72px;height:72px;font-size:26px;font-weight:700;margin:0 auto 14px">${getInitials(currentUser.name)}</div>
+      <div style="font-family:var(--font-head);font-size:22px;font-weight:800">${currentUser.name}</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:4px">${currentUser.email}</div>
+      <div style="margin-top:8px"><span class="badge ${currentUser.role==='admin'?'badge-yellow':'badge-blue'}">${currentUser.role==='admin'?'Beheerder':'Medewerker'}</span></div>
+      ${currentUser.role!=='admin' ? `<div style="font-size:22px;font-weight:800;color:var(--success);font-family:var(--font-head);margin-top:12px">${fmtMoney(currentUser.wage||0)} <span style="font-size:14px;font-weight:400;color:var(--muted)">/ uur</span></div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔐 Wachtwoord wijzigen</div>
+      <div class="form-group">
+        <label class="form-label">Huidig wachtwoord</label>
+        <input type="password" class="form-input" id="pwCurrent" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nieuw wachtwoord</label>
+        <input type="password" class="form-input" id="pwNew" placeholder="Minimaal 6 tekens">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Herhaal nieuw wachtwoord</label>
+        <input type="password" class="form-input" id="pwNew2" placeholder="••••••••">
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="changePassword()">Wachtwoord wijzigen</button>
+    </div>
+
+    <button class="btn btn-danger btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
+    <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:16px">MHVwork v1.0 · MHV 1931</p>
+  `;
+}
+async function changePassword() {
+  const cur  = document.getElementById('pwCurrent').value;
+  const nw   = document.getElementById('pwNew').value;
+  const nw2  = document.getElementById('pwNew2').value;
+  if (!cur || !nw || !nw2) { toast('Vul alle velden in','error'); return; }
+  if (nw !== nw2) { toast('Nieuwe wachtwoorden komen niet overeen','error'); return; }
+  if (nw.length < 6) { toast('Wachtwoord moet minimaal 6 tekens zijn','error'); return; }
+  try {
+    const { auth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } = window._f;
+    const cred = EmailAuthProvider.credential(auth.currentUser.email, cur);
+    await reauthenticateWithCredential(auth.currentUser, cred);
+    await updatePassword(auth.currentUser, nw);
+    toast('Wachtwoord gewijzigd!','success');
+    document.getElementById('pwCurrent').value='';
+    document.getElementById('pwNew').value='';
+    document.getElementById('pwNew2').value='';
+  } catch(e) {
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') toast('Huidig wachtwoord klopt niet','error');
+    else toast('Er ging iets mis','error');
+  }
+}
+async function doLogout() {
+  const ok = await confirm2('Uitloggen','Weet je zeker dat je wilt uitloggen?','Uitloggen','btn-danger');
+  if (!ok) return;
+  await window._f.signOut(window._f.auth);
+  window.location.href = 'index.html';
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────
+function showModal(html) {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-overlay open" id="activeModal" onclick="handleModalClick(event)"><div class="modal-box">${html}</div></div>`;
+}
+function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+function handleModalClick(e) { if (e.target.id==='activeModal') closeModal(); }
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notif-panel');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && !document.getElementById('notifBtn').contains(e.target))
+    panel.classList.remove('open');
+});
+
+// ── PAY DETAIL MODAL ──────────────────────────────────────────
+function showPayDetail(uid) {
+  const u = allUsers.find(x=>x.uid===uid);
+  if (!u) return;
+  const now = new Date();
+  const months = [];
+  for (let i=0;i<6;i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({ y:d.getFullYear(), m:d.getMonth(), label:`${MONTHS_NL[d.getMonth()]} ${d.getFullYear()}` });
+  }
+  const { y, m } = months[window._payMonth||0];
+  const monthShifts = allShifts.filter(s => {
+    const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+    return d.getFullYear()===y && d.getMonth()===m && s.workers?.includes(uid);
+  });
+
+  const rows = monthShifts.map(s => {
+    const ft = s.finalTimes?.[uid];
+    const start = ft?.start || s.startTime;
+    const end   = ft?.end   || s.endTime;
+    const hours = calcHours(start, end);
+    const pay   = hours * (u.wage||0);
+    const date  = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+    const conf  = s.workerConfirmations?.[uid];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">${fmtDate(date)}</div>
+        <div style="font-size:12px;color:var(--muted)">${start} – ${end} · ${hours.toFixed(2)} uur</div>
+      </div>
+      <span class="badge ${conf==='approved'?'badge-green':conf==='confirmed'?'badge-yellow':'badge-gray'}">${conf==='approved'?'Goedgekeurd':conf==='confirmed'?'In beoordeling':'Gepland'}</span>
+      <div style="font-weight:700;color:var(--success);min-width:60px;text-align:right">${fmtMoney(pay)}</div>
+    </div>`;
+  }).join('');
+
+  const total = monthShifts.reduce((sum,s) => {
+    const ft = s.finalTimes?.[uid];
+    return sum + calcPay(ft?.start||s.startTime, ft?.end||s.endTime, u.wage||0);
+  },0);
+
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Details — ${u.name}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${months[window._payMonth||0].label} · ${fmtMoney(u.wage||0)}/uur</div>
+    ${monthShifts.length ? rows : '<div class="empty-state" style="padding:20px 0"><p>Geen diensten deze maand</p></div>'}
+    ${monthShifts.length ? `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:4px">
+      <span style="font-weight:700">Totaal</span>
+      <span style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--accent)">${fmtMoney(total)}</span>
+    </div>` : ''}
+  `);
+}
+
+// ── AVAILABILITY ADMIN VIEW (in roster) ───────────────────────
+function getBlockedUsersOnDate(dateKey_) {
+  return allAvailability
+    .filter(a => { const d = a.date?.toDate?a.date.toDate():new Date(a.date); return dateKey(d)===dateKey_; })
+    .map(a => ({ uid:a.uid, name:getUserName(a.uid), note:a.note||'' }));
+}
+</script>
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  window.addEventListener('mhv:ready', () => {
+    if (window._f?.EMAILJS_PUBLIC_KEY) emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
+  });
+</script>
+</body>
+</html>

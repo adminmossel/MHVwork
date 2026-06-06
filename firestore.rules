@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is the user logged in?
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: is the user an admin?
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper: is this the user's own document?
+    function isOwn(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    // USERS
+    match /users/{uid} {
+      // Anyone logged in can read user profiles (needed for showing colleagues)
+      allow read: if isAuth();
+      // Only the user themselves can write their own doc (name changes etc)
+      // Admins can write any user doc (wage, role)
+      allow write: if isOwn(uid) || isAdmin();
+    }
+
+    // SHIFTS
+    match /shifts/{shiftId} {
+      // All logged-in users can read shifts
+      allow read: if isAuth();
+      // Only admins can create/delete shifts
+      allow create, delete: if isAdmin();
+      // Updates: admins can update anything; employees can only update their own confirmations/finalTimes
+      allow update: if isAdmin() ||
+        (isAuth() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['workerConfirmations', 'finalTimes']));
+    }
+
+    // AVAILABILITY
+    match /availability/{docId} {
+      // All logged-in users can read (admins need to see everyone's)
+      allow read: if isAuth();
+      // Employees can only create/delete their own
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuth() && resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{docId} {
+      // Users can read notifications addressed to them; admins can read all
+      allow read: if isAuth() &&
+        (resource.data.to.hasAny([request.auth.uid]) || isAdmin());
+      // Only admins can create notifications
+      allow create: if isAdmin();
+      // Users can update readBy field on their own notifications
+      allow update: if isAuth() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
+      allow delete: if isAdmin();
+    }
+
+    // INVITES
+    match /invites/{inviteId} {
+      // Anyone can read an invite (needed for registration page, before login)
+      allow read: if true;
+      // Only admins can create invites
+      allow create: if isAdmin();
+      // The invite can be marked as used during registration (unauthenticated)
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // PAYMENTS
+    match /payments/{docId} {
+      allow read: if isAuth() &&
+        (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+  }
+}
