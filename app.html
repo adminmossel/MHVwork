@@ -18,19 +18,19 @@ import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, a
   updateDoc, deleteDoc, onSnapshot, orderBy, Timestamp, serverTimestamp, writeBatch, arrayUnion }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "JOUW_API_KEY",
-  authDomain: "JOUW_PROJECT.firebaseapp.com",
-  projectId: "JOUW_PROJECT_ID",
-  storageBucket: "JOUW_PROJECT.appspot.com",
-  messagingSenderId: "JOUW_SENDER_ID",
-  appId: "JOUW_APP_ID"
-};
-const EMAILJS_PUBLIC_KEY = "JOUW_EMAILJS_PUBLIC_KEY";
-const EMAILJS_SERVICE_ID = "JOUW_SERVICE_ID";
-const EMAILJS_TPL_INVITE = "template_invite";
-const EMAILJS_TPL_NOTIF  = "template_notif";
-const EMAILJS_TPL_PAYMENT= "template_notif";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
+    authDomain: "mhvwork-2376d.firebaseapp.com",
+    projectId: "mhvwork-2376d",
+    storageBucket: "mhvwork-2376d.firebasestorage.app",
+    messagingSenderId: "292563349134",
+    appId: "1:292563349134:web:6897c6e23536baf56ba3df"
+  };
+  const EMAILJS_PUBLIC_KEY  = "Z3mEA1NvfsMY2HtKX";
+  const EMAILJS_SERVICE_ID  = "service_ejkc0fh";
+  const EMAILJS_TPL_INVITE  = "template_hu9i9uo";
+  const EMAILJS_TPL_NOTIF   = "template_bnql805";
+  const EMAILJS_TPL_PAYMENT = "template_bnql805";
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
