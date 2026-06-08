@@ -18,19 +18,19 @@ import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, a
   updateDoc, deleteDoc, onSnapshot, orderBy, Timestamp, serverTimestamp, writeBatch, arrayUnion }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
-    authDomain: "mhvwork-2376d.firebaseapp.com",
-    projectId: "mhvwork-2376d",
-    storageBucket: "mhvwork-2376d.firebasestorage.app",
-    messagingSenderId: "292563349134",
-    appId: "1:292563349134:web:6897c6e23536baf56ba3df"
-  };
-  const EMAILJS_PUBLIC_KEY  = "Z3mEA1NvfsMY2HtKX";
-  const EMAILJS_SERVICE_ID  = "service_ejkc0fh";
-  const EMAILJS_TPL_INVITE  = "template_hu9i9uo";
-  const EMAILJS_TPL_NOTIF   = "template_bnql805";
-  const EMAILJS_TPL_PAYMENT = "template_bnql805";
+const firebaseConfig = {
+  apiKey: "JOUW_API_KEY",
+  authDomain: "JOUW_PROJECT.firebaseapp.com",
+  projectId: "JOUW_PROJECT_ID",
+  storageBucket: "JOUW_PROJECT.appspot.com",
+  messagingSenderId: "JOUW_SENDER_ID",
+  appId: "JOUW_APP_ID"
+};
+const EMAILJS_PUBLIC_KEY = "JOUW_EMAILJS_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID = "JOUW_SERVICE_ID";
+const EMAILJS_TPL_INVITE = "template_invite";
+const EMAILJS_TPL_NOTIF  = "template_notif";
+const EMAILJS_TPL_PAYMENT= "template_notif";
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -64,45 +64,34 @@ onAuthStateChanged(auth, async (user) => {
    Geel #F5C800 · Blauw #1D3FBB · Donker #1C1C1E
 ═══════════════════════════════════════════ */
 :root {
-  /* MHV Brand */
   --mhv-yellow: #F5C800;
   --mhv-blue:   #1D3FBB;
   --mhv-yellow-dim: rgba(245,200,0,0.12);
   --mhv-blue-dim:   rgba(29,63,187,0.15);
-
-  /* Apple macOS dark */
-  --bg:        #000000;
-  --bg2:       #1C1C1E;
-  --bg3:       #2C2C2E;
-  --bg4:       #3A3A3C;
-  --surface:   rgba(28,28,30,0.95);
-  --surface2:  rgba(44,44,46,0.8);
-  --surface3:  rgba(58,58,60,0.6);
-  --glass:     rgba(255,255,255,0.05);
-  --glass2:    rgba(255,255,255,0.08);
-
-  /* Text */
-  --text:      #FFFFFF;
-  --text2:     rgba(255,255,255,0.7);
-  --text3:     rgba(255,255,255,0.4);
-  --text4:     rgba(255,255,255,0.25);
-
-  /* Semantic */
-  --green:     #30D158;
-  --green-dim: rgba(48,209,88,0.12);
-  --red:       #FF453A;
-  --red-dim:   rgba(255,69,58,0.12);
-  --orange:    #FF9F0A;
-  --orange-dim:rgba(255,159,10,0.12);
-  --separator: rgba(255,255,255,0.08);
-
-  /* Layout */
-  --nav-h:    52px;
-  --tab-h:    72px;
-  --radius:   14px;
-  --radius-sm:10px;
-  --radius-lg:20px;
-  --font:     'Outfit', -apple-system, sans-serif;
+  --bg:#000; --bg2:#1C1C1E; --bg3:#2C2C2E; --bg4:#3A3A3C;
+  --glass:rgba(255,255,255,0.05); --glass2:rgba(255,255,255,0.08);
+  --text:#FFF; --text2:rgba(255,255,255,0.7); --text3:rgba(255,255,255,0.4); --text4:rgba(255,255,255,0.25);
+  --green:#30D158; --green-dim:rgba(48,209,88,0.12);
+  --red:#FF453A; --red-dim:rgba(255,69,58,0.12);
+  --orange:#FF9F0A; --orange-dim:rgba(255,159,10,0.12);
+  --separator:rgba(255,255,255,0.08);
+  --nav-h:52px; --tab-h:72px;
+  --radius:14px; --radius-sm:10px; --radius-lg:20px;
+  --font:'Outfit',-apple-system,sans-serif;
+}
+/* Light mode */
+@media(prefers-color-scheme:light){
+  :root {
+    --bg:#F2F2F7; --bg2:#FFFFFF; --bg3:#F2F2F7; --bg4:#E5E5EA;
+    --glass:rgba(0,0,0,0.03); --glass2:rgba(0,0,0,0.06);
+    --text:#000; --text2:rgba(0,0,0,0.6); --text3:rgba(0,0,0,0.4); --text4:rgba(0,0,0,0.2);
+    --separator:rgba(0,0,0,0.1);
+    --mhv-yellow-dim:rgba(245,200,0,0.15); --mhv-blue-dim:rgba(29,63,187,0.1);
+    --green-dim:rgba(48,209,88,0.1); --red-dim:rgba(255,69,58,0.1); --orange-dim:rgba(255,159,10,0.1);
+  }
+  #topbar { background:rgba(242,242,247,0.92); }
+  #tabbar { background:rgba(242,242,247,0.92); }
+  .notif-dot { border-color:var(--bg); }
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -118,10 +107,20 @@ input, select, textarea { font-family:var(--font); }
 input, textarea { -webkit-user-select:text; user-select:text; }
 
 /* ── LAYOUT ─── */
-#app { display:flex; flex-direction:column; height:100vh; max-width:430px; margin:0 auto; position:relative; overflow:hidden; }
-@media(min-width:430px){
-  body { background:#000; }
-  #app { border-left:1px solid var(--separator); border-right:1px solid var(--separator); }
+
+#app {
+  display:flex; flex-direction:column;
+  height:100dvh;
+  width:100%; position:relative; overflow:hidden;
+}
+@media(min-width:700px){
+  body { background:var(--bg3); display:flex; align-items:stretch; justify-content:center; }
+  #app { max-width:520px; box-shadow:0 0 0 1px var(--separator), 0 32px 80px rgba(0,0,0,0.4); }
+}
+@media(min-width:1100px){
+  #app { max-width:680px; }
+  .page-title { font-size:36px !important; }
+  .stats-grid { grid-template-columns:repeat(3,1fr) !important; }
 }
 
 /* ── TOPBAR ─── */
@@ -520,6 +519,27 @@ let unsubShifts, unsubNotifs, unsubAvail;
 
 // ── INIT ──────────────────────────────────────
 window.addEventListener('mhv:ready', async ()=>{
+  // Check for pending forgot-pw requests (stored in localStorage by login page)
+  if(U.role==='admin'){
+    const req = localStorage.getItem('pw_forgot_request');
+    if(req){
+      try{
+        const d = JSON.parse(req);
+        localStorage.removeItem('pw_forgot_request');
+        setTimeout(()=>{
+          modal(`<div class="modal-handle"></div>
+            <div class="modal-title">🔑 Wachtwoord vergeten verzoek</div>
+            <div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.2);border-radius:10px;padding:16px;margin-bottom:18px">
+              <div style="font-size:15px;font-weight:700;margin-bottom:4px">\${d.name}</div>
+              <div style="font-size:13px;color:var(--text3)">\${d.email}</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:4px">\${new Date(d.time).toLocaleString('nl-NL')}</div>
+            </div>
+            <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Ga naar Beheer → Medewerkers om een herstellink te sturen.</p>
+            <button class="btn btn-yellow btn-full" onclick="closeModal();nav('admin',document.getElementById('tab-admin'))">Ga naar Medewerkers</button>`);
+        }, 1500);
+      }catch(e){}
+    }
+  }
   U = window._user;
   document.getElementById('topLogo').src = LOGO;
   if (window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
@@ -1198,9 +1218,11 @@ function renderMedewerkers(c){
             <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(u.wage||0)}<span style="font-size:11px;color:var(--text3)">/u</span></div>
           </div>
         </div>
-        <div class="card-row" style="gap:8px">
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openEditEmployee('${u.uid}')">✏ Bewerken</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="makeAdmin('${u.uid}','${u.name}')">👑 Admin</button>
+        <div class="card-row" style="gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="openEditEmployee('${u.uid}')">✏ Bewerken</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="resetPwAdmin('${u.uid}','${u.name}','${u.email}')">🔑 Reset ww</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')">👑 Admin</button>
+          <button class="btn btn-red btn-sm" style="flex:1;min-width:80px" onclick="deleteEmployee('${u.uid}','${u.name}')">🗑 Verwijder</button>
         </div>
       </div>`).join('')}
     ${!emp.length?`<div class="empty"><div class="empty-icon">👥</div><p>Geen medewerkers</p></div>`:''}
@@ -1271,6 +1293,46 @@ async function makeAdmin(uid,name){
   const{db,doc,updateDoc}=window._f;
   await updateDoc(doc(db,'users',uid),{role:'admin'});
   await loadUsers(); toast(`${name} is nu admin`,'ok');
+}
+
+async function resetPwAdmin(uid,name,email){
+  const ok=await confirm2('Wachtwoord resetten',`Een herstelmail sturen naar ${name} (${email})?`,'Verstuur link','btn-yellow');
+  if(!ok)return;
+  // Create a reset invite in Firestore
+  const{db,collection,addDoc,serverTimestamp}=window._f;
+  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
+  const ref=await addDoc(collection(db,'pwresets'),{uid,email,name,used:false,createdAt:serverTimestamp()});
+  const link=`${base}/reset-pw.html?token=${ref.id}`;
+  // Send email
+  try{
+    await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
+      to_email:email, to_name:name,
+      title:'Wachtwoord resetten — MHVwork',
+      body:`Klik op de volgende link om je wachtwoord te resetten:\n${link}\n\nDeze link is eenmalig geldig.`
+    });
+    toast('Herstelmail verstuurd!','ok');
+  }catch(e){
+    // Fallback: show the link to admin
+    modal(`<div class="modal-handle"></div>
+      <div class="modal-title">Herstellink</div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Email versturen mislukt. Stuur deze link handmatig naar ${name}:</p>
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:14px">${link}</div>
+      <button class="btn btn-yellow btn-full" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">Kopieer link</button>`);
+  }
+}
+
+async function deleteEmployee(uid,name){
+  const ok=await confirm2('Medewerker verwijderen',`${name} permanent verwijderen? Dit kan niet ongedaan gemaakt worden.`,'Verwijderen');
+  if(!ok)return;
+  const{db,doc,deleteDoc}=window._f;
+  // Remove user doc (Firebase Auth account stays but can't login without Firestore doc)
+  await deleteDoc(doc(db,'users',uid));
+  // Remove their availability
+  const{collection,query,where,getDocs}=window._f;
+  const avSnap=await getDocs(window._f.query(collection(db,'availability'),where('uid','==',uid)));
+  for(const d of avSnap.docs) await deleteDoc(doc(db,'availability',d.id));
+  await loadUsers();
+  toast(`${name} verwijderd`,'ok');
 }
 
 // SHIFTS (admin)

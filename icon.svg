@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>MHVwork icon</title>
+  <defs>
+    <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1D3FBB"/>
+      <stop offset="100%" stop-color="#F5C800"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#000"/>
+  <text x="138" y="248" font-family="'Outfit','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="220" fill="#FFF" text-anchor="middle">M</text>
+  <text x="138" y="468" font-family="'Outfit','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="220" fill="#FFF" text-anchor="middle">V</text>
+  <text x="374" y="248" font-family="'Outfit','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="220" fill="#FFF" text-anchor="middle">H</text>
+  <text x="374" y="468" font-family="'Outfit','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="220" fill="url(#wg)" text-anchor="middle">W</text>
+</svg>

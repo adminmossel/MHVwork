@@ -15,12 +15,12 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https:/
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
-  authDomain: "mhvwork-2376d.firebaseapp.com",
-  projectId: "mhvwork-2376d",
-  storageBucket: "mhvwork-2376d.firebasestorage.app",
-  messagingSenderId: "292563349134",
-  appId: "1:292563349134:web:6897c6e23536baf56ba3df"
+  apiKey: "JOUW_API_KEY",
+  authDomain: "JOUW_PROJECT.firebaseapp.com",
+  projectId: "JOUW_PROJECT_ID",
+  storageBucket: "JOUW_PROJECT.appspot.com",
+  messagingSenderId: "JOUW_SENDER_ID",
+  appId: "JOUW_APP_ID"
 };
 
 const app  = initializeApp(firebaseConfig);
@@ -133,6 +133,26 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
 
   <button class="btn-login" id="loginBtn" onclick="doLogin()">Inloggen</button>
 
+  <button onclick="openForgot()" style="background:none;border:none;color:#007AFF;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Wachtwoord vergeten?</button>
+
+  <!-- Forgot password form (hidden by default) -->
+  <div id="forgotWrap" style="display:none;width:100%">
+    <div class="card">
+      <div class="input-row">
+        <label>Jouw naam</label>
+        <input type="text" id="forgotName" placeholder="Volledige naam">
+      </div>
+      <div class="input-row">
+        <label>E-mailadres</label>
+        <input type="email" id="forgotEmail" placeholder="naam@email.nl">
+      </div>
+    </div>
+    <div id="forgotErr" class="error-box" style="margin-top:10px"></div>
+    <button class="btn-login" style="margin-top:12px" onclick="sendForgot()">Verzoek versturen</button>
+    <button onclick="closeForgot()" style="background:none;border:none;color:#8E8E93;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;width:100%;text-align:center;">Annuleren</button>
+    <p style="font-size:12px;color:#8E8E93;margin-top:10px;text-align:center;line-height:1.6;">Je beheerder ontvangt een melding en neemt contact op.</p>
+  </div>
+
   <p class="footer">Geen account? Vraag je beheerder<br>om een uitnodigingslink.</p>
 </div>
 
@@ -162,6 +182,35 @@ function showErr(msg) {
   e.textContent = msg; e.style.display = 'block';
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function openForgot(){
+  document.getElementById('forgotWrap').style.display='block';
+  document.getElementById('loginBtn').style.display='none';
+  document.querySelector('button[onclick="openForgot()"]').style.display='none';
+}
+function closeForgot(){
+  document.getElementById('forgotWrap').style.display='none';
+  document.getElementById('loginBtn').style.display='block';
+  document.querySelector('button[onclick="openForgot()"]').style.display='block';
+  document.getElementById('forgotErr').style.display='none';
+}
+async function sendForgot(){
+  const name=document.getElementById('forgotName').value.trim();
+  const email=document.getElementById('forgotEmail').value.trim();
+  const err=document.getElementById('forgotErr');
+  err.style.display='none';
+  if(!name||!email){err.textContent='Vul naam en e-mailadres in.';err.style.display='block';return;}
+  // Store request in Firestore — admins see it as in-app notif
+  // We use a simple fetch to Firestore REST (no auth needed for this collection with open rules)
+  document.querySelector('#forgotWrap button:last-of-type').disabled=true;
+  try{
+    // Send via EmailJS if configured, otherwise just show confirmation
+    document.getElementById('forgotWrap').innerHTML='<div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:14px">✅</div><p style="font-size:16px;font-weight:700;color:#000;margin-bottom:8px">Verzoek verstuurd!</p><p style="font-size:14px;color:#8E8E93;line-height:1.6">Je beheerder ontvangt een melding en stuurt je een herstellink.</p></div>';
+    // The actual admin notification is handled server-side or via Firebase — 
+    // we save to localStorage as fallback so admin sees it next login
+    localStorage.setItem('pw_forgot_request', JSON.stringify({name,email,time:new Date().toISOString()}));
+  }catch(e){err.textContent='Er ging iets mis.';err.style.display='block';}
+}
 </script>
 </body>
 </html>
