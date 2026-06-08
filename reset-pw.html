@@ -121,8 +121,7 @@ async function doReset(){
   btn.disabled=true; btn.textContent='Bezig...';
   try{
     // Use Firebase REST API to send password reset email
-    const apiKey = document.querySelector('script[type="module"]') ? 'JOUW_API_KEY' : '';
-    const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw',{
+    const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=JOUW_API_KEY',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({requestType:'PASSWORD_RESET',email:window._resetEmail})

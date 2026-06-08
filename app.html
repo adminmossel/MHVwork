@@ -520,7 +520,15 @@ let unsubShifts, unsubNotifs, unsubAvail;
 
 // ── INIT ──────────────────────────────────────
 window.addEventListener('mhv:ready', async ()=>{
-  // Check for pending forgot-pw requests (stored in localStorage by login page)
+  U = window._user;
+  document.getElementById('topLogo').src = LOGO;
+  if (window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
+    emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
+  if (U.role==='admin') {
+    document.getElementById('tab-admin').style.display='flex';
+    document.getElementById('tab-avail-label').textContent='Beschikbaar';
+  }
+  // Check for pending forgot-pw requests
   if(U.role==='admin'){
     const req = localStorage.getItem('pw_forgot_request');
     if(req){
@@ -541,16 +549,6 @@ window.addEventListener('mhv:ready', async ()=>{
       }catch(e){}
     }
   }
-  U = window._user;
-  document.getElementById('topLogo').src = LOGO;
-  if (window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
-    emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
-
-  if (U.role==='admin') {
-    document.getElementById('tab-admin').style.display='flex';
-    document.getElementById('tab-avail-label').textContent='Beschikbaar';
-  }
-
   await loadUsers();
   subShifts(); subNotifs(); subAvail();
   render('home');
