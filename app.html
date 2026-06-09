@@ -2,6 +2,8 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MHVwork</title>
 <meta name="theme-color" content="#1c1c1e">
@@ -27,8 +29,8 @@ const firebaseConfig = {
   appId: "1:292563349134:web:6897c6e23536baf56ba3df"
 };
   
-const EMAILJS_PUBLIC_KEY = "Z3mEA1NvfsMY2HtKX";
-const EMAILJS_SERVICE_ID = "service_ejkc0fh";
+const EMAILJS_PUBLIC_KEY = "IUhBp9uzDvqwoZlls";
+const EMAILJS_SERVICE_ID = "service_ahm3hnp";
 const EMAILJS_TPL_INVITE = "template_hu9i9uo";
 const EMAILJS_TPL_NOTIF  = "template_bnql805";
 const EMAILJS_TPL_PAYMENT= "template_bnql805";
@@ -56,6 +58,8 @@ onAuthStateChanged(auth, async (user) => {
   _authHandled = true;
   window._user = { uid: user.uid, email: user.email, ...snap.data() };
   window.dispatchEvent(new Event("mhv:ready"));
+  // Vraag push toestemming na login
+  setTimeout(() => { if(window.requestPushPermission) window.requestPushPermission(); }, 2000);
 });
 </script>
 
@@ -1987,6 +1991,27 @@ document.addEventListener('click',e=>{
   if(p.classList.contains('open')&&!p.contains(e.target)&&!$('notifBtn').contains(e.target))
     p.classList.remove('open');
 });
+</script>
+
+<script>
+// Service Worker registratie voor Push Notificaties (PWA)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => {
+      window._swReg = reg;
+      console.log('MHVwork SW geregistreerd');
+    })
+    .catch(e => console.warn('SW registratie mislukt:', e));
+}
+
+// Vraag push toestemming als ingelogd — wordt aangeroepen vanuit app
+window.requestPushPermission = async function() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') return;
+  if (Notification.permission === 'denied') return;
+  const perm = await Notification.requestPermission();
+  console.log('Push toestemming:', perm);
+};
 </script>
 </body>
 </html>

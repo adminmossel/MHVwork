@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>MHVwork — Wachtwoord resetten</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -32,18 +34,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!snap.exists()) { showErrPage('Link niet gevonden of verlopen.'); return; }
     const d = snap.data();
     if (d.used) { showErrPage('Deze link is al gebruikt. Vraag een nieuwe aan bij de beheerder.'); return; }
-    // Check of token niet ouder dan 48 uur is
     if (d.createdAt) {
       const age = Date.now() - d.createdAt.toDate().getTime();
       if (age > 48 * 60 * 60 * 1000) {
-        await updateDoc(doc(db, 'pwresets', token), { used: true, expiredAt: serverTimestamp() });
+        await updateDoc(doc(db, 'pwresets', token), { used: true });
         showErrPage('Deze link is verlopen (48 uur). Vraag een nieuwe aan bij de beheerder.');
         return;
       }
     }
+    if (!d.tempPw) { showErrPage('Ongeldige resetlink (geen tijdelijk wachtwoord). Vraag een nieuwe aan.'); return; }
     window._resetToken = token;
     window._resetEmail = d.email;
     window._resetName  = d.name;
+    window._resetTempPw = d.tempPw;
     document.getElementById('greeting').textContent = 'Hoi ' + d.name + ',';
     document.getElementById('loader').style.display = 'none';
     document.getElementById('formWrap').style.display = 'block';
@@ -54,42 +57,35 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{min-height:100%;font-family:'Outfit',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{min-height:100%;font-family:'Outfit',-apple-system,sans-serif;}
 body{background:#F2F2F7;display:flex;align-items:center;justify-content:center;padding:24px;min-height:100vh;}
 @media(prefers-color-scheme:dark){
   body{background:#000;}
   .card{background:#1C1C1E!important;border-color:rgba(255,255,255,0.08)!important;}
-  .greeting,.card *{color:#FFF;}
+  .card *{color:#FFF;}
   .sub{color:rgba(255,255,255,0.4)!important;}
   input{background:#2C2C2E!important;color:#FFF!important;border-color:rgba(255,255,255,0.08)!important;}
-  input::placeholder{color:rgba(255,255,255,0.25)!important;}
   h1{color:#FFF!important;}
 }
 .wrap{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:24px;}
 .logo-block{display:flex;flex-direction:column;align-items:center;gap:12px;}
-.logo-block svg{width:72px;height:72px;border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,0.18);}
+.logo-block img{width:72px;height:72px;border-radius:18px;}
 h1{font-size:24px;font-weight:800;color:#000;letter-spacing:-0.5px;}
 .card{width:100%;background:#FFF;border-radius:18px;padding:24px 20px;box-shadow:0 2px 16px rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.06);}
 .greeting{font-size:22px;font-weight:800;letter-spacing:-0.4px;margin-bottom:6px;}
 .sub{font-size:14px;color:#8E8E93;line-height:1.6;margin-bottom:20px;}
 .form-group{margin-bottom:14px;}
 .lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8E8E93;margin-bottom:6px;}
-input[type=password]{
-  width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E5E5EA;
-  font-size:16px;font-family:'Outfit',sans-serif;outline:none;transition:border-color 0.2s;
-  background:#fff;color:#000;
-}
+input[type=password]{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E5E5EA;font-size:16px;font-family:'Outfit',sans-serif;outline:none;transition:border-color 0.2s;background:#fff;color:#000;}
 input[type=password]:focus{border-color:#1D3FBB;}
-.btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;transition:opacity 0.15s,transform 0.1s;margin-top:4px;}
+.btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;transition:opacity 0.15s;margin-top:4px;}
 .btn-blue{background:#1D3FBB;color:#fff;}
-.btn:active{opacity:0.8;transform:scale(0.98);}
 .btn:disabled{opacity:0.45;cursor:not-allowed;}
-.msg{display:none;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:500;margin-top:12px;line-height:1.5;}
+.msg{display:none;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:500;margin-top:12px;}
 .msg.err{background:rgba(255,69,58,0.1);color:#FF453A;border:1px solid rgba(255,69,58,0.2);}
 .msg.ok{background:rgba(48,209,88,0.1);color:#30D158;border:1px solid rgba(48,209,88,0.2);}
 .back{font-size:13px;color:#8E8E93;text-decoration:none;}
-.back:hover{color:#000;}
 .spin{width:28px;height:28px;border:3px solid #E5E5EA;border-top-color:#1D3FBB;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 10px;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loader{text-align:center;padding:8px 0;}
@@ -98,21 +94,7 @@ input[type=password]:focus{border-color:#1D3FBB;}
 <body>
 <div class="wrap">
   <div class="logo-block">
-    <!-- MHVwork icoon inline -->
-    <svg width="72" height="72" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="bgG" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1D3FBB"/><stop offset="100%" stop-color="#0A1F6B"/>
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" rx="110" fill="url(#bgG)"/>
-      <line x1="140" y1="100" x2="310" y2="370" stroke="#F5C800" stroke-width="34" stroke-linecap="round"/>
-      <path d="M 278 358 Q 340 395 370 370 Q 395 350 380 318" stroke="#F5C800" stroke-width="30" stroke-linecap="round" fill="none"/>
-      <circle cx="370" cy="148" r="95" fill="rgba(245,200,0,0.12)" stroke="#F5C800" stroke-width="12"/>
-      <line x1="370" y1="148" x2="370" y2="102" stroke="white" stroke-width="9" stroke-linecap="round"/>
-      <line x1="370" y1="148" x2="406" y2="148" stroke="#F5C800" stroke-width="9" stroke-linecap="round"/>
-      <circle cx="370" cy="148" r="8" fill="white"/>
-    </svg>
+    <img src="icon.svg" alt="MHVwork">
     <h1>MHVwork</h1>
   </div>
   <div class="card">
@@ -148,9 +130,8 @@ function showErrPage(msg){
 }
 function showMsg(txt,type){
   const m=document.getElementById('msg');
-  m.textContent=txt;m.className='msg '+type;m.style.display='block';
+  m.textContent=txt; m.className='msg '+type; m.style.display='block';
 }
-
 async function doReset(){
   const pw1=document.getElementById('pw1').value;
   const pw2=document.getElementById('pw2').value;
@@ -158,85 +139,36 @@ async function doReset(){
   if(!pw1||!pw2){showMsg('Vul beide velden in.','err');return;}
   if(pw1!==pw2){showMsg('Wachtwoorden komen niet overeen.','err');return;}
   if(pw1.length<6){showMsg('Minimaal 6 tekens vereist.','err');return;}
-  btn.disabled=true;btn.textContent='Bezig…';
-
+  btn.disabled=true; btn.textContent='Bezig…';
   try{
     const{auth,db,doc,updateDoc,serverTimestamp,signInWithEmailAndPassword,updatePassword}=window._rp;
-
-    // Stap 1: log in met het huidige (oude) wachtwoord is niet nodig —
-    // we gebruiken de tijdelijke "admin reset" flow:
-    // Maak een tijdelijk account-token via Firebase REST API met een custom password
-    // Maar omdat we geen Admin SDK hebben, gebruiken we de volgende aanpak:
-    // De admin heeft al het account aangemaakt. We gebruiken signInWithEmailAndPassword
-    // met een tijdelijk wachtwoord dat de admin heeft ingesteld in het pwresets document.
-
-    // Haal het tijdelijke wachtwoord op uit het reset document
-    const snap = await window._rp.getDoc(doc(db,'pwresets',window._resetToken));
-    const resetData = snap.data();
-
-    let userCredential = null;
-
-    // Als er een tijdelijk wachtwoord in het document zit, gebruik dat
-    if(resetData.tempPw){
-      try{
-        userCredential = await signInWithEmailAndPassword(auth, window._resetEmail, resetData.tempPw);
-      }catch(loginErr){
-        // Tijdelijk ww werkt niet meer (mogelijk al veranderd)
-        showMsg('Link is verlopen of al gebruikt. Vraag een nieuwe aan.','err');
-        btn.disabled=false;btn.textContent='Wachtwoord opslaan';
-        return;
-      }
-    } else {
-      // Fallback: geen tempPw, stuur Firebase herstel-email
-      const apiKey = "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw";
-      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({requestType:'PASSWORD_RESET',email:window._resetEmail})
-      });
-      const data = await res.json();
-      if(data.error){
-        showMsg('Fout: '+data.error.message,'err');
-        btn.disabled=false;btn.textContent='Wachtwoord opslaan';
-        return;
-      }
-      // Markeer token als gebruikt
-      await updateDoc(doc(db,'pwresets',window._resetToken),{used:true,usedAt:serverTimestamp()});
-      document.getElementById('formWrap').innerHTML=`
-        <div style="text-align:center;padding:12px 0">
-          <div style="font-size:48px;margin-bottom:16px">📧</div>
-          <div class="greeting" style="margin-bottom:8px">Check je inbox!</div>
-          <p class="sub">We hebben een herstelmail gestuurd naar <strong>${window._resetEmail}</strong>.<br>Klik op de link in die e-mail om je wachtwoord in te stellen.</p>
-          <a href="index.html" style="display:inline-block;margin-top:16px;font-size:14px;color:#1D3FBB;font-weight:600">← Terug naar inloggen</a>
-        </div>`;
+    // Log in met tijdelijk wachtwoord dat admin heeft aangemaakt
+    let cred;
+    try{
+      cred = await signInWithEmailAndPassword(auth, window._resetEmail, window._resetTempPw);
+    }catch(loginErr){
+      showMsg('Link is verlopen of al gebruikt. Vraag een nieuwe aan bij de beheerder.','err');
+      btn.disabled=false; btn.textContent='Wachtwoord opslaan';
       return;
     }
-
-    // Stap 2: stel het nieuwe wachtwoord in
-    await updatePassword(userCredential.user, pw1);
-
-    // Stap 3: markeer token als gebruikt, verwijder tempPw
-    await updateDoc(doc(db,'pwresets',window._resetToken),{
-      used:true,
-      usedAt:serverTimestamp(),
-      tempPw:null
-    });
-
+    // Stel nieuw wachtwoord in
+    await updatePassword(cred.user, pw1);
+    // Markeer token als gebruikt
+    await updateDoc(doc(db,'pwresets',window._resetToken),{used:true,usedAt:serverTimestamp(),tempPw:null});
+    // Toon succes
     document.getElementById('formWrap').innerHTML=`
       <div style="text-align:center;padding:12px 0">
         <div style="font-size:48px;margin-bottom:16px">✅</div>
         <div class="greeting" style="margin-bottom:8px">Klaar!</div>
-        <p class="sub">Je wachtwoord is succesvol ingesteld. Je kunt nu inloggen met je nieuwe wachtwoord.</p>
+        <p class="sub">Je wachtwoord is succesvol ingesteld.<br>Je kunt nu inloggen.</p>
         <a href="index.html" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1D3FBB;color:white;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">→ Inloggen</a>
       </div>`;
-
   }catch(e){
     console.error('Reset error:',e);
     let msg='Er ging iets mis. Probeer opnieuw.';
     if(e.code==='auth/weak-password') msg='Wachtwoord is te zwak. Kies minimaal 6 tekens.';
-    if(e.code==='auth/requires-recent-login') msg='Sessie verlopen. Vraag een nieuwe resetlink aan.';
     showMsg(msg,'err');
-    btn.disabled=false;btn.textContent='Wachtwoord opslaan';
+    btn.disabled=false; btn.textContent='Wachtwoord opslaan';
   }
 }
 </script>
