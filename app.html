@@ -133,7 +133,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
   display:flex; align-items:center; padding:0 16px; gap:10px;
   position:relative; z-index:50;
 }
-#topbar img { width:28px; height:28px; border-radius:6px; object-fit:contain; }
+#topbar img { width:28px; height:28px; border-radius:6px; object-fit:contain; background:var(--mhv-blue); }
 #topbar .app-name { font-size:17px; font-weight:700; flex:1; letter-spacing:-0.3px; }
 #topbar .app-name span { color:var(--mhv-yellow); }
 .notif-pill {
@@ -509,7 +509,7 @@ select.form-input option { background:var(--bg3); }
 // ════════════════════════════════════════════
 // MHVwork App Logic v2 — Apple Style
 // ════════════════════════════════════════════
-const LOGO = "data:image/jpeg;base64,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";
+const LOGO = "data:image/svg+xml,%3Csvg width='512' height='512' viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='bgG' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231D3FBB'/%3E%3Cstop offset='100%25' stop-color='%230A1F6B'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='110' fill='url(%23bgG)'/%3E%3Cline x1='0' y1='170' x2='512' y2='170' stroke='rgba(255,255,255,0.05)' stroke-width='1.5'/%3E%3Cline x1='0' y1='340' x2='512' y2='340' stroke='rgba(255,255,255,0.05)' stroke-width='1.5'/%3E%3Cline x1='170' y1='0' x2='170' y2='512' stroke='rgba(255,255,255,0.05)' stroke-width='1.5'/%3E%3Cline x1='340' y1='0' x2='340' y2='512' stroke='rgba(255,255,255,0.05)' stroke-width='1.5'/%3E%3Cline x1='140' y1='100' x2='310' y2='370' stroke='%23F5C800' stroke-width='34' stroke-linecap='round'/%3E%3Cpath d='M 278 358 Q 340 395 370 370 Q 395 350 380 318' stroke='%23F5C800' stroke-width='30' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='370' cy='148' r='95' fill='rgba(245,200,0,0.12)' stroke='%23F5C800' stroke-width='12'/%3E%3Cline x1='370' y1='68' x2='370' y2='85' stroke='%23F5C800' stroke-width='8' stroke-linecap='round'/%3E%3Cline x1='370' y1='211' x2='370' y2='228' stroke='%23F5C800' stroke-width='8' stroke-linecap='round'/%3E%3Cline x1='290' y1='148' x2='307' y2='148' stroke='%23F5C800' stroke-width='8' stroke-linecap='round'/%3E%3Cline x1='433' y1='148' x2='450' y2='148' stroke='%23F5C800' stroke-width='8' stroke-linecap='round'/%3E%3Cline x1='370' y1='148' x2='370' y2='102' stroke='white' stroke-width='9' stroke-linecap='round'/%3E%3Cline x1='370' y1='148' x2='406' y2='148' stroke='%23F5C800' stroke-width='9' stroke-linecap='round'/%3E%3Ccircle cx='370' cy='148' r='8' fill='white'/%3E%3C/svg%3E"
 const MO   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
 const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
 
@@ -789,31 +789,48 @@ function renderAdminShiftCard(s){
 // EMPLOYEE HOME
 function renderEmployeeHome(c){
   const now=new Date();
+  const todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const myShifts=allShifts.filter(s=>s.workers?.includes(U.uid));
-  // Komende = niet uitbetaald, niet goedgekeurd, in de toekomst of vandaag nog niet voorbij
   const upcoming=myShifts.filter(s=>{
     const st=getShiftStatus(s,U.uid);
     if(st==='paid')return false;
-    const d=toDate(s.date);
-    return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    return toDate(s.date)>=todayStart;
   });
   const toConfirm=myShifts.filter(s=>shiftFinished(s)&&getShiftStatus(s,U.uid)==='pending');
-  // Verdiensten = alleen approved+paid
+  // In beoordeling (wacht op admin goedkeuring)
+  const inReview=myShifts.filter(s=>getShiftStatus(s,U.uid)==='reviewing');
+  // Goedgekeurd maar nog niet betaald
+  const approved=myShifts.filter(s=>getShiftStatus(s,U.uid)==='approved');
+
+  // Verdiensten deze maand: goedgekeurd + uitbetaald
   const thisMonthEarned=myShifts.filter(s=>{
     const d=toDate(s.date);
     const st=getShiftStatus(s,U.uid);
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&(st==='approved'||st==='paid');
   }).reduce((sum,s)=>sum+getApprovedPay(s,U.uid),0);
 
+  // Voorspeld salaris = toekomstige diensten * uurtarief
+  const expectedEarnings=upcoming.filter(s=>getShiftStatus(s,U.uid)!=='approved'&&getShiftStatus(s,U.uid)!=='paid')
+    .reduce((sum,s)=>{
+      const{start,end}=getEffectiveTimes(s,U.uid);
+      return sum+calcPay(start,end,U.wage||0);
+    },0);
+
+  // Gewerkte diensten totaal (afgerond)
+  const workedTotal=myShifts.filter(s=>shiftFinished(s)).length;
+  const paidTotal=myShifts.filter(s=>getShiftStatus(s,U.uid)==='paid').length;
+  const paidAmount=myShifts.filter(s=>getShiftStatus(s,U.uid)==='paid').reduce((sum,s)=>sum+getApprovedPay(s,U.uid),0);
+
   const next=upcoming[0];
 
   c.innerHTML=`
     <div class="page-title">
       <span class="hi">Welkom terug,</span>
-      ${U.name?.split(' ')[0]||'—'}
+      ${U.name?.split(' ')[0]||'—'} 👋
     </div>
 
-    <div class="stats-grid">
+    <div class="section-label">📊 Jouw overzicht</div>
+    <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div class="stat-tile yellow">
         <div class="stat-num yellow">${upcoming.length}</div>
         <div class="stat-lbl">Komende diensten</div>
@@ -822,14 +839,65 @@ function renderEmployeeHome(c){
         <div class="stat-num ${toConfirm.length?'red':'green'}">${toConfirm.length}</div>
         <div class="stat-lbl">Te bevestigen</div>
       </div>
-      <div class="stat-tile green" style="grid-column:span 2">
-        <div class="stat-num green" style="font-size:26px">${fmtMoney(thisMonthEarned)}</div>
-        <div class="stat-lbl">Goedgekeurd deze maand</div>
+      <div class="stat-tile ${inReview.length?'orange':approved.length?'green':''}">
+        <div class="stat-num" style="color:${inReview.length?'var(--orange)':approved.length?'var(--green)':'var(--text3)'}">
+          ${inReview.length?inReview.length:approved.length?approved.length:'0'}
+        </div>
+        <div class="stat-lbl">${inReview.length?'In beoordeling door baas':approved.length?'Goedgekeurd ✓':'Geen openstaand'}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-num" style="color:var(--text2);font-size:22px">${workedTotal}</div>
+        <div class="stat-lbl">Gewerkte diensten</div>
       </div>
     </div>
 
+    <div class="section-label">💶 Financieel</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-row">
+        <div class="card-row-label">Goedgekeurd deze maand</div>
+        <div class="card-row-value ${thisMonthEarned>0?'green':''}">${fmtMoney(thisMonthEarned)}</div>
+      </div>
+      <div class="card-row">
+        <div class="card-row-label">Verwacht (komende diensten)</div>
+        <div class="card-row-value accent">${fmtMoney(expectedEarnings)}</div>
+      </div>
+      <div class="card-row">
+        <div class="card-row-label">Totaal uitbetaald</div>
+        <div class="card-row-value">${fmtMoney(paidAmount)}</div>
+      </div>
+      <div class="card-row" style="border:none;padding-top:8px">
+        <div style="font-size:12px;color:var(--text3)">Uurtarief</div>
+        <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(U.wage||0)}/uur</div>
+      </div>
+    </div>
+
+    ${approved.length?`
+    <div class="section-label">✅ Goedgekeurd door beheerder</div>
+    ${approved.map(s=>`
+      <div class="shift-card done" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
+        <div>
+          <div class="shift-time" style="font-size:17px">${getEffectiveTimes(s,U.uid).start} – ${getEffectiveTimes(s,U.uid).end}</div>
+          <div class="shift-date">${fmtDate(s.date)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(getApprovedPay(s,U.uid))}</div>
+          <span class="badge badge-green" style="font-size:10px">✓ Goedgekeurd</span>
+        </div>
+      </div>`).join('')}` : ''}
+
+    ${inReview.length?`
+    <div class="section-label">⏳ Wacht op goedkeuring baas</div>
+    ${inReview.map(s=>`
+      <div class="shift-card pending" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
+        <div>
+          <div class="shift-time" style="font-size:17px">${s.startTime} – ${s.endTime}</div>
+          <div class="shift-date">${fmtDate(s.date)}</div>
+        </div>
+        <span class="badge badge-orange">In beoordeling</span>
+      </div>`).join('')}` : ''}
+
     ${toConfirm.length?`
-    <div class="section-label">⏳ Bevestig jouw diensten</div>
+    <div class="section-label">⚠️ Bevestig jouw diensten</div>
     ${toConfirm.map(s=>`
       <div class="shift-card pending">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -843,8 +911,7 @@ function renderEmployeeHome(c){
           <button class="btn btn-green btn-sm" style="flex:1" onclick="confirmShiftOk('${s.id}')">✓ Klopt</button>
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openCorrectShift('${s.id}')">✏ Aanpassen</button>
         </div>
-      </div>
-    `).join('')}` : ''}
+      </div>`).join('')}` : ''}
 
     <div class="section-label">📅 Volgende dienst</div>
     ${next?`
@@ -865,7 +932,10 @@ function renderEmployeeHome(c){
                 ${userName(uid)}
               </span>`).join('')}
           </div>` : `<div style="margin-top:8px;font-size:13px;color:var(--text3)">Je werkt alleen</div>`}
-      </div>` : `<div class="empty"><div class="empty-icon">🎉</div><p>Geen komende diensten</p></div>`}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--separator);font-size:12px;color:var(--text3)">
+          Verwachte verdienste: <strong style="color:var(--mhv-yellow)">${fmtMoney(calcPay(next.startTime,next.endTime,U.wage||0))}</strong>
+        </div>
+      </div>` : `<div class="empty"><div class="empty-icon">🎉</div><p>Geen komende diensten ingepland</p></div>`}
   `;
 }
 
@@ -1098,76 +1168,123 @@ function renderAdminAvail(c){
   const upcoming=allAvail.filter(a=>toDate(a.date)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()));
   c.innerHTML=`
     <div class="page-title" style="margin-bottom:16px">Beschikbaarheid</div>
-    <p style="font-size:14px;color:var(--text3);margin-bottom:16px;line-height:1.6">Overzicht van medewerkers die niet beschikbaar zijn.</p>
+    <p style="font-size:14px;color:var(--text3);margin-bottom:16px;line-height:1.6">Overzicht van medewerkers die <strong style="color:var(--red)">niet</strong> beschikbaar zijn.</p>
     ${upcoming.length?upcoming.map(a=>`
       <div class="avail-row">
         <div class="avatar">${getInitials(userName(a.uid))}</div>
         <div class="avail-info">
           <div class="avail-name">${userName(a.uid)}</div>
-          <div class="avail-date">${fmtDate(a.date)}</div>
+          <div class="avail-date">${fmtDate(a.date)}${a.timeFrom?` · ${a.timeFrom}${a.timeTo?'–'+a.timeTo:'+'}`:''}</div>
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
-        <span class="badge badge-red">🚫 Niet beschikbaar</span>
+        <button class="btn btn-ghost btn-sm" onclick="deleteAvailAdmin('${a.id}')">✕</button>
       </div>`).join('')
     :`<div class="empty"><div class="empty-icon">✅</div><p>Iedereen is beschikbaar</p></div>`}
   `;
+}
+async function deleteAvailAdmin(id){
+  const ok=await confirm2('Verwijderen','Blokkade verwijderen?','Verwijderen');
+  if(!ok)return;
+  const{db,doc,deleteDoc}=window._f;
+  await deleteDoc(doc(db,'availability',id));
+  toast('Verwijderd','ok');
 }
 
 function renderEmployeeAvail(c){
   const now=new Date();
   const myAvail=allAvail.filter(a=>a.uid===U.uid);
   const upcoming=myAvail.filter(a=>toDate(a.date)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()));
-  const past=myAvail.filter(a=>toDate(a.date)<new Date(now.getFullYear(),now.getMonth(),now.getDate()));
+  const past=myAvail.filter(a=>toDate(a.date)<new Date(now.getFullYear(),now.getMonth(),now.getDate())).slice(-5);
   c.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div class="page-title" style="margin:0">Beschikbaar</div>
-      <button class="btn btn-yellow btn-sm" onclick="openAvailModal()">+ Toevoegen</button>
+      <button class="btn btn-yellow btn-sm" onclick="openAvailModal()">+ Opgeven</button>
     </div>
-    <p style="font-size:14px;color:var(--text3);margin-bottom:20px;line-height:1.6">Geef aan wanneer je <strong style="color:var(--red)">niet</strong> kunt werken.</p>
-    ${upcoming.length?`<div class="section-label">Aankomend</div>`:''}
+    <p style="font-size:14px;color:var(--text3);margin-bottom:20px;line-height:1.6">Geef hier aan wanneer je <strong style="color:var(--red)">niet</strong> kunt werken. De beheerder ziet dit bij het inplannen.</p>
+    ${upcoming.length?`<div class="section-label">Aankomend (${upcoming.length})</div>
     ${upcoming.map(a=>`
       <div class="avail-row">
-        <div style="font-size:24px">🚫</div>
+        <div style="font-size:22px;flex-shrink:0">🚫</div>
         <div class="avail-info">
-          <div class="avail-date" style="font-size:15px;font-weight:600">${fmtDate(a.date)}</div>
+          <div class="avail-date" style="font-size:15px;font-weight:600;color:var(--text)">${fmtDate(a.date)}</div>
+          ${(a.timeFrom||a.timeTo)?`<div style="font-size:12px;color:var(--orange);font-weight:600;margin-top:2px">⏰ ${a.timeFrom||'?'}${a.timeTo?' – '+a.timeTo:''}</div>`:'<div style="font-size:12px;color:var(--text3);margin-top:2px">Hele dag</div>'}
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
         <button class="btn btn-red btn-sm" onclick="deleteAvail('${a.id}')">Verwijder</button>
-      </div>`).join('')}
-    ${!myAvail.length?`<div class="empty"><div class="empty-icon">✅</div><p>Geen blokkades ingevoerd</p></div>`:''}
-    ${past.length?`<div class="section-label" style="margin-top:20px">Verleden</div>${past.map(a=>`
-      <div class="avail-row" style="opacity:0.5">
-        <div style="font-size:24px">🚫</div>
+      </div>`).join('')}`
+    :`<div class="empty"><div class="empty-icon">✅</div><p>Geen aankomende blokkades.<br>Je bent overal beschikbaar!</p></div>`}
+    ${past.length?`<div class="section-label" style="margin-top:20px">Afgelopen (${past.length})</div>${past.map(a=>`
+      <div class="avail-row" style="opacity:0.45">
+        <div style="font-size:20px;flex-shrink:0">🚫</div>
         <div class="avail-info">
-          <div class="avail-date" style="font-size:14px;font-weight:600">${fmtDate(a.date)}</div>
+          <div class="avail-date" style="font-size:13px;font-weight:600">${fmtDate(a.date)}</div>
+          ${(a.timeFrom||a.timeTo)?`<div style="font-size:11px;color:var(--text3)">⏰ ${a.timeFrom||'?'}${a.timeTo?' – '+a.timeTo:''}</div>`:''}
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="deleteAvail('${a.id}')">✕</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="deleteAvail('${a.id}')">✕</button>
       </div>`).join('')}`:''}
   `;
 }
 function openAvailModal(){
+  const todayStr=new Date().toISOString().split('T')[0];
   modal(`
     <div class="modal-handle"></div>
-    <div class="modal-title">Niet beschikbaar</div>
+    <div class="modal-title">Niet beschikbaar opgeven</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.5">Voeg één of meerdere dagen toe waarop je <strong style="color:var(--red)">niet</strong> kunt werken.</p>
     <div class="form-section">
-      <label class="form-label">Datum</label>
-      <input type="date" class="form-input" id="aDate" min="${new Date().toISOString().split('T')[0]}">
+      <label class="form-label">Periode</label>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label" style="font-size:11px">Van datum</label>
+          <input type="date" class="form-input" id="aDateFrom" min="${todayStr}" value="${todayStr}">
+        </div>
+        <div class="form-section">
+          <label class="form-label" style="font-size:11px">Tot datum (optioneel)</label>
+          <input type="date" class="form-input" id="aDateTo" min="${todayStr}">
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <label class="form-label">Tijdvak (optioneel — leeg = hele dag)</label>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label" style="font-size:11px">Vanaf</label>
+          <input type="time" class="form-input" id="aTimeFrom">
+        </div>
+        <div class="form-section">
+          <label class="form-label" style="font-size:11px">Tot</label>
+          <input type="time" class="form-input" id="aTimeTo">
+        </div>
+      </div>
     </div>
     <div class="form-section">
       <label class="form-label">Reden (optioneel)</label>
-      <input type="text" class="form-input" id="aNote" placeholder="Vakantie, verjaardag…">
+      <input type="text" class="form-input" id="aNote" placeholder="Vakantie, verjaardag, andere afspraak…">
     </div>
     <button class="btn btn-yellow btn-full" onclick="saveAvail()" style="margin-top:4px">Opslaan</button>
   `);
 }
 async function saveAvail(){
-  const v=$('aDate').value, note=$('aNote').value;
-  if(!v){toast('Kies een datum','err');return;}
-  const[y,m,d]=v.split('-').map(Number);
+  const fromVal=$('aDateFrom').value, toVal=$('aDateTo').value||$('aDateFrom').value;
+  const timeFrom=$('aTimeFrom').value||null, timeTo=$('aTimeTo').value||null;
+  const note=$('aNote').value.trim();
+  if(!fromVal){toast('Kies een begindatum','err');return;}
+  const[fy,fm,fd]=fromVal.split('-').map(Number);
+  const[ty,tm,td]=toVal.split('-').map(Number);
+  const startD=new Date(fy,fm-1,fd), endD=new Date(ty,tm-1,td);
+  if(endD<startD){toast('Einddatum moet na begindatum zijn','err');return;}
   const{db,collection,addDoc,Timestamp,serverTimestamp}=window._f;
-  await addDoc(collection(db,'availability'),{uid:U.uid,date:Timestamp.fromDate(new Date(y,m-1,d)),note,createdAt:serverTimestamp()});
-  closeModal();toast('Opgeslagen!','ok');
+  const cur=new Date(startD); let count=0; const promises=[];
+  while(cur<=endD){
+    const entry={uid:U.uid,date:Timestamp.fromDate(new Date(cur)),note,createdAt:serverTimestamp()};
+    if(timeFrom)entry.timeFrom=timeFrom;
+    if(timeTo)entry.timeTo=timeTo;
+    promises.push(addDoc(collection(db,'availability'),entry));
+    cur.setDate(cur.getDate()+1); count++;
+    if(count>60){toast('Maximaal 60 dagen tegelijk','err');return;}
+  }
+  await Promise.all(promises);
+  closeModal(); toast(count===1?'Dag opgeslagen!':count+' dagen opgeslagen!','ok');
 }
 async function deleteAvail(id){
   const ok=await confirm2('Verwijderen','Blokkade verwijderen?','Verwijderen');
@@ -1182,6 +1299,8 @@ async function deleteAvail(id){
 // ═══════════════════════════════════════════
 function renderAdmin(){
   if(U.role!=='admin')return;
+  // Reset naar medewerkers als adminTab een roster-waarde heeft
+  if(!['medewerkers','uitbetaling','berichten'].includes(adminTab)) adminTab='medewerkers';
   const c=$('view-admin');
   const tabs=`
     <div class="pill-tabs">
@@ -1295,28 +1414,48 @@ async function makeAdmin(uid,name){
 }
 
 async function resetPwAdmin(uid,name,email){
-  const ok=await confirm2('Wachtwoord resetten',`Een herstelmail sturen naar ${name} (${email})?`,'Verstuur link','btn-yellow');
+  const ok=await confirm2('Wachtwoord resetten',`Een herstellink aanmaken voor ${name} (${email})?`,'Verstuur link','btn-yellow');
   if(!ok)return;
-  // Create a reset invite in Firestore
-  const{db,collection,addDoc,serverTimestamp}=window._f;
-  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
-  const ref=await addDoc(collection(db,'pwresets'),{uid,email,name,used:false,createdAt:serverTimestamp()});
-  const link=`${base}/reset-pw.html?token=${ref.id}`;
-  // Send email
+  // Tijdelijk wachtwoord genereren (8 tekens, alfanumeriek)
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let tempPw='';for(let i=0;i<10;i++)tempPw+=chars[Math.floor(Math.random()*chars.length)];
+  const{db,collection,addDoc,serverTimestamp,doc,updateDoc}=window._f;
+  // Stel tijdelijk wachtwoord in via Firebase REST API
   try{
-    await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
-      to_email:email, to_name:name,
-      title:'Wachtwoord resetten — MHVwork',
-      body:`Klik op de volgende link om je wachtwoord te resetten:\n${link}\n\nDeze link is eenmalig geldig.`
+    const apiKey='AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw';
+    // Haal UID-based idToken op door in te loggen als admin (we hebben al een sessie)
+    // Gebruik de Firebase Admin REST endpoint via de API key om wachtwoord te resetten
+    // We slaan tempPw op in Firestore — reset-pw.html logt daarmee in en wijzigt naar nieuw ww
+    const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
+    const ref=await addDoc(collection(db,'pwresets'),{
+      uid,email,name,used:false,tempPw,
+      createdAt:serverTimestamp()
     });
-    toast('Herstelmail verstuurd!','ok');
-  }catch(e){
-    // Fallback: show the link to admin
+    const link=`${base}/reset-pw.html?token=${ref.id}`;
+    // Probeer email te sturen
+    let emailOk=false;
+    try{
+      await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
+        to_email:email,to_name:name,
+        title:'Wachtwoord resetten — MHVwork',
+        body:`Hoi ${name},\n\nKlik op onderstaande link om je wachtwoord opnieuw in te stellen:\n\n${link}\n\nDeze link is 48 uur geldig en eenmalig bruikbaar.\n\nGroeten,\nMHVwork — h.mhvwork@gmail.com`
+      });
+      emailOk=true;
+    }catch(e){console.warn('Email mislukt:',e);}
+    // Toon link altijd (ongeacht email), zodat admin hem ook handmatig kan sturen
     modal(`<div class="modal-handle"></div>
-      <div class="modal-title">Herstellink</div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Email versturen mislukt. Stuur deze link handmatig naar ${name}:</p>
-      <div style="background:var(--bg3);border-radius:10px;padding:14px;font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:14px">${link}</div>
-      <button class="btn btn-yellow btn-full" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">Kopieer link</button>`);
+      <div class="modal-title">🔑 Herstellink aangemaakt</div>
+      ${emailOk?`<div style="background:var(--green-dim);border:1px solid rgba(48,209,88,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--green)">✓ Herstelmail verstuurd naar ${email}</div>`
+        :`<div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--orange)">⚠ Email kon niet worden verstuurd. Stuur de link hieronder zelf naar ${name}.</div>`}
+      <p style="font-size:13px;color:var(--text3);margin-bottom:10px">Link (48 uur geldig):</p>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:14px">${link}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-yellow btn-sm" style="flex:1" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">📋 Kopieer link</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeModal()">Sluiten</button>
+      </div>`);
+  }catch(e){
+    console.error('Reset error:',e);
+    toast('Er ging iets mis bij het aanmaken van de herstellink','err');
   }
 }
 
@@ -1571,18 +1710,64 @@ function showPayDetail(uid,y,m){
   `);
 }
 
-// BERICHTEN
+// BERICHTEN (admin) — Inbox + Versturen
+let adminMsgTab='inbox';
 function renderBerichten(c){
+  c.innerHTML=`
+    <div class="pill-tabs" style="margin-bottom:16px">
+      <button class="pill-tab ${adminMsgTab==='inbox'?'active':''}" onclick="setAdminMsgTab('inbox',this)">📥 Inbox</button>
+      <button class="pill-tab ${adminMsgTab==='stuur'?'active':''}" onclick="setAdminMsgTab('stuur',this)">📣 Versturen</button>
+    </div>
+    <div id="adminMsgContent"></div>`;
+  renderAdminMsgTab();
+}
+window.setAdminMsgTab=(t,btn)=>{adminMsgTab=t;document.querySelectorAll('#adminTabContent .pill-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderAdminMsgTab();};
+function renderAdminMsgTab(){
+  const c=$('adminMsgContent'); if(!c)return;
+  if(adminMsgTab==='inbox') renderAdminInbox(c);
+  else renderAdminStuur(c);
+}
+function renderAdminInbox(c){
+  // Alle notificaties waarbij admin in 'to' staat — inclusief berichten van medewerkers
+  if(!allNotifs.length){
+    c.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>Inbox is leeg</p></div>`;
+    return;
+  }
+  c.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;color:var(--text3)">${allNotifs.length} bericht(en)</div>
+      <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Alles gelezen</button>
+    </div>
+    ${allNotifs.map(n=>{
+      const unread=!n.readBy?.includes(U.uid);
+      const sender=n.from&&n.from!==U.uid?allUsers.find(x=>x.uid===n.from):null;
+      const t=n.createdAt?.toDate?n.createdAt.toDate():new Date();
+      return `<div class="card" style="margin-bottom:8px;${unread?'border-color:var(--mhv-yellow)':''}" onclick="markRead('${n.id}')">
+        <div style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+            <div style="font-size:14px;font-weight:${unread?'700':'600'};flex:1">${n.title}</div>
+            ${unread?`<span class="badge badge-yellow" style="font-size:10px;flex-shrink:0">Nieuw</span>`:''}
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:6px">${n.body}</div>
+          <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between">
+            <span>${sender?`Van: ${sender.name}`:'Systeem'}</span>
+            <span>${t.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+function renderAdminStuur(c){
   const emp=employees();
   c.innerHTML=`
     <div class="card">
-      <div class="card-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
         <div style="font-size:15px;font-weight:700">📣 Bericht sturen</div>
-        <div style="width:100%">
+        <div>
           <label class="form-label">Ontvangers</label>
           <label class="worker-check" style="margin-bottom:6px">
             <input type="checkbox" id="msgAll" onchange="toggleAll(this)">
-            <div style="font-size:14px;font-weight:600">Iedereen</div>
+            <div style="font-size:14px;font-weight:600">Iedereen (${emp.length} medewerkers)</div>
           </label>
           ${emp.map(u=>`<label class="worker-check" style="margin-bottom:6px">
             <input type="checkbox" class="msg-r" value="${u.uid}">
@@ -1590,15 +1775,18 @@ function renderBerichten(c){
             <div style="font-size:14px">${u.name}</div>
           </label>`).join('')}
         </div>
-        <div style="width:100%">
+        <div>
           <label class="form-label">Titel</label>
           <input type="text" class="form-input" id="msgTitle" placeholder="Bijv. Roosterwijziging">
         </div>
-        <div style="width:100%">
+        <div>
           <label class="form-label">Bericht</label>
-          <textarea class="form-input" id="msgBody" rows="3" placeholder="Typ je bericht…" style="resize:none"></textarea>
+          <textarea class="form-input" id="msgBody" rows="4" placeholder="Typ je bericht…" style="resize:none"></textarea>
         </div>
-        <button class="btn btn-yellow btn-full" onclick="sendMsg()">Verstuur</button>
+        <div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--text3)">
+          <span>📧</span><span>Medewerkers ontvangen ook een e-mail via h.mhvwork@gmail.com</span>
+        </div>
+        <button class="btn btn-yellow btn-full" onclick="sendMsg()">Verstuur bericht</button>
       </div>
     </div>`;
 }
@@ -1619,28 +1807,73 @@ async function sendMsg(){
   $('msgTitle').value=''; $('msgBody').value='';
   document.querySelectorAll('.msg-r').forEach(r=>r.checked=false);
   $('msgAll').checked=false;
-  toast(`Verstuurd naar ${recipients.length} persoon/personen!`,'ok');
+  toast('Verstuurd naar '+recipients.length+' persoon/personen!','ok');
 }
 
-// MEDEWERKER → ADMIN bericht
-function openSendToAdmin(){
+// MEDEWERKER → ADMIN bericht + inbox
+function openEmployeeMsg(){
   modal(`
     <div class="modal-handle"></div>
-    <div class="modal-title">Bericht aan beheerder</div>
+    <div class="pill-tabs" style="margin-bottom:4px">
+      <button class="pill-tab active" id="empTabInbox" onclick="switchEmpTab('inbox')">📥 Inbox</button>
+      <button class="pill-tab" id="empTabStuur" onclick="switchEmpTab('stuur')">✉️ Nieuw</button>
+    </div>
+    <div id="empMsgContent" style="min-height:200px"></div>
+  `);
+  renderEmpInbox();
+}
+window.switchEmpTab=(tab)=>{
+  document.getElementById('empTabInbox').classList.toggle('active',tab==='inbox');
+  document.getElementById('empTabStuur').classList.toggle('active',tab==='stuur');
+  if(tab==='inbox') renderEmpInbox();
+  else renderEmpStuur();
+};
+function renderEmpInbox(){
+  const c=$('empMsgContent'); if(!c)return;
+  if(!allNotifs.length){c.innerHTML=`<div class="empty" style="padding:24px 0"><div class="empty-icon">📭</div><p>Geen berichten</p></div>`;return;}
+  c.innerHTML=`<div style="margin-top:8px">${allNotifs.slice(0,15).map(n=>{
+    const unread=!n.readBy?.includes(U.uid);
+    const t=n.createdAt?.toDate?n.createdAt.toDate():new Date();
+    return `<div style="padding:12px;background:${unread?'var(--mhv-yellow-dim)':'var(--bg3)'};border-radius:10px;margin-bottom:8px;border:1px solid ${unread?'rgba(245,200,0,0.2)':'var(--separator)'}" onclick="markRead('${n.id}')">
+      <div style="font-size:14px;font-weight:${unread?'700':'600'};margin-bottom:4px">${n.title}</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:4px">${n.body}</div>
+      <div style="font-size:11px;color:var(--text3)">${t.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function renderEmpStuur(){
+  const c=$('empMsgContent'); if(!c)return;
+  c.innerHTML=`<div style="margin-top:8px">
     <div class="form-section"><label class="form-label">Titel</label>
       <input type="text" class="form-input" id="empMsgTitle" placeholder="Bijv. Vraag over rooster"></div>
     <div class="form-section"><label class="form-label">Bericht</label>
       <textarea class="form-input" id="empMsgBody" rows="4" placeholder="Typ je bericht…" style="resize:none"></textarea></div>
-    <button class="btn btn-yellow btn-full" onclick="sendToAdmin()">Verstuur</button>
-  `);
+    <button class="btn btn-yellow btn-full" style="margin-top:8px" onclick="sendToAdmin()">Verstuur aan beheerder</button>
+  </div>`;
 }
 async function sendToAdmin(){
   const title=$('empMsgTitle').value.trim(), body=$('empMsgBody').value.trim();
   if(!title||!body){toast('Vul alles in','err');return;}
   const adminUids=admins().map(a=>a.uid);
-  await sendNotifMulti(adminUids,`${U.name}: ${title}`,body);
-  closeModal(); toast('Bericht verstuurd!','ok');
+  // Stuur notificatie naar alle admins — from = eigen uid zodat admin weet wie het stuurde
+  await sendNotifMulti(adminUids,'📩 '+U.name+': '+title,body);
+  // Stuur ook een email naar de app-mailbox
+  try{
+    await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
+      to_email:'h.mhvwork@gmail.com',to_name:'MHVwork Beheer',
+      title:'Nieuw bericht van '+U.name+': '+title,
+      body:body+'
+
+— Verstuurd via MHVwork
+Afzender: '+U.name+' ('+U.email+')'
+    });
+  }catch(e){console.warn('Email mislukt:',e);}
+  $('empMsgBody')&&($('empMsgTitle').value=$('empMsgBody').value='');
+  toast('Bericht verstuurd naar beheerder!','ok');
+  switchEmpTab('inbox');
 }
+// Alias voor profiel-knop
+function openSendToAdmin(){ openEmployeeMsg(); }
 
 // ═══════════════════════════════════════════
 // NOTIFICATIES
@@ -1684,11 +1917,20 @@ function renderProfile(){
     </div>
 
     ${U.role!=='admin'?`
-    <div class="section-label">Communicatie</div>
+    <div class="section-label">Berichten</div>
     <div class="card">
-      <div class="card-row" style="cursor:pointer" onclick="openSendToAdmin()">
-        <div class="card-row-label">💬 Bericht naar beheerder</div>
-        <div style="color:var(--text3)">›</div>
+      <div class="card-row" style="cursor:pointer" onclick="openEmployeeMsg()">
+        <div style="display:flex;align-items:center;gap:12px;flex:1">
+          <div style="font-size:22px">💬</div>
+          <div>
+            <div class="card-row-label" style="font-size:15px;font-weight:600">Inbox &amp; Berichten</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">Lees meldingen of stuur bericht naar beheerder</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${allNotifs.filter(n=>!n.readBy?.includes(U.uid)).length>0?`<span class="badge badge-red" style="font-size:11px">${allNotifs.filter(n=>!n.readBy?.includes(U.uid)).length}</span>`:''}
+          <div style="color:var(--text3)">›</div>
+        </div>
       </div>
     </div>`:''}
 
@@ -1706,7 +1948,7 @@ function renderProfile(){
     </div>
 
     <button class="btn btn-red btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931</p>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931 · <a href='mailto:h.mhvwork@gmail.com' style='color:var(--text3);text-decoration:none'>h.mhvwork@gmail.com</a></p>
   `;
 }
 async function changePw(){

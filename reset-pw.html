@@ -7,7 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
   authDomain: "mhvwork-2376d.firebaseapp.com",
@@ -16,25 +18,39 @@ const firebaseConfig = {
   messagingSenderId: "292563349134",
   appId: "1:292563349134:web:6897c6e23536baf56ba3df"
 };
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-window._rp = { db, doc, getDoc, updateDoc, serverTimestamp };
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+window._rp = { auth, db, doc, getDoc, updateDoc, serverTimestamp, signInWithEmailAndPassword, updatePassword };
 
 window.addEventListener('DOMContentLoaded', async () => {
   const token = new URLSearchParams(window.location.search).get('token');
-  if (!token) { showErrPage('Geen geldige link.'); return; }
+  if (!token) { showErrPage('Geen geldige resetlink.'); return; }
   try {
-    const snap = await getDoc(doc(db,'pwresets',token));
-    if (!snap.exists()) { showErrPage('Link niet gevonden.'); return; }
+    const snap = await getDoc(doc(db, 'pwresets', token));
+    if (!snap.exists()) { showErrPage('Link niet gevonden of verlopen.'); return; }
     const d = snap.data();
-    if (d.used) { showErrPage('Deze link is al gebruikt.'); return; }
+    if (d.used) { showErrPage('Deze link is al gebruikt. Vraag een nieuwe aan bij de beheerder.'); return; }
+    // Check of token niet ouder dan 48 uur is
+    if (d.createdAt) {
+      const age = Date.now() - d.createdAt.toDate().getTime();
+      if (age > 48 * 60 * 60 * 1000) {
+        await updateDoc(doc(db, 'pwresets', token), { used: true, expiredAt: serverTimestamp() });
+        showErrPage('Deze link is verlopen (48 uur). Vraag een nieuwe aan bij de beheerder.');
+        return;
+      }
+    }
     window._resetToken = token;
     window._resetEmail = d.email;
     window._resetName  = d.name;
     document.getElementById('greeting').textContent = 'Hoi ' + d.name + ',';
     document.getElementById('loader').style.display = 'none';
     document.getElementById('formWrap').style.display = 'block';
-  } catch(e) { showErrPage('Er ging iets mis bij het laden.'); }
+  } catch(e) {
+    console.error(e);
+    showErrPage('Er ging iets mis bij het laden. Probeer opnieuw.');
+  }
 });
 </script>
 <style>
@@ -52,36 +68,55 @@ body{background:#F2F2F7;display:flex;align-items:center;justify-content:center;p
 }
 .wrap{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:24px;}
 .logo-block{display:flex;flex-direction:column;align-items:center;gap:12px;}
-.logo-block img{width:72px;height:72px;border-radius:18px;object-fit:contain;box-shadow:0 4px 20px rgba(0,0,0,0.12);}
+.logo-block svg{width:72px;height:72px;border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,0.18);}
 h1{font-size:24px;font-weight:800;color:#000;letter-spacing:-0.5px;}
-.card{width:100%;background:#FFF;border-radius:18px;padding:24px 20px;box-shadow:0 2px 16px rgba(0,0,0,0.08);border:1px solid transparent;}
+.card{width:100%;background:#FFF;border-radius:18px;padding:24px 20px;box-shadow:0 2px 16px rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.06);}
 .greeting{font-size:22px;font-weight:800;letter-spacing:-0.4px;margin-bottom:6px;}
 .sub{font-size:14px;color:#8E8E93;line-height:1.6;margin-bottom:20px;}
 .form-group{margin-bottom:14px;}
 .lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8E8E93;margin-bottom:6px;}
-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid #E5E5EA;font-size:15px;font-family:inherit;outline:none;background:#F9F9F9;transition:border-color 0.2s;}
-input:focus{border-color:#007AFF;}
-.btn{width:100%;padding:15px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;transition:opacity 0.15s;margin-top:4px;}
-.btn:active{opacity:0.8;}
-.btn-blue{background:#007AFF;color:#FFF;box-shadow:0 4px 14px rgba(0,122,255,0.3);}
-.btn-blue:disabled{opacity:0.4;cursor:not-allowed;}
-.msg{border-radius:10px;padding:12px 14px;font-size:14px;margin-top:14px;display:none;font-weight:500;line-height:1.6;}
-.msg.err{background:#FFE5E5;color:#FF3B30;}
-.msg.ok{background:#E5F9ED;color:#28A745;}
-#loader{text-align:center;padding:12px 0;}
-.spin{width:32px;height:32px;border:3px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 12px;}
+input[type=password]{
+  width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E5E5EA;
+  font-size:16px;font-family:'Outfit',sans-serif;outline:none;transition:border-color 0.2s;
+  background:#fff;color:#000;
+}
+input[type=password]:focus{border-color:#1D3FBB;}
+.btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;transition:opacity 0.15s,transform 0.1s;margin-top:4px;}
+.btn-blue{background:#1D3FBB;color:#fff;}
+.btn:active{opacity:0.8;transform:scale(0.98);}
+.btn:disabled{opacity:0.45;cursor:not-allowed;}
+.msg{display:none;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:500;margin-top:12px;line-height:1.5;}
+.msg.err{background:rgba(255,69,58,0.1);color:#FF453A;border:1px solid rgba(255,69,58,0.2);}
+.msg.ok{background:rgba(48,209,88,0.1);color:#30D158;border:1px solid rgba(48,209,88,0.2);}
+.back{font-size:13px;color:#8E8E93;text-decoration:none;}
+.back:hover{color:#000;}
+.spin{width:28px;height:28px;border:3px solid #E5E5EA;border-top-color:#1D3FBB;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 10px;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.back{font-size:14px;color:#007AFF;font-weight:600;text-decoration:none;}
+#loader{text-align:center;padding:8px 0;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="logo-block">
-    <img src="data:image/jpeg;base64,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" alt="MHV">
+    <!-- MHVwork icoon inline -->
+    <svg width="72" height="72" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bgG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1D3FBB"/><stop offset="100%" stop-color="#0A1F6B"/>
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="110" fill="url(#bgG)"/>
+      <line x1="140" y1="100" x2="310" y2="370" stroke="#F5C800" stroke-width="34" stroke-linecap="round"/>
+      <path d="M 278 358 Q 340 395 370 370 Q 395 350 380 318" stroke="#F5C800" stroke-width="30" stroke-linecap="round" fill="none"/>
+      <circle cx="370" cy="148" r="95" fill="rgba(245,200,0,0.12)" stroke="#F5C800" stroke-width="12"/>
+      <line x1="370" y1="148" x2="370" y2="102" stroke="white" stroke-width="9" stroke-linecap="round"/>
+      <line x1="370" y1="148" x2="406" y2="148" stroke="#F5C800" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="370" cy="148" r="8" fill="white"/>
+    </svg>
     <h1>MHVwork</h1>
   </div>
   <div class="card">
-    <div id="loader"><div class="spin"></div><p style="font-size:13px;color:#8E8E93">Laden...</p></div>
+    <div id="loader"><div class="spin"></div><p style="font-size:13px;color:#8E8E93">Even laden…</p></div>
     <div id="errPage" style="display:none;text-align:center;padding:8px 0">
       <div style="font-size:40px;margin-bottom:12px">🔒</div>
       <div class="greeting">Ongeldige link</div>
@@ -111,29 +146,99 @@ function showErrPage(msg){
   document.getElementById('errPage').style.display='block';
   document.getElementById('errPageText').textContent=msg;
 }
+function showMsg(txt,type){
+  const m=document.getElementById('msg');
+  m.textContent=txt;m.className='msg '+type;m.style.display='block';
+}
+
 async function doReset(){
   const pw1=document.getElementById('pw1').value;
   const pw2=document.getElementById('pw2').value;
   const btn=document.getElementById('resetBtn');
   if(!pw1||!pw2){showMsg('Vul beide velden in.','err');return;}
   if(pw1!==pw2){showMsg('Wachtwoorden komen niet overeen.','err');return;}
-  if(pw1.length<6){showMsg('Minimaal 6 tekens.','err');return;}
-  btn.disabled=true; btn.textContent='Bezig...';
+  if(pw1.length<6){showMsg('Minimaal 6 tekens vereist.','err');return;}
+  btn.disabled=true;btn.textContent='Bezig…';
+
   try{
-    // Use Firebase REST API to send password reset email
-    const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({requestType:'PASSWORD_RESET',email:window._resetEmail})
+    const{auth,db,doc,updateDoc,serverTimestamp,signInWithEmailAndPassword,updatePassword}=window._rp;
+
+    // Stap 1: log in met het huidige (oude) wachtwoord is niet nodig —
+    // we gebruiken de tijdelijke "admin reset" flow:
+    // Maak een tijdelijk account-token via Firebase REST API met een custom password
+    // Maar omdat we geen Admin SDK hebben, gebruiken we de volgende aanpak:
+    // De admin heeft al het account aangemaakt. We gebruiken signInWithEmailAndPassword
+    // met een tijdelijk wachtwoord dat de admin heeft ingesteld in het pwresets document.
+
+    // Haal het tijdelijke wachtwoord op uit het reset document
+    const snap = await window._rp.getDoc(doc(db,'pwresets',window._resetToken));
+    const resetData = snap.data();
+
+    let userCredential = null;
+
+    // Als er een tijdelijk wachtwoord in het document zit, gebruik dat
+    if(resetData.tempPw){
+      try{
+        userCredential = await signInWithEmailAndPassword(auth, window._resetEmail, resetData.tempPw);
+      }catch(loginErr){
+        // Tijdelijk ww werkt niet meer (mogelijk al veranderd)
+        showMsg('Link is verlopen of al gebruikt. Vraag een nieuwe aan.','err');
+        btn.disabled=false;btn.textContent='Wachtwoord opslaan';
+        return;
+      }
+    } else {
+      // Fallback: geen tempPw, stuur Firebase herstel-email
+      const apiKey = "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw";
+      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({requestType:'PASSWORD_RESET',email:window._resetEmail})
+      });
+      const data = await res.json();
+      if(data.error){
+        showMsg('Fout: '+data.error.message,'err');
+        btn.disabled=false;btn.textContent='Wachtwoord opslaan';
+        return;
+      }
+      // Markeer token als gebruikt
+      await updateDoc(doc(db,'pwresets',window._resetToken),{used:true,usedAt:serverTimestamp()});
+      document.getElementById('formWrap').innerHTML=`
+        <div style="text-align:center;padding:12px 0">
+          <div style="font-size:48px;margin-bottom:16px">📧</div>
+          <div class="greeting" style="margin-bottom:8px">Check je inbox!</div>
+          <p class="sub">We hebben een herstelmail gestuurd naar <strong>${window._resetEmail}</strong>.<br>Klik op de link in die e-mail om je wachtwoord in te stellen.</p>
+          <a href="index.html" style="display:inline-block;margin-top:16px;font-size:14px;color:#1D3FBB;font-weight:600">← Terug naar inloggen</a>
+        </div>`;
+      return;
+    }
+
+    // Stap 2: stel het nieuwe wachtwoord in
+    await updatePassword(userCredential.user, pw1);
+
+    // Stap 3: markeer token als gebruikt, verwijder tempPw
+    await updateDoc(doc(db,'pwresets',window._resetToken),{
+      used:true,
+      usedAt:serverTimestamp(),
+      tempPw:null
     });
-    const data = await res.json();
-    if(data.error){showMsg('Fout: '+data.error.message,'err');btn.disabled=false;btn.textContent='Wachtwoord opslaan';return;}
-    const{db,doc,updateDoc,serverTimestamp}=window._rp;
-    await updateDoc(doc(db,'pwresets',window._resetToken),{used:true,usedAt:serverTimestamp()});
-    document.getElementById('formWrap').innerHTML='<div style="text-align:center;padding:12px 0"><div style="font-size:48px;margin-bottom:16px">✅</div><div class="greeting" style="margin-bottom:8px">Check je inbox!</div><p class="sub">We hebben een herstelmail gestuurd naar <strong>'+window._resetEmail+'</strong>. Klik op de link in de email om je wachtwoord definitief in te stellen.</p></div>';
-  }catch(e){showMsg('Er ging iets mis. Probeer opnieuw.','err');btn.disabled=false;btn.textContent='Wachtwoord opslaan';}
+
+    document.getElementById('formWrap').innerHTML=`
+      <div style="text-align:center;padding:12px 0">
+        <div style="font-size:48px;margin-bottom:16px">✅</div>
+        <div class="greeting" style="margin-bottom:8px">Klaar!</div>
+        <p class="sub">Je wachtwoord is succesvol ingesteld. Je kunt nu inloggen met je nieuwe wachtwoord.</p>
+        <a href="index.html" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1D3FBB;color:white;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">→ Inloggen</a>
+      </div>`;
+
+  }catch(e){
+    console.error('Reset error:',e);
+    let msg='Er ging iets mis. Probeer opnieuw.';
+    if(e.code==='auth/weak-password') msg='Wachtwoord is te zwak. Kies minimaal 6 tekens.';
+    if(e.code==='auth/requires-recent-login') msg='Sessie verlopen. Vraag een nieuwe resetlink aan.';
+    showMsg(msg,'err');
+    btn.disabled=false;btn.textContent='Wachtwoord opslaan';
+  }
 }
-function showMsg(txt,type){const m=document.getElementById('msg');m.textContent=txt;m.className='msg '+type;m.style.display='block';}
 </script>
 </body>
 </html>
