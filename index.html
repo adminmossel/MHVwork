@@ -25,6 +25,9 @@ const firebaseConfig = {
   appId: "1:292563349134:web:6897c6e23536baf56ba3df"
 };
 
+const EMAILJS_PUBLIC_KEY = "IUhBp9uzDvqwoZlls";
+const EMAILJS_SERVICE_ID = "service_ahm3hnp";
+const EMAILJS_TPL_NOTIF  = "template_7lytlw4";
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
@@ -110,6 +113,7 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
 /* Footer */
 .footer { font-size:13px; color:#8E8E93; text-align:center; line-height:1.6; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -206,12 +210,22 @@ async function sendForgot(){
   // We use a simple fetch to Firestore REST (no auth needed for this collection with open rules)
   document.querySelector('#forgotWrap button:last-of-type').disabled=true;
   try{
-    // Send via EmailJS if configured, otherwise just show confirmation
+    // Stuur email naar beheerder via EmailJS
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_NOTIF, {
+      to_email: 'h.mhvwork@gmail.com',
+      to_name: 'Beheerder',
+      title: 'Wachtwoord vergeten verzoek van ' + name,
+      body: name + ' (' + email + ') heeft aangegeven hun wachtwoord vergeten te zijn.\n\nGa naar Beheer → Medewerkers → zoek ' + name + ' → Wachtwoord resetten.'
+    });
     document.getElementById('forgotWrap').innerHTML='<div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:14px">✅</div><p style="font-size:16px;font-weight:700;color:#000;margin-bottom:8px">Verzoek verstuurd!</p><p style="font-size:14px;color:#8E8E93;line-height:1.6">Je beheerder ontvangt een melding en stuurt je een herstellink.</p></div>';
-    // The actual admin notification is handled server-side or via Firebase — 
-    // we save to localStorage as fallback so admin sees it next login
-    localStorage.setItem('pw_forgot_request', JSON.stringify({name,email,time:new Date().toISOString()}));
   }catch(e){err.textContent='Er ging iets mis.';err.style.display='block';}
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
 }
 </script>
 </body>

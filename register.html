@@ -195,24 +195,40 @@ async function doRegister() {
     const { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword, doc, setDoc, updateDoc, serverTimestamp } = window._reg;
     const inv = window._inviteData;
 
-    // Create Firebase auth account
-    // Probeer account aan te maken; als het al bestaat, log dan in en overschrijf Firestore
+    // Maak Firebase Auth account aan
+    // Strategie: probeer aanmaken. Als email al bestaat:
+    //   1. Probeer in te loggen met het nieuwe wachtwoord (account mogelijk al aangemaakt)
+    //   2. Zo niet, probeer tijdelijk wachtwoord uit invite
+    //   3. Zo niet, geef duidelijke fout aan beheerder
     let cred;
     try {
       cred = await createUserWithEmailAndPassword(auth, inv.email, pw1);
     } catch(createErr) {
       if (createErr.code === 'auth/email-already-in-use') {
-        // Account bestaat al in Firebase Auth maar mogelijk niet in Firestore
-        // Probeer in te loggen (alleen als er een tijdelijk wachtwoord in de invite zit)
-        if (inv.tempPw) {
+        // Probeer 1: mogelijk al eerder aangemaakt met dit wachtwoord
+        let logged = false;
+        try {
+          cred = await signInWithEmailAndPassword(auth, inv.email, pw1);
+          logged = true;
+        } catch(e1) {}
+
+        // Probeer 2: tijdelijk wachtwoord uit invite (als aanwezig)
+        if (!logged && inv.tempPw) {
           try {
             cred = await signInWithEmailAndPassword(auth, inv.email, inv.tempPw);
             await updatePassword(cred.user, pw1);
-          } catch(signInErr) {
-            throw new Error('Er bestaat al een account met dit e-mailadres. Neem contact op met de beheerder.');
-          }
-        } else {
-          throw new Error('Er bestaat al een account met dit e-mailadres. Neem contact op met de beheerder via h.mhvwork@gmail.com');
+            logged = true;
+          } catch(e2) {}
+        }
+
+        if (!logged) {
+          // Account bestaat echt al met ander wachtwoord — dit is een conflict
+          throw new Error(
+            'Er bestaat al een account met dit e-mailadres.\n\n' +
+            'Mogelijke oorzaak: je hebt al eerder een account aangemaakt, ' +
+            'of er is een fout opgetreden bij een eerdere registratiepoging.\n\n' +
+            'Neem contact op via h.mhvwork@gmail.com zodat de beheerder het kan oplossen.'
+          );
         }
       } else {
         throw createErr;
@@ -253,6 +269,12 @@ function showMsg(text, type) {
 }
 
 document.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
+}
 </script>
 </body>
 </html>
