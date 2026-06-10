@@ -2,11 +2,11 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>MHVwork — Account aanmaken</title>
 <meta name="theme-color" content="#0d0d1a">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <script type="module">
@@ -57,172 +57,120 @@ const firebaseConfig = {
 </script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;}
-body{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
-
-/* ── Layout ── */
-.wrap{width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:20px;}
-
-/* ── Logo ── */
-.logo-block{display:flex;flex-direction:column;align-items:center;gap:10px;}
-.logo-block img{width:72px;height:72px;border-radius:18px;}
-.logo-block h1{font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
-
-/* ── Welcome card ── */
-.welcome-card{width:100%;background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:20px 18px;}
-.welcome-hi{font-size:15px;color:rgba(255,255,255,0.45);margin-bottom:2px;}
-.welcome-name{font-size:26px;font-weight:800;color:#F5C800;letter-spacing:-0.5px;margin-bottom:6px;}
-.welcome-email{font-size:13px;color:rgba(255,255,255,0.35);}
-.welcome-email strong{color:rgba(255,255,255,0.6);}
-
-/* ── Form card ── */
-.form-card{width:100%;background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:22px 18px;}
-.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:14px;}
-.form-group{margin-bottom:14px;}
-.form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.35);margin-bottom:6px;}
-input[type=password]{
-  width:100%;padding:13px 14px;border-radius:11px;
-  border:1.5px solid rgba(255,255,255,0.08);
-  background:#2C2C2E;color:#fff;font-size:16px;
-  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
-  outline:none;transition:border-color 0.2s;
+:root {
+  --bg:#0d0d1a; --surface:#13132a; --surface2:#1c1c3a;
+  --accent:#f5c800; --text:#f0f0f8; --muted:#8888aa;
+  --danger:#e05555; --success:#4caf7d; --border:rgba(255,255,255,0.07);
+  --radius:14px; --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif;
 }
-input[type=password]:focus{border-color:#F5C800;}
-input[type=password]::placeholder{color:rgba(255,255,255,0.2);}
-.hint{font-size:12px;color:rgba(255,255,255,0.25);margin-top:16px;line-height:1.5;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);}
+body{display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(ellipse at 20% 50%,#1a1a4a,#0d0d1a 60%),
+             radial-gradient(ellipse at 80% 20%,#1f1040,transparent 50%);}
 
-/* ── Button ── */
-.btn-register{
-  width:100%;padding:15px;border-radius:12px;border:none;
-  background:#F5C800;color:#000;
-  font-size:16px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
-  cursor:pointer;transition:opacity 0.15s,transform 0.1s;
-  letter-spacing:-0.2px;
-}
-.btn-register:active{opacity:0.85;transform:scale(0.98);}
-.btn-register:disabled{opacity:0.35;cursor:not-allowed;}
+.bg-shape{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.12;pointer-events:none;}
+.bg-shape-1{width:400px;height:400px;background:#f5c800;top:-100px;left:-100px;animation:drift1 12s ease-in-out infinite;}
+.bg-shape-2{width:300px;height:300px;background:#3a5fcf;bottom:-80px;right:-80px;animation:drift2 10s ease-in-out infinite;}
+@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
 
-/* ── Messages ── */
-.msg{display:none;padding:12px 14px;border-radius:11px;font-size:13px;font-weight:600;margin-top:12px;line-height:1.5;}
-.msg.error{background:rgba(255,69,58,0.1);color:#FF453A;border:1px solid rgba(255,69,58,0.2);}
-.msg.success{background:rgba(48,209,88,0.1);color:#30D158;border:1px solid rgba(48,209,88,0.2);}
+.wrap{position:relative;z-index:10;background:rgba(19,19,42,0.9);border:1px solid var(--border);
+  border-radius:24px;padding:44px 36px 36px;width:min(440px,95vw);
+  backdrop-filter:blur(20px);box-shadow:0 40px 80px rgba(0,0,0,0.6);
+  animation:slideUp 0.6s cubic-bezier(.16,1,.3,1);}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── Error page ── */
-.err-page{width:100%;background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:32px 20px;text-align:center;}
-.err-icon{font-size:48px;margin-bottom:14px;}
-.err-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;}
-.err-text{font-size:14px;color:rgba(255,255,255,0.4);line-height:1.6;}
-.err-link{margin-top:20px;display:inline-block;font-size:14px;color:#F5C800;font-weight:600;text-decoration:none;}
+.logo-row{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px;}
+.logo-row img{width:64px;height:64px;object-fit:contain;border-radius:50%;box-shadow:0 0 0 4px rgba(245,200,0,0.2);}
+.logo-row h1{font-family:var(--font-head);font-size:24px;font-weight:800;}
+.logo-row h1 span{color:var(--accent);}
 
-/* ── Loader ── */
-.loader{text-align:center;padding:16px 0;}
-.spin{width:32px;height:32px;border:3px solid rgba(255,255,255,0.08);border-top-color:#F5C800;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 12px;}
+.welcome-box{background:rgba(245,200,0,0.07);border:1px solid rgba(245,200,0,0.2);
+  border-radius:10px;padding:14px 16px;margin-bottom:24px;}
+.welcome-box .hey{font-size:13px;color:var(--muted);margin-bottom:4px;}
+.welcome-box .name{font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--accent);}
+.welcome-box .email{font-size:12px;color:var(--muted);margin-top:4px;}
+
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;}
+.form-input{width:100%;padding:13px 15px;border-radius:10px;background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:15px;
+  outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,200,0,0.12);}
+.form-input::placeholder{color:var(--muted);}
+
+.btn-primary{width:100%;padding:15px;border-radius:10px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),#e6b800);
+  color:#1a1000;font-family:var(--font-head);font-size:15px;font-weight:700;
+  transition:transform 0.15s,box-shadow 0.15s;margin-top:4px;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,200,0,0.3);}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+.pw-req{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;}
+
+.msg{border-radius:10px;padding:14px 16px;font-size:13px;margin-top:16px;display:none;}
+.msg.error{background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:#ff8888;}
+.msg.success{background:rgba(76,175,125,0.12);border:1px solid rgba(76,175,125,0.3);color:var(--success);}
+
+#loader{text-align:center;padding:20px;}
+#loader .spin{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--accent);
+  border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loader p{font-size:13px;color:rgba(255,255,255,0.35);}
+
+.err-page{text-align:center;padding:20px;}
+.err-page .icon{font-size:48px;margin-bottom:16px;}
+.err-page h2{font-family:var(--font-head);font-size:20px;font-weight:800;margin-bottom:8px;}
+.err-page p{color:var(--muted);font-size:14px;line-height:1.6;}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="bg-shape bg-shape-1"></div>
+<div class="bg-shape bg-shape-2"></div>
 
-  <!-- Logo -->
-  <div class="logo-block">
-    <img src="icon.svg" alt="MHVwork">
-    <h1>MHVwork</h1>
+<div class="wrap">
+  <div class="logo-row">
+    <img id="logoImg" src="icon.svg" alt="MHVwork" style="width:72px;height:72px;border-radius:18px;">
+    <h1>MHV<span>work</span></h1>
   </div>
 
   <!-- Loader -->
-  <div id="loader" class="form-card">
-    <div class="loader">
-      <div class="spin"></div>
-      <p>Uitnodiging laden…</p>
-    </div>
+  <div id="loader">
+    <div class="spin"></div>
+    <p style="font-size:13px;color:var(--muted)">Uitnodiging laden...</p>
   </div>
 
   <!-- Error page -->
   <div id="errPage" style="display:none" class="err-page">
-    <div class="err-icon">🔒</div>
-    <div class="err-title">Ongeldige link</div>
-    <p class="err-text" id="errText">Deze uitnodigingslink is niet geldig of al gebruikt.</p>
-    <a href="index.html" class="err-link">← Terug naar inloggen</a>
+    <div class="icon">🔒</div>
+    <h2>Ongeldige link</h2>
+    <p id="errText">Deze uitnodigingslink is niet geldig of al gebruikt.</p>
+    <p style="margin-top:12px"><a href="index.html" style="color:var(--accent);text-decoration:none;font-size:13px">← Terug naar inloggen</a></p>
   </div>
 
-  <!-- Form -->
-  <div id="formWrap" style="display:none;width:100%">
-
-    <!-- Welkomstkaart -->
-    <div class="welcome-card" style="margin-bottom:12px">
-      <div class="welcome-hi">Welkom bij MHVwork,</div>
-      <div class="welcome-name" id="welcomeName">—</div>
-      <div class="welcome-email">Account e-mail: <strong id="emailDisplay">—</strong></div>
+  <!-- Registration form -->
+  <div id="formWrap" style="display:none">
+    <div class="welcome-box">
+      <div class="hey">Welkom bij MHVwork,</div>
+      <div class="name" id="welcomeName">—</div>
+      <div class="email">Je account e-mail: <strong id="emailDisplay">—</strong></div>
     </div>
 
-    <!-- Wachtwoord -->
-    <div class="form-card">
-      <div class="section-title">Kies een wachtwoord</div>
-      <div class="form-group">
-        <label class="form-label">Wachtwoord</label>
-        <input type="password" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password">
-      </div>
-      <div class="form-group" style="margin-bottom:0">
-        <label class="form-label">Herhaal wachtwoord</label>
-        <input type="password" id="pw2" placeholder="Nogmaals hetzelfde" autocomplete="new-password">
-      </div>
-      <p class="hint">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</p>
-      <button class="btn-register" id="regBtn" onclick="doRegister()" style="margin-top:18px">Account aanmaken</button>
-      <div class="msg" id="regMsg"></div>
+    <div class="form-group">
+      <label class="form-label">Kies een wachtwoord</label>
+      <input type="password" class="form-input" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Herhaal wachtwoord</label>
+      <input type="password" class="form-input" id="pw2" placeholder="Zelfde wachtwoord" autocomplete="new-password">
+      <div class="pw-req">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</div>
     </div>
 
+    <button class="btn-primary" id="regBtn" onclick="doRegister()">Account aanmaken</button>
+    <div class="msg" id="regMsg"></div>
   </div>
-
 </div>
-</body>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
-  authDomain: "mhvwork-2376d.firebaseapp.com",
-  projectId: "mhvwork-2376d",
-  storageBucket: "mhvwork-2376d.firebasestorage.app",
-  messagingSenderId: "292563349134",
-  appId: "1:292563349134:web:6897c6e23536baf56ba3df"
-};
-
-
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-
-  window._reg = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword, doc, getDoc, setDoc, updateDoc, serverTimestamp };
-
-  // Load invite on page load
-  window.addEventListener('DOMContentLoaded', async () => {
-    const params = new URLSearchParams(window.location.search);
-    const inviteId = params.get('invite');
-    if (!inviteId) { showError('Geen geldige uitnodigingslink.'); return; }
-
-    try {
-      const snap = await getDoc(doc(db, 'invites', inviteId));
-      if (!snap.exists()) { showError('Uitnodiging niet gevonden.'); return; }
-      const data = snap.data();
-      if (data.used) { showError('Deze uitnodigingslink is al gebruikt.'); return; }
-
-      window._inviteId = inviteId;
-      window._inviteData = data;
-
-      document.getElementById('welcomeName').textContent = data.name;
-      document.getElementById('emailDisplay').textContent = data.email;
-      document.getElementById('loader').style.display = 'none';
-      document.getElementById('formWrap').style.display = 'block';
-    } catch(e) {
-      showError('Er ging iets mis bij het laden. Probeer opnieuw.');
-      console.error(e);
-    }
-  });
-</script>
 <script>
 function showError(msg) {
   document.getElementById('loader').style.display = 'none';
@@ -247,72 +195,35 @@ async function doRegister() {
     const { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword, doc, setDoc, updateDoc, serverTimestamp } = window._reg;
     const inv = window._inviteData;
 
-    // Maak Firebase Auth account aan
-    // Strategie bij "email already in use":
-    //   1. Login met tempPw uit invite + update naar nieuw ww
-    //   2. Login met het nieuwe ww (account al eerder aangemaakt)
-    //   3. Gebruik Firebase REST API om ww te resetten via tempPw
+    // Create Firebase auth account
     let cred;
     try {
       cred = await createUserWithEmailAndPassword(auth, inv.email, pw1);
     } catch(createErr) {
       if (createErr.code === 'auth/email-already-in-use') {
         let logged = false;
-
-        // Probeer 1: login met tempPw uit invite (meest betrouwbaar)
         if (!logged && inv.tempPw) {
-          try {
-            cred = await signInWithEmailAndPassword(auth, inv.email, inv.tempPw);
-            await updatePassword(cred.user, pw1);
-            logged = true;
-          } catch(e1) { console.log('tempPw login failed:', e1.code); }
+          try { cred = await signInWithEmailAndPassword(auth, inv.email, inv.tempPw); await updatePassword(cred.user, pw1); logged = true; } catch(e1) {}
         }
-
-        // Probeer 2: account al eerder aangemaakt met dit zelfde ww
         if (!logged) {
-          try {
-            cred = await signInWithEmailAndPassword(auth, inv.email, pw1);
-            logged = true;
-          } catch(e2) { console.log('pw1 login failed:', e2.code); }
+          try { cred = await signInWithEmailAndPassword(auth, inv.email, pw1); logged = true; } catch(e2) {}
         }
-
-        // Probeer 3: Firebase REST — verander ww via Admin API met tempPw
         if (!logged && inv.tempPw) {
           try {
-            // Eerst inloggen via REST om idToken te krijgen
             const apiKey = 'AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw';
-            const signInRes = await fetch(
-              'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + apiKey,
-              { method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({email: inv.email, password: inv.tempPw, returnSecureToken: true}) }
-            );
-            const signInData = await signInRes.json();
-            if (signInData.idToken) {
-              // Update wachtwoord via REST
-              const updateRes = await fetch(
-                'https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + apiKey,
-                { method:'POST', headers:{'Content-Type':'application/json'},
-                  body: JSON.stringify({idToken: signInData.idToken, password: pw1, returnSecureToken: true}) }
-              );
-              const updateData = await updateRes.json();
-              if (updateData.idToken) {
-                // Nu inloggen met nieuw ww via Firebase SDK
-                cred = await signInWithEmailAndPassword(auth, inv.email, pw1);
-                logged = true;
-              }
+            const r1 = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+apiKey,
+              {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:inv.email,password:inv.tempPw,returnSecureToken:true})});
+            const d1 = await r1.json();
+            if (d1.idToken) {
+              const r2 = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key='+apiKey,
+                {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:d1.idToken,password:pw1,returnSecureToken:true})});
+              const d2 = await r2.json();
+              if (d2.idToken) { cred = await signInWithEmailAndPassword(auth, inv.email, pw1); logged = true; }
             }
-          } catch(e3) { console.log('REST reset failed:', e3); }
+          } catch(e3) {}
         }
-
-        if (!logged) {
-          throw new Error(
-            'Er bestaat al een account met dit e-mailadres en het kon niet automatisch worden hersteld.\n\n' +
-            'Vraag de beheerder om in Firebase het account te verwijderen en een nieuwe uitnodigingslink te sturen.'
-          );
-        }
-      } else {
-        throw createErr;
-      }
+        if (!logged) throw new Error('Er bestaat al een account. Vraag de beheerder om het account te verwijderen in Firebase en een nieuwe link te sturen.');
+      } else { throw createErr; }
     }
 
     // Create user document in Firestore
@@ -335,7 +246,7 @@ async function doRegister() {
     setTimeout(() => window.location.href = 'app.html', 1800);
   } catch(e) {
     let errMsg = 'Er ging iets mis. Probeer het opnieuw.';
-    if (e.code === 'auth/email-already-in-use') errMsg = 'Er bestaat al een account met dit e-mailadres. Neem contact op via h.mhvwork@gmail.com'; if (e.message && e.message.includes('bestaat al')) errMsg = e.message;
+    if (e.code === 'auth/email-already-in-use') errMsg = 'Er bestaat al een account met dit e-mailadres.';
     if (e.code === 'auth/weak-password') errMsg = 'Wachtwoord is te zwak. Kies iets sterkers.';
     showMsg(errMsg, 'error');
     document.getElementById('regBtn').disabled = false;
@@ -350,6 +261,8 @@ function showMsg(text, type) {
 
 document.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
 </script>
-
-
+<script>
+if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
+</script>
+</body>
 </html>

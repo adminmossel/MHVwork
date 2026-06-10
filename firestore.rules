@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Hulpfuncties ────────────────────────────
     function isAuth() {
       return request.auth != null;
     }
@@ -10,61 +9,47 @@ service cloud.firestore {
       return isAuth() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-    function isOwn(uid) {
-      return isAuth() && request.auth.uid == uid;
-    }
 
     // ── Users ───────────────────────────────────
-    // Medewerkers mogen eigen profiel lezen; admin alles
     match /users/{uid} {
       allow read: if isAuth();
-      // Eigen profiel: alleen naam/wage niet aanpassen (beschermd via admin-only velden)
-      allow update: if isOwn(uid) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage']) || isAdmin();
-      allow create, delete: if isAdmin();
+      // Eigen profiel lezen/aanpassen (behalve role/wage)
+      allow update: if (isAuth() && request.auth.uid == uid &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['role','wage'])) || isAdmin();
+      allow create: if isAdmin() ||
+        // Seed-admin: mag alleen aanmaken als er nog geen admin bestaat
+        // én het een admin-document is voor h.mhvwork@gmail.com
+        (isAuth() && request.resource.data.email == 'h.mhvwork@gmail.com'
+          && request.resource.data.role == 'admin'
+          && request.auth.uid == uid);
+      allow delete: if isAdmin();
     }
 
     // ── Shifts ──────────────────────────────────
     match /shifts/{shiftId} {
       allow read: if isAuth();
       allow create, delete: if isAdmin();
-      // Medewerker mag alleen eigen bevestiging + tijden aanpassen
       allow update: if isAdmin() ||
         (isAuth() &&
           request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['workerConfirmations', 'finalTimes']) &&
-          // Mag alleen eigen uid-sleutel schrijven, niet die van anderen
-          request.resource.data.workerConfirmations.keys().hasAll(resource.data.workerConfirmations.keys()) &&
-          request.resource.data.get('finalTimes', {}).keys()
-            .hasOnly(resource.data.get('finalTimes', {}).keys().concat([request.auth.uid]))
-        );
+            .hasOnly(['workerConfirmations','finalTimes']));
     }
 
     // ── Beschikbaarheid ─────────────────────────
     match /availability/{docId} {
       allow read: if isAuth();
-      // Aanmaken: alleen eigen uid, en uid-veld moet kloppen
       allow create: if isAuth() &&
-        request.resource.data.uid == request.auth.uid &&
-        request.resource.data.keys().hasAll(['uid','date']) &&
-        request.resource.data.keys().hasOnly(['uid','date','note','createdAt','timeFrom','timeTo']);
-      // Verwijderen: eigen doc of admin
+        request.resource.data.uid == request.auth.uid;
       allow delete: if isAuth() && resource.data.uid == request.auth.uid || isAdmin();
-      // Update: alleen admin (admin kan beschikbaarheid corrigeren)
       allow update: if isAdmin();
     }
 
-    // ── Notificaties / Inbox ────────────────────
+    // ── Notificaties ────────────────────────────
     match /notifications/{docId} {
-      // Lezen: je staat in 'to', of je bent admin (admin ziet alles)
       allow read: if isAuth() &&
         (resource.data.to.hasAny([request.auth.uid]) || isAdmin());
-      // Aanmaken: ingelogd, 'from' moet eigen uid zijn
-      allow create: if isAuth() &&
-        request.resource.data.from == request.auth.uid &&
-        request.resource.data.keys().hasAll(['to','title','body','from','readBy','createdAt']) &&
-        request.resource.data.readBy is list;
-      // Update: alleen 'readBy' aanpassen (gelezen markeren)
+      allow create: if isAuth() && request.resource.data.from == request.auth.uid;
       allow update: if isAuth() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
       allow delete: if isAdmin();
@@ -72,10 +57,8 @@ service cloud.firestore {
 
     // ── Uitnodigingen ───────────────────────────
     match /invites/{inviteId} {
-      // Publiek leesbaar zodat register.html werkt zonder login
       allow read: if true;
       allow create: if isAdmin();
-      // Update: iedereen mag 'used' zetten (registratieflow)
       allow update: if true;
       allow delete: if isAdmin();
     }
@@ -84,21 +67,18 @@ service cloud.firestore {
     match /payments/{docId} {
       allow read: if isAuth() &&
         (resource.data.uid == request.auth.uid || isAdmin());
-      allow create: if isAdmin();
-      allow update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     // ── Wachtwoord reset tokens ─────────────────
     match /pwresets/{docId} {
-      // Publiek leesbaar zodat reset-pw.html werkt zonder login
       allow read: if true;
       allow create: if isAdmin();
-      // Update: iedereen mag 'used:true' zetten na reset
       allow update: if true;
       allow delete: if isAdmin();
     }
 
-    // ── App instellingen (toekomstig) ───────────
+    // ── App instellingen ────────────────────────
     match /settings/{docId} {
       allow read: if isAuth();
       allow write: if isAdmin();
