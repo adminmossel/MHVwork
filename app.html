@@ -31,9 +31,9 @@ const firebaseConfig = {
   
 const EMAILJS_PUBLIC_KEY = "IUhBp9uzDvqwoZlls";
 const EMAILJS_SERVICE_ID = "service_ahm3hnp";
-const EMAILJS_TPL_INVITE = "JOUW_INVITE_TEMPLATE_ID"; // ← vul jouw invite template ID in
+const EMAILJS_TPL_INVITE = "template_z7i4l76";
 const EMAILJS_TPL_NOTIF  = "template_7lytlw4";
-const EMAILJS_TPL_PAYMENT= "template_z7i4l76";
+const EMAILJS_TPL_PAYMENT= "template_7lytlw4";
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -53,6 +53,17 @@ onAuthStateChanged(auth, async (user) => {
     try { snap = await getDoc(doc(db,"users",user.uid)); } catch(e) {}
     if (snap && snap.exists()) break;
     await new Promise(r => setTimeout(r, 800));
+  }
+  // Hardcoded admin fallback: als het de beheerder is maar het Firestore-doc ontbreekt,
+  // maak het automatisch aan zodat de app nooit vastloopt
+  if ((!snap || !snap.exists()) && user.email === 'h.mhvwork@gmail.com') {
+    try {
+      await setDoc(doc(db,'users',user.uid),{
+        name:'Beheerder', email:'h.mhvwork@gmail.com',
+        role:'admin', wage:0, createdAt:serverTimestamp()
+      });
+      snap = await getDoc(doc(db,'users',user.uid));
+    } catch(e) { console.error('Admin doc aanmaken mislukt:',e); }
   }
   if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
   _authHandled = true;

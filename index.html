@@ -47,71 +47,57 @@ window._login = async (email, pass) => {
 </script>
 
 <style>
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body {
-  height:100%; background:#F2F2F7;
-  font-family:'Outfit',-apple-system,'Helvetica Neue',sans-serif;
-  -webkit-font-smoothing:antialiased;
-}
-body { display:flex; align-items:center; justify-content:center; padding:24px; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;}
+body{background:#000;display:flex;align-items:center;justify-content:center;padding:24px;min-height:100vh;}
 
-.wrap {
-  width:100%; max-width:360px;
-  display:flex; flex-direction:column; align-items:center; gap:32px;
-}
+.wrap{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:20px;}
 
 /* Logo */
-.logo-block { display:flex; flex-direction:column; align-items:center; gap:14px; }
-.logo-block img {
-  width:80px; height:80px; border-radius:20px; object-fit:contain;
-  box-shadow:0 4px 24px rgba(0,0,0,0.12);
-}
-.logo-block h1 {
-  font-size:26px; font-weight:800; color:#000; letter-spacing:-0.5px;
-}
-.logo-block p { font-size:15px; color:#8E8E93; font-weight:400; }
+.logo-block{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.logo-block img{width:72px;height:72px;border-radius:18px;}
+.logo-block h1{font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
+.logo-block h1 span{color:#F5C800;}
 
 /* Card */
-.card {
-  width:100%; background:#FFFFFF; border-radius:18px;
-  overflow:hidden; box-shadow:0 2px 16px rgba(0,0,0,0.08);
-}
+.card{width:100%;background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:24px 20px;}
+.card-title{font-size:19px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-0.3px;}
+.card-sub{font-size:13px;color:rgba(255,255,255,0.35);margin-bottom:20px;}
 
-/* Input rows */
-.input-row { display:flex; flex-direction:column; }
-.input-row + .input-row { border-top:1px solid #E5E5EA; }
-.input-row label {
-  font-size:12px; font-weight:600; text-transform:uppercase;
-  letter-spacing:0.06em; color:#8E8E93; padding:12px 16px 0;
+/* Form */
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.35);margin-bottom:6px;}
+input[type=email],input[type=password]{
+  width:100%;padding:13px 14px;border-radius:11px;
+  border:1.5px solid rgba(255,255,255,0.08);
+  background:#2C2C2E;color:#fff;font-size:16px;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
+  outline:none;transition:border-color 0.2s;
 }
-.input-row input {
-  padding:8px 16px 12px; font-size:16px; font-weight:500;
-  color:#000; border:none; outline:none; background:transparent;
-  font-family:inherit;
-}
-.input-row input::placeholder { color:#C7C7CC; }
+input[type=email]:focus,input[type=password]:focus{border-color:#F5C800;}
+input::placeholder{color:rgba(255,255,255,0.2);}
 
 /* Button */
-.btn-login {
-  width:100%; padding:16px; border-radius:14px; border:none; cursor:pointer;
-  background:#007AFF; color:#fff; font-family:inherit;
-  font-size:17px; font-weight:700; letter-spacing:-0.2px;
-  transition:opacity 0.15s, transform 0.1s;
-  box-shadow:0 4px 16px rgba(0,122,255,0.35);
+.btn-main{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:#F5C800;color:#000;font-size:16px;font-weight:800;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
+  cursor:pointer;transition:opacity 0.15s,transform 0.1s;letter-spacing:-0.2px;
 }
-.btn-login:active { opacity:0.8; transform:scale(0.98); }
-.btn-login:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+.btn-main:active{opacity:0.85;transform:scale(0.98);}
+.btn-main:disabled{opacity:0.35;cursor:not-allowed;}
 
-/* Error */
-.error-box {
-  width:100%; background:#FFE5E5; border-radius:12px;
-  padding:13px 16px; font-size:14px; color:#FF3B30;
-  font-weight:500; display:none; text-align:center;
-  border:1px solid rgba(255,59,48,0.15);
-}
+/* Forgot password */
+.forgot-link{font-size:13px;color:rgba(255,255,255,0.3);text-align:right;display:block;margin-top:8px;cursor:pointer;text-decoration:none;}
+.forgot-link:hover{color:#F5C800;}
+#forgotWrap{width:100%;background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:24px 20px;display:none;}
+
+/* Error box */
+.error-box{display:none;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-top:10px;background:rgba(255,69,58,0.1);color:#FF453A;border:1px solid rgba(255,69,58,0.2);}
 
 /* Footer */
-.footer { font-size:13px; color:#8E8E93; text-align:center; line-height:1.6; }
+.footer{font-size:11px;color:rgba(255,255,255,0.15);text-align:center;}
+.footer a{color:rgba(255,255,255,0.2);text-decoration:none;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -119,8 +105,8 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
 
 <div class="wrap">
   <div class="logo-block">
-    <img id="logoImg" src="icon.svg" alt="MHVwork" style="width:72px;height:72px;border-radius:18px;">
-    <h1>MHVwork</h1>
+    <img src="icon.svg" alt="MHVwork">
+    <h1>MHV<span>work</span></h1>
     <p>Inloggen bij je account</p>
   </div>
 
