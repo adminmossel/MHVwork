@@ -196,38 +196,66 @@ async function doRegister() {
     const inv = window._inviteData;
 
     // Maak Firebase Auth account aan
-    // Strategie: probeer aanmaken. Als email al bestaat:
-    //   1. Probeer in te loggen met het nieuwe wachtwoord (account mogelijk al aangemaakt)
-    //   2. Zo niet, probeer tijdelijk wachtwoord uit invite
-    //   3. Zo niet, geef duidelijke fout aan beheerder
+    // Strategie bij "email already in use":
+    //   1. Login met tempPw uit invite + update naar nieuw ww
+    //   2. Login met het nieuwe ww (account al eerder aangemaakt)
+    //   3. Gebruik Firebase REST API om ww te resetten via tempPw
     let cred;
     try {
       cred = await createUserWithEmailAndPassword(auth, inv.email, pw1);
     } catch(createErr) {
       if (createErr.code === 'auth/email-already-in-use') {
-        // Probeer 1: mogelijk al eerder aangemaakt met dit wachtwoord
         let logged = false;
-        try {
-          cred = await signInWithEmailAndPassword(auth, inv.email, pw1);
-          logged = true;
-        } catch(e1) {}
 
-        // Probeer 2: tijdelijk wachtwoord uit invite (als aanwezig)
+        // Probeer 1: login met tempPw uit invite (meest betrouwbaar)
         if (!logged && inv.tempPw) {
           try {
             cred = await signInWithEmailAndPassword(auth, inv.email, inv.tempPw);
             await updatePassword(cred.user, pw1);
             logged = true;
-          } catch(e2) {}
+          } catch(e1) { console.log('tempPw login failed:', e1.code); }
+        }
+
+        // Probeer 2: account al eerder aangemaakt met dit zelfde ww
+        if (!logged) {
+          try {
+            cred = await signInWithEmailAndPassword(auth, inv.email, pw1);
+            logged = true;
+          } catch(e2) { console.log('pw1 login failed:', e2.code); }
+        }
+
+        // Probeer 3: Firebase REST — verander ww via Admin API met tempPw
+        if (!logged && inv.tempPw) {
+          try {
+            // Eerst inloggen via REST om idToken te krijgen
+            const apiKey = 'AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw';
+            const signInRes = await fetch(
+              'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + apiKey,
+              { method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email: inv.email, password: inv.tempPw, returnSecureToken: true}) }
+            );
+            const signInData = await signInRes.json();
+            if (signInData.idToken) {
+              // Update wachtwoord via REST
+              const updateRes = await fetch(
+                'https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + apiKey,
+                { method:'POST', headers:{'Content-Type':'application/json'},
+                  body: JSON.stringify({idToken: signInData.idToken, password: pw1, returnSecureToken: true}) }
+              );
+              const updateData = await updateRes.json();
+              if (updateData.idToken) {
+                // Nu inloggen met nieuw ww via Firebase SDK
+                cred = await signInWithEmailAndPassword(auth, inv.email, pw1);
+                logged = true;
+              }
+            }
+          } catch(e3) { console.log('REST reset failed:', e3); }
         }
 
         if (!logged) {
-          // Account bestaat echt al met ander wachtwoord — dit is een conflict
           throw new Error(
-            'Er bestaat al een account met dit e-mailadres.\n\n' +
-            'Mogelijke oorzaak: je hebt al eerder een account aangemaakt, ' +
-            'of er is een fout opgetreden bij een eerdere registratiepoging.\n\n' +
-            'Neem contact op via h.mhvwork@gmail.com zodat de beheerder het kan oplossen.'
+            'Er bestaat al een account met dit e-mailadres en het kon niet automatisch worden hersteld.\n\n' +
+            'Vraag de beheerder om in Firebase het account te verwijderen en een nieuwe uitnodigingslink te sturen.'
           );
         }
       } else {

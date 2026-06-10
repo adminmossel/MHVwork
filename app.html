@@ -31,7 +31,7 @@ const firebaseConfig = {
   
 const EMAILJS_PUBLIC_KEY = "IUhBp9uzDvqwoZlls";
 const EMAILJS_SERVICE_ID = "service_ahm3hnp";
-const EMAILJS_TPL_INVITE = "template_7lytlw4";
+const EMAILJS_TPL_INVITE = "JOUW_INVITE_TEMPLATE_ID"; // ← vul jouw invite template ID in
 const EMAILJS_TPL_NOTIF  = "template_7lytlw4";
 const EMAILJS_TPL_PAYMENT= "template_z7i4l76";
 
@@ -1368,21 +1368,38 @@ function openAddEmployee(){
 async function createInvite(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim(), wage=parseFloat($('eWage').value)||0;
   if(!name||!email){toast('Naam en e-mail verplicht','err');return;}
-  const{db,collection,addDoc,serverTimestamp}=window._f;
-  const ref=await addDoc(collection(db,'invites'),{name,email,wage,used:false,createdBy:U.uid,createdAt:serverTimestamp()});
-  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
-  const link=`${base}/register.html?invite=${ref.id}`;
-  const r=$('inviteResult');
-  r.style.display='block';
-  r.innerHTML=`
-    <div style="background:var(--green-dim);border:1px solid rgba(48,209,88,0.2);border-radius:10px;padding:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">✓ Link aangemaakt</div>
-      <div style="font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:10px">${link}</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-green btn-sm" style="flex:1" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">Kopieer</button>
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="sendInviteEmail('${email}','${name}','${link}')">📧 Email</button>
-      </div>
+  const btn=document.querySelector('#modal-root .btn-yellow');
+  if(btn){btn.disabled=true;btn.textContent='Bezig...';}
+  try{
+    const{db,collection,addDoc,serverTimestamp}=window._f;
+    // Genereer tijdelijk wachtwoord — zodat we bij "email already in use" toch kunnen inloggen
+    const _chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let _tempPw='';for(let i=0;i<12;i++)_tempPw+=_chars[Math.floor(Math.random()*_chars.length)];
+    const ref=await addDoc(collection(db,'invites'),{name,email,wage,used:false,tempPw:_tempPw,createdBy:U.uid,createdAt:serverTimestamp()});
+    const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
+    const link=`${base}/register.html?invite=${ref.id}`;
+    const r=$('inviteResult');
+    r.style.display='block';
+    r.innerHTML=`
+      <div style="background:var(--green-dim);border:1px solid rgba(48,209,88,0.2);border-radius:10px;padding:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">✓ Uitnodigingslink aangemaakt</div>
+        <div style="font-size:12px;word-break:break-all;color:var(--text2);background:var(--bg3);padding:10px;border-radius:8px;margin-bottom:10px;line-height:1.5">${link}</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green btn-sm" style="flex:1" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">📋 Kopieer</button>
+          <button class="btn btn-yellow btn-sm" style="flex:1" onclick="sendInviteEmail('${email}','${name}','${link}')">📧 Stuur email</button>
+        </div>
+      </div>`;
+    if(btn){btn.disabled=false;btn.textContent='Link genereren';}
+  }catch(e){
+    console.error('createInvite error:',e);
+    const r=$('inviteResult');
+    r.style.display='block';
+    r.innerHTML=`<div style="background:var(--red-dim);border:1px solid rgba(255,69,58,0.2);border-radius:10px;padding:14px;font-size:13px;color:var(--red)">
+      ✗ Fout: ${e.message||e.code||'Onbekende fout'}<br><br>
+      <span style="color:var(--text3);font-size:12px">Controleer of je internetverbinding werkt en je als beheerder bent ingelogd.</span>
     </div>`;
+    if(btn){btn.disabled=false;btn.textContent='Link genereren';}
+  }
 }
 async function sendInviteEmail(email,name,link){
   try{
@@ -1948,9 +1965,21 @@ function renderProfile(){
       </div>
     </div>
 
+    <div class="section-label">App installeren</div>
+    <div class="card" id="installCard">
+      <div class="card-row" style="cursor:pointer;align-items:flex-start;gap:14px;padding:16px" onclick="openInstallGuide()">
+        <div style="font-size:26px;flex-shrink:0;margin-top:2px">📲</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px">Download app</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.5">Installeer MHVwork als app op je telefoon of computer voor snellere toegang en push notificaties</div>
+        </div>
+        <div style="color:var(--text3);margin-top:4px">›</div>
+      </div>
+    </div>
+
     <button class="btn btn-red btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
     <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931 · <a href='mailto:h.mhvwork@gmail.com' style='color:var(--text3);text-decoration:none'>h.mhvwork@gmail.com</a></p>
-  `;
+  \`;
 }
 async function changePw(){
   const cur=$('pwC').value, nw=$('pwN').value, nw2=$('pwN2').value;
@@ -1974,6 +2003,139 @@ async function doLogout(){
   if(!ok)return;
   await window._f.signOut(window._f.auth);
   window.location.href='index.html';
+}
+
+function openInstallGuide(){
+  const ua=navigator.userAgent||'';
+  const isIOS=/iPad|iPhone|iPod/.test(ua)&&!window.MSStream;
+  const isAndroid=/Android/.test(ua);
+  const isSafari=/Safari/.test(ua)&&!/Chrome/.test(ua);
+  const isChrome=/Chrome/.test(ua)&&!/Edg/.test(ua);
+  const isEdge=/Edg/.test(ua);
+  const isStandalone=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+
+  if(isStandalone){
+    modal('<div class="modal-handle"></div><div class="modal-title">\u2705 Al ge\xebnstalleerd!</div>'
+      +'<p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Je gebruikt MHVwork al als ge\xebnstalleerde app.</p>'
+      +'<button class="btn btn-ghost btn-full" onclick="closeModal()">Sluiten</button>');
+    return;
+  }
+
+  let steps='', platformName='';
+
+  if(isIOS&&!isSafari){
+    platformName='iPhone/iPad (Chrome)';
+    steps='<div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--orange)">'
+      +'\u26a0\ufe0f Op iPhone/iPad werkt installeren <strong>alleen via Safari</strong>. Open deze pagina in Safari.</div>'
+      +'<div style="font-size:13px;color:var(--text2)">Kopieer deze URL en open in Safari:<br>'
+      +'<code style="font-size:12px;background:var(--bg3);padding:4px 8px;border-radius:6px;display:block;margin-top:8px;word-break:break-all">'+window.location.href+'</code></div>';
+  } else if(isIOS&&isSafari){
+    platformName='iPhone/iPad (Safari)';
+    steps='<div class="install-step"><span class="install-num">1</span><div>Tik op het <strong>deel-icoon \u23cb</strong> onderaan Safari</div></div>'
+      +'<div class="install-step"><span class="install-num">2</span><div>Tik op <strong>"Zet op beginscherm"</strong></div></div>'
+      +'<div class="install-step"><span class="install-num">3</span><div>Tik rechtsboven op <strong>"Voeg toe"</strong></div></div>'
+      +'<div class="install-step"><span class="install-num">4</span><div>Open MHVwork via het nieuwe icoon \ud83c\udf89</div></div>';
+  } else if(isAndroid){
+    platformName='Android';
+    steps='<div class="install-step"><span class="install-num">1</span><div>Tik op de <strong>drie puntjes</strong> rechts bovenin Chrome</div></div>'
+      +'<div class="install-step"><span class="install-num">2</span><div>Tik op <strong>"App installeren"</strong> of <strong>"Toevoegen aan startscherm"</strong></div></div>'
+      +'<div class="install-step"><span class="install-num">3</span><div>Tik op <strong>"Installeren"</strong> \ud83c\udf89</div></div>';
+  } else if(isChrome||isEdge){
+    platformName=isEdge?'Windows/Mac (Edge)':'Windows/Mac (Chrome)';
+    steps='<div class="install-step"><span class="install-num">1</span><div>Klik op het <strong>installatie-icoon \u2295</strong> rechts in de adresbalk</div></div>'
+      +'<div class="install-step"><span class="install-num">2</span><div>Klik op <strong>"Installeren"</strong></div></div>'
+      +'<div class="install-step"><span class="install-num">3</span><div>MHVwork opent als eigen app \ud83c\udf89</div></div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-top:8px">Zie je het niet? Klik op de drie puntjes \u2192 "MHVwork installeren"</div>';
+  } else {
+    platformName='jouw apparaat';
+    steps='<div style="font-size:13px;color:var(--text2);line-height:1.6">Open MHVwork in <strong>Chrome</strong> of <strong>Safari</strong> en kies "Toevoegen aan startscherm" of "App installeren" in het browsermenu.</div>';
+  }
+
+  modal('<div class="modal-handle"></div>'
+    +'<div class="modal-title">\ud83d\udcf2 App installeren</div>'
+    +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px">Instructies voor <strong>'+platformName+'</strong></p>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">'+steps+'</div>'
+    +'<button class="btn btn-yellow btn-full" onclick="closeModal()">Begrepen</button>');
+}
+async function doLogout(){
+  const ok=await confirm2('Uitloggen','Weet je zeker dat je wilt uitloggen?','Uitloggen');
+  if(!ok)return;
+  await window._f.signOut(window._f.auth);
+  window.location.href='index.html';
+}
+
+function openInstallGuide(){
+  // Detecteer platform
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  const isMac = /Macintosh|Mac OS X/.test(ua) && !isIOS;
+  const isWindows = /Windows/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+  const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua);
+  const isEdge = /Edg/.test(ua);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+  if(isStandalone){
+    modal(\`<div class="modal-handle"></div>
+      <div class="modal-title">✅ Al geïnstalleerd!</div>
+      <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Je gebruikt MHVwork al als geïnstalleerde app.</p>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Sluiten</button>\`);
+    return;
+  }
+
+  let steps = '';
+  let platformName = '';
+
+  if(isIOS && !isSafari){
+    // Chrome / andere browser op iOS
+    platformName = 'iPhone of iPad (Chrome)';
+    steps = \`
+      <div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--orange)">
+        ⚠️ Op iPhone/iPad werkt installeren <strong>alleen via Safari</strong>. Open deze pagina in Safari en probeer opnieuw.
+      </div>
+      <div style="font-size:13px;color:var(--text2)">Kopieer deze URL en open hem in Safari:<br>
+      <code style="font-size:12px;background:var(--bg3);padding:4px 8px;border-radius:6px;display:block;margin-top:8px;word-break:break-all">\${window.location.href}</code></div>\`;
+  } else if(isIOS && isSafari){
+    platformName = 'iPhone of iPad (Safari)';
+    steps = \`
+      <div class="install-step"><span class="install-num">1</span><div>Tik op het <strong>deel-icoon</strong> <span style="font-size:18px">⎋</span> onderaan in Safari</div></div>
+      <div class="install-step"><span class="install-num">2</span><div>Scroll naar beneden en tik op <strong>"Zet op beginscherm"</strong></div></div>
+      <div class="install-step"><span class="install-num">3</span><div>Tik rechtsboven op <strong>"Voeg toe"</strong></div></div>
+      <div class="install-step"><span class="install-num">4</span><div>Open MHVwork via het nieuwe icoon op je beginscherm 🎉</div></div>\`;
+  } else if(isAndroid){
+    platformName = 'Android';
+    steps = \`
+      <div class="install-step"><span class="install-num">1</span><div>Tik op de <strong>drie puntjes</strong> rechts bovenin Chrome</div></div>
+      <div class="install-step"><span class="install-num">2</span><div>Tik op <strong>"Toevoegen aan startscherm"</strong> of <strong>"App installeren"</strong></div></div>
+      <div class="install-step"><span class="install-num">3</span><div>Tik op <strong>"Installeren"</strong> in het pop-up venster</div></div>
+      <div class="install-step"><span class="install-num">4</span><div>Open MHVwork via het icoon op je startscherm 🎉</div></div>\`;
+  } else if(isChrome || isEdge){
+    platformName = isEdge ? 'Windows/Mac (Edge)' : 'Windows/Mac (Chrome)';
+    steps = \`
+      <div class="install-step"><span class="install-num">1</span><div>Klik op het <strong>installatie-icoon</strong> <span style="font-size:16px">⊕</span> rechts in de adresbalk</div></div>
+      <div class="install-step"><span class="install-num">2</span><div>Klik op <strong>"Installeren"</strong> in het pop-up venster</div></div>
+      <div class="install-step"><span class="install-num">3</span><div>MHVwork opent nu als een eigen app venster 🎉</div></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:12px">Zie je het icoon niet? Klik op de drie puntjes → "MHVwork installeren"</div>\`;
+  } else if(isMac && isSafari){
+    platformName = 'Mac (Safari)';
+    steps = \`
+      <div class="install-step"><span class="install-num">1</span><div>Klik in de menubalk op <strong>Archief</strong></div></div>
+      <div class="install-step"><span class="install-num">2</span><div>Klik op <strong>"Voeg toe aan Dock"</strong></div></div>
+      <div class="install-step"><span class="install-num">3</span><div>MHVwork verschijnt nu in je Dock 🎉</div></div>\`;
+  } else {
+    platformName = 'jouw apparaat';
+    steps = \`
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">
+        Open MHVwork in <strong>Chrome</strong> of <strong>Safari</strong> en gebruik de browser-menu om de app te installeren ("Toevoegen aan startscherm" of "App installeren").
+      </div>\`;
+  }
+
+  modal(\`<div class="modal-handle"></div>
+    <div class="modal-title">📲 App installeren</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Instructies voor <strong>\${platformName}</strong></p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">\${steps}</div>
+    <button class="btn btn-yellow btn-full" onclick="closeModal()">Begrepen</button>\`);
 }
 
 // ═══════════════════════════════════════════
