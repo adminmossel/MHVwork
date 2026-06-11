@@ -615,27 +615,27 @@ let unsubShifts, unsubNotifs, unsubAvail, unsubChat;
 
 // ── INIT ──────────────────────────────────────
 window.addEventListener('mhv:ready', async ()=>{
+  try {
   U = window._user;
-  document.getElementById('topLogo').src = LOGO;
-  if (window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
+  // Helper: veilig element ophalen zonder crash
+  const el = id => { try { return document.getElementById(id); } catch(e){ return null; } };
+  if(el('topLogo')) el('topLogo').src = LOGO;
+  if (window._f && window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
     emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
   if (U.role==='admin') {
-    document.getElementById('tab-admin').style.display='flex';
-    document.getElementById('tab-chat').style.display='flex';
-    document.getElementById('tab-avail-label').textContent='Beschikbaar';
+    if(el('tab-admin')) el('tab-admin').style.display='flex';
+    if(el('tab-chat'))  el('tab-chat').style.display='flex';
+    if(el('tab-avail-label')) el('tab-avail-label').textContent='Beschikbaar';
   }
   if (U.role==='software') {
-    // Verberg normale tabs, toon software tabs
-    document.querySelectorAll('.sw-hide').forEach(el=>el.style.display='none');
-    document.querySelectorAll('.sw-only').forEach(el=>el.style.display='flex');
-    document.getElementById('tab-chat').style.display='flex';
-    document.getElementById('tab-admin').style.display='flex';
-    // Navigeer naar software dashboard
+    document.querySelectorAll('.sw-hide').forEach(e=>e.style.display='none');
+    document.querySelectorAll('.sw-only').forEach(e=>e.style.display='flex');
+    if(el('tab-chat'))  el('tab-chat').style.display='flex';
+    if(el('tab-admin')) el('tab-admin').style.display='flex';
     nav('swdev', document.querySelector('.sw-only'));
   }
-  // Start chat subscription voor admin en software
   if (U.role==='admin' || U.role==='software') {
-    subChat();
+    try { subChat(); } catch(e){ console.warn('subChat fout:', e); }
   }
   // Check for pending forgot-pw requests
   if(U.role==='admin'){
@@ -658,11 +658,20 @@ window.addEventListener('mhv:ready', async ()=>{
       }catch(e){}
     }
   }
-  await loadUsers();
-  subShifts(); subNotifs(); subAvail();
-  render('home');
-  document.getElementById('loader').style.display='none';
-  document.getElementById('app').style.display='flex';
+  try { await loadUsers(); } catch(e){ console.warn('loadUsers fout:', e); allUsers=[]; }
+  try { subShifts(); } catch(e){ console.warn('subShifts:', e); }
+  try { subNotifs(); } catch(e){ console.warn('subNotifs:', e); }
+  try { subAvail();  } catch(e){ console.warn('subAvail:',  e); }
+  render(U.role==='software' ? 'swdev' : 'home');
+  } catch(fatalErr) {
+    console.error('mhv:ready fatal error:', fatalErr);
+  } finally {
+    // Laadscherm ALTIJD verbergen — ook als er een fout is
+    const loader = document.getElementById('loader');
+    const app    = document.getElementById('app');
+    if(loader) loader.style.display='none';
+    if(app)    app.style.display='flex';
+  }
 });
 
 // ── DATA ──────────────────────────────────────
@@ -2289,11 +2298,32 @@ let _chatImgData = null; // base64 afbeelding klaar voor verzending
 let _mentionQuery = null; // huidige @-zoekterm
 
 function subChat(){
-  const{db,collection,onSnapshot,orderBy,query,limit}=window._f;
-  const q=query(collection(db,'chat'),orderBy('createdAt','asc'),limit(200));
+  const{db,collection,onSnapshot,orderBy,query,limit,where,Timestamp}=window._f;
+  // Laad berichten: gepinde altijd, overige max 3 maanden oud
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+  const cutoff = Timestamp.fromDate(threeMonthsAgo);
+  const q=query(collection(db,'chat'),orderBy('createdAt','asc'),limit(300));
   unsubChat=onSnapshot(q,s=>{
-    allChat=s.docs.map(d=>({id:d.id,...d.data()}));
-    if(document.querySelector('#view-chat.active')) renderChat();
+    // Filter: toon gepinde berichten altijd, overige alleen als < 3 maanden
+    allChat=s.docs.map(d=>({id:d.id,...d.data()})).filter(msg=>{
+      if(msg.pinned) return true;
+      const t=msg.createdAt?.toDate?.();
+      if(!t) return true;
+      return t >= threeMonthsAgo;
+    });
+    // Verwijder automatisch verlopen ongepinde berichten uit Firestore
+    s.docs.forEach(d=>{
+      const msg=d.data();
+      if(!msg.pinned){
+        const t=msg.createdAt?.toDate?.();
+        if(t && t < threeMonthsAgo){
+          window._f.deleteDoc(window._f.doc(db,'chat',d.id)).catch(()=>{});
+        }
+      }
+    });
+    if(document.querySelector('#view-chat.active')||document.getElementById('view-chat')?.classList.contains('active'))
+      renderChat();
   });
 }
 
@@ -2322,7 +2352,11 @@ function renderChat(){
         </button>
       </div>
       <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
-    </div>`;
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text3);cursor:pointer;user-select:none">
+        <input type="checkbox" id="chatPinToggle" style="accent-color:var(--mhv-yellow)">
+        📌 Bewaar permanent (niet automatisch verwijderd na 3 maanden)
+      </label>
+    </div>\`; 
   // Scroll naar beneden
   setTimeout(()=>{const m=$('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},50);
 }
@@ -2347,7 +2381,7 @@ function renderChatMessages(){
       ${!mine?`<div class="chat-av">${initials}</div>`:''}
       <div style="max-width:75%">
         ${!mine?`<div class="chat-meta">${msg.name||'?'}${rolePill} · ${timeStr}</div>`:`<div class="chat-meta">${timeStr}</div>`}
-        <div class="chat-bubble">${bubbleText}${imgHtml}</div>
+        <div class="chat-bubble">${msg.pinned?'<span style="font-size:10px;opacity:0.6">📌 </span>':''}${bubbleText}${imgHtml}</div>
       </div>
     </div>`;
   });
@@ -2444,6 +2478,7 @@ async function sendChatMsg(){
   const ta=$('chatInput');
   const text=ta?ta.value.trim():'';
   if(!text&&!_chatImgData)return;
+  const pinned=document.getElementById('chatPinToggle')?.checked||false;
   const{db,collection,addDoc,serverTimestamp}=window._f;
   // Detecteer mentions
   const mentions=[...text.matchAll(/@(\S+)/g)].map(m=>m[1].toLowerCase());
@@ -2458,7 +2493,7 @@ async function sendChatMsg(){
   }
   try{
     const payload={uid:U.uid,name:U.name,role:U.role||'employee',text,
-      mentions:mentionedUids,createdAt:serverTimestamp()};
+      mentions:mentionedUids,pinned:pinned||false,createdAt:serverTimestamp()};
     if(_chatImgData) payload.imageData=_chatImgData;
     await addDoc(collection(db,'chat'),payload);
     // Stuur notificatie naar genoemde gebruikers
