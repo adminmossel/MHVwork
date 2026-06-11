@@ -2329,61 +2329,66 @@ function subChat(){
 
 function renderChat(){
   const c=$('view-chat'); if(!c)return;
-  c.innerHTML=`
-    <div style="padding:14px 14px 10px;flex-shrink:0;border-bottom:1px solid var(--separator)">
-      <div class="page-title" style="margin:0;font-size:20px">💬 Groepschat</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:2px">Alleen zichtbaar voor beheerders en dev</div>
-    </div>
-    <div class="chat-msgs" id="chatMsgs">
-      ${allChat.length ? renderChatMessages() : '<div class="empty" style="margin:auto"><div class="empty-icon">💬</div><p>Nog geen berichten</p></div>'}
-    </div>
-    <div class="chat-input-area">
-      <div class="mention-popup" id="mentionPopup"></div>
-      <div class="chat-img-preview" id="chatImgPreview" style="display:none"></div>
-      <div class="chat-input-row">
-        <button class="chat-img-btn" onclick="document.getElementById('chatFileInput').click()" title="Afbeelding toevoegen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 19"/></svg>
-        </button>
-        <textarea id="chatInput" placeholder="Bericht… gebruik @ om te taggen" rows="1"
-          oninput="autoResizeChatInput(this);handleMentionInput(this)"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}"></textarea>
-        <button class="chat-send-btn" onclick="sendChatMsg()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
-      <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
-      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text3);cursor:pointer;user-select:none">
-        <input type="checkbox" id="chatPinToggle" style="accent-color:var(--mhv-yellow)">
-        📌 Bewaar permanent (niet automatisch verwijderd na 3 maanden)
-      </label>
-    </div>\`; 
-  // Scroll naar beneden
-  setTimeout(()=>{const m=$('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},50);
+  const msgsHtml=allChat.length?renderChatMessages()
+    :'<div style="text-align:center;padding:40px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">💬</div><p>Nog geen berichten</p></div>';
+  c.innerHTML=
+    '<div style="padding:14px 14px 10px;flex-shrink:0;border-bottom:1px solid var(--separator)">'
+    +'<div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.5px">💬 Groepschat</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Alleen voor beheerders en dev</div>'
+    +'</div>'
+    +'<div id="chatMsgs" style="flex:1;overflow-y:auto;padding:12px 12px 0;display:flex;flex-direction:column;gap:8px">'+msgsHtml+'</div>'
+    +'<div class="chat-input-area">'
+    +'<div class="mention-popup" id="mentionPopup"></div>'
+    +'<div class="chat-img-preview" id="chatImgPreview" style="display:none"></div>'
+    +'<div class="chat-input-row">'
+    +'<button class="chat-img-btn" onclick="document.getElementById(&quot;chatFileInput&quot;).click()" title="Afbeelding">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 19"/></svg>'
+    +'</button>'
+    +'<textarea id="chatInput" placeholder="Bericht... gebruik @ om te taggen" rows="1"'
+    +' oninput="autoResizeChatInput(this);handleMentionInput(this)"'
+    +' onkeydown="if(event.key===&apos;Enter&apos;&&!event.shiftKey){event.preventDefault();sendChatMsg();}"></textarea>'
+    +'<button class="chat-send-btn" onclick="sendChatMsg()">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>'
+    +'</button>'
+    +'</div>'
+    +'<input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">'
+    +'<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text3);cursor:pointer">'
+    +'<input type="checkbox" id="chatPinToggle" style="accent-color:var(--mhv-yellow)"> 📌 Bewaar permanent'
+    +'</label>'
+    +'</div>';
+  setTimeout(function(){var m=document.getElementById('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},50);
 }
 
 function renderChatMessages(){
-  let html=''; let lastDate='';
-  allChat.forEach(msg=>{
-    const t=msg.createdAt?.toDate?msg.createdAt.toDate():new Date();
-    const dateStr=t.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  var html=''; var lastDate='';
+  allChat.forEach(function(msg){
+    var t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
+    var dateStr=t.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
     if(dateStr!==lastDate){
-      html+=`<div class="chat-date-div">${dateStr}</div>`;
+      html+='<div class="chat-date-div">'+dateStr+'</div>';
       lastDate=dateStr;
     }
-    const mine=msg.uid===U.uid;
-    const initials=getInitials(msg.name||'?');
-    const timeStr=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-    const rolePill=msg.role==='admin'?`<span class="chat-role-pill pill-adm">Beheerder</span>`
-      :msg.role==='software'?`<span class="chat-role-pill pill-sw">Dev</span>`:'';
-    const bubbleText=msg.text?formatMentions(msg.text):'';
-    const imgHtml=msg.imageData?`<img src="${msg.imageData}" class="chat-img-msg" onclick="openImgFull('${msg.imageData}')" alt="afbeelding">`:'';
-    html+=`<div class="chat-msg ${mine?'mine':''} role-${msg.role||'employee'}">
-      ${!mine?`<div class="chat-av">${initials}</div>`:''}
-      <div style="max-width:75%">
-        ${!mine?`<div class="chat-meta">${msg.name||'?'}${rolePill} · ${timeStr}</div>`:`<div class="chat-meta">${timeStr}</div>`}
-        <div class="chat-bubble">${msg.pinned?'<span style="font-size:10px;opacity:0.6">📌 </span>':''}${bubbleText}${imgHtml}</div>
-      </div>
-    </div>`;
+    var mine=msg.uid===U.uid;
+    var initials=getInitials(msg.name||'?');
+    var timeStr=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    var rolePill=msg.role==='admin'?'<span class="chat-role-pill pill-adm">Beheerder</span>'
+      :msg.role==='software'?'<span class="chat-role-pill pill-sw">Dev</span>':'';
+    var bubbleText=msg.text?formatMentions(msg.text):'';
+    var pinMark=msg.pinned?'<span style="font-size:10px;opacity:0.55">📌 </span>':'';
+    var imgHtml=msg.imageData
+      ?'<img src="'+msg.imageData+'" class="chat-img-msg" onclick="openImgFull(this.src)" style="max-width:100%;max-height:200px;border-radius:12px;display:block;margin-top:6px;cursor:zoom-in" alt="afb">'
+      :'';
+    var avHtml=mine?'':'<div class="chat-av">'+initials+'</div>';
+    var metaHtml=mine
+      ?'<div class="chat-meta">'+timeStr+'</div>'
+      :'<div class="chat-meta">'+( msg.name||'?')+rolePill+' · '+timeStr+'</div>';
+    html+='<div class="chat-msg '+(mine?'mine':'')+' role-'+(msg.role||'employee')+'">'
+      +avHtml
+      +'<div style="max-width:75%">'
+      +metaHtml
+      +'<div class="chat-bubble">'+pinMark+bubbleText+imgHtml+'</div>'
+      +'</div>'
+      +'</div>';
   });
   return html;
 }
@@ -2417,11 +2422,12 @@ function showMentionPopup(query){
   const users=[{uid:'all',name:'Iedereen'},...allUsers.filter(u=>u.uid!==U.uid)];
   const filtered=query?users.filter(u=>u.name.toLowerCase().includes(query)):users;
   if(!filtered.length){hideMentionPopup();return;}
-  popup.innerHTML=filtered.slice(0,6).map(u=>`
-    <div class="mention-opt" onclick="insertMention('${u.name}')">
-      <div class="chat-av" style="width:26px;height:26px;font-size:10px">${u.uid==='all'?'👥':getInitials(u.name)}</div>
-      <span>${u.name}</span>
-    </div>`).join('');
+  popup.innerHTML=filtered.slice(0,6).map(function(u){
+    return '<div class="mention-opt" onclick="insertMention(&quot;'+u.name+'&quot;)">'
+      +'<div class="chat-av" style="width:26px;height:26px;font-size:10px">'+(u.uid==='all'?'👥':getInitials(u.name))+'</div>'
+      +'<span>'+u.name+'</span>'
+      +'</div>';
+  }).join('');
   popup.classList.add('open');
 }
 
@@ -2459,7 +2465,7 @@ function handleChatImage(input){
       const prev=$('chatImgPreview');
       if(prev){
         prev.style.display='flex';
-        prev.innerHTML=`<img src="${_chatImgData}"><button onclick="clearChatImg()">✕ Verwijder</button>`;
+        prev.innerHTML='<img src="'+_chatImgData+'" style="height:60px;border-radius:8px"> <button onclick="clearChatImg()" style="background:rgba(255,69,58,0.15);border:none;color:#FF453A;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer">✕</button>';
       }
     };
     img.src=e.target.result;
@@ -2501,7 +2507,7 @@ async function sendChatMsg(){
       const targets=mentionedUids.includes('all')
         ?allUsers.filter(u=>u.uid!==U.uid).map(u=>u.uid)
         :mentionedUids;
-      await sendNotifMulti(targets,`${U.name} heeft je getagd in de chat`,text.slice(0,80));
+      await sendNotifMulti(targets,U.name+' heeft je getagd in de chat',text.slice(0,80));
     }
     if(ta) ta.value='';
     clearChatImg();
@@ -2514,9 +2520,9 @@ async function sendChatMsg(){
 }
 
 function openImgFull(src){
-  modal(`<div class="modal-handle"></div>
-    <img src="${src}" style="width:100%;border-radius:12px;display:block">
-    <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeModal()">Sluiten</button>`);
+  modal('<div class="modal-handle"></div>'
+    +'<img src="'+src+'" style="width:100%;border-radius:12px;display:block">'
+    +'<button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeModal()">Sluiten</button>');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2525,60 +2531,57 @@ function openImgFull(src){
 function renderSwDev(){
   const c=$('view-swdev'); if(!c)return;
   const totalUsers=allUsers.length;
-  c.innerHTML=`
-    <div class="page-title">🛠 Dev Dashboard</div>
-    <div class="sw-grid">
-      <div class="sw-tile"><div class="sw-num">${totalUsers}</div><div class="sw-lbl">Gebruikers</div></div>
-      <div class="sw-tile"><div class="sw-num">${allShifts.length}</div><div class="sw-lbl">Diensten</div></div>
-    </div>
+  var usersHtml=allUsers.map(function(u){
+    var badge=u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray';
+    return '<div class="card-row" style="padding:12px 16px">'
+      +'<div class="avatar">'+getInitials(u.name)+'</div>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:14px;font-weight:600">'+u.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+u.email+' <span class="badge '+badge+'">'+u.role+'</span></div>'
+      +'</div>'
+      +'<button class="btn btn-ghost btn-sm" onclick="swDeleteUser(&quot;'+u.uid+'&quot;,&quot;'+u.name+'&quot;)">✕</button>'
+      +'</div>';
+  }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
 
-    <div class="section-label">Meldingen versturen</div>
-    <div class="card" style="margin-bottom:10px">
-      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-        <div>
-          <label class="form-label">Ontvangers</label>
-          <label class="worker-check" style="margin-bottom:6px">
-            <input type="checkbox" id="swMsgAll" onchange="toggleSwAll(this)">
-            <div style="font-size:14px;font-weight:600">Iedereen (${allUsers.length})</div>
-          </label>
-          ${allUsers.map(u=>`<label class="worker-check" style="margin-bottom:4px">
-            <input type="checkbox" class="sw-rcpt" value="${u.uid}">
-            <div class="avatar" style="width:24px;height:24px;font-size:10px">${getInitials(u.name)}</div>
-            <div style="font-size:13px">${u.name}</div>
-          </label>`).join('')}
-        </div>
-        <div>
-          <label class="form-label">Type melding</label>
-          <select class="form-input" id="swMsgType" style="padding:10px 12px">
-            <option value="notif">📱 In-app notificatie</option>
-            <option value="email">📧 Email</option>
-            <option value="both">📱 + 📧 Allebei</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Titel</label>
-          <input type="text" class="form-input" id="swMsgTitle" placeholder="Bijv. App update v2.1">
-        </div>
-        <div>
-          <label class="form-label">Bericht</label>
-          <textarea class="form-input" id="swMsgBody" rows="3" placeholder="Typ je bericht…" style="resize:none"></textarea>
-        </div>
-        <button class="btn btn-yellow btn-full" onclick="sendSwMsg()">Versturen</button>
-      </div>
-    </div>
+  var rcptHtml=allUsers.map(function(u){
+    return '<label class="worker-check" style="margin-bottom:4px">'
+      +'<input type="checkbox" class="sw-rcpt" value="'+u.uid+'">'
+      +'<div class="avatar" style="width:24px;height:24px;font-size:10px">'+getInitials(u.name)+'</div>'
+      +'<div style="font-size:13px">'+u.name+'</div>'
+      +'</label>';
+  }).join('');
 
-    <div class="section-label">Account beheer</div>
-    <div class="card">
-      ${allUsers.map(u=>`
-        <div class="card-row" style="padding:12px 16px">
-          <div class="avatar">${getInitials(u.name)}</div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:600">${u.name}</div>
-            <div style="font-size:12px;color:var(--text3)">${u.email} · <span class="badge ${u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray'}">${u.role}</span></div>
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="swDeleteUser('${u.uid}','${u.name}')">✕</button>
-        </div>`).join('')||'<div class="empty"><p>Geen gebruikers</p></div>'}
-    </div>`;
+  c.innerHTML=
+    '<div class="page-title">🛠 Dev Dashboard</div>'
+    +'<div class="sw-grid">'
+    +'<div class="sw-tile"><div class="sw-num">'+totalUsers+'</div><div class="sw-lbl">Gebruikers</div></div>'
+    +'<div class="sw-tile"><div class="sw-num">'+allShifts.length+'</div><div class="sw-lbl">Diensten</div></div>'
+    +'</div>'
+    +'<div class="section-label">Meldingen versturen</div>'
+    +'<div class="card" style="margin-bottom:10px">'
+    +'<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'
+    +'<div>'
+    +'<label class="form-label">Ontvangers</label>'
+    +'<label class="worker-check" style="margin-bottom:6px">'
+    +'<input type="checkbox" id="swMsgAll" onchange="toggleSwAll(this)">'
+    +'<div style="font-size:14px;font-weight:600">Iedereen ('+allUsers.length+')</div>'
+    +'</label>'
+    +rcptHtml
+    +'</div>'
+    +'<div><label class="form-label">Type melding</label>'
+    +'<select class="form-input" id="swMsgType" style="padding:10px 12px">'
+    +'<option value="notif">📱 In-app notificatie</option>'
+    +'<option value="email">📧 Email</option>'
+    +'<option value="both">📱 + 📧 Allebei</option>'
+    +'</select></div>'
+    +'<div><label class="form-label">Titel</label>'
+    +'<input type="text" class="form-input" id="swMsgTitle" placeholder="Bijv. App update v2.1"></div>'
+    +'<div><label class="form-label">Bericht</label>'
+    +'<textarea class="form-input" id="swMsgBody" rows="3" placeholder="Typ je bericht..." style="resize:none"></textarea></div>'
+    +'<button class="btn btn-yellow btn-full" onclick="sendSwMsg()">Versturen</button>'
+    +'</div></div>'
+    +'<div class="section-label">Account beheer</div>'
+    +'<div class="card">'+usersHtml+'</div>';
 }
 
 window.toggleSwAll=(cb)=>document.querySelectorAll('.sw-rcpt').forEach(r=>r.checked=cb.checked);
