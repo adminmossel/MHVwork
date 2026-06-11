@@ -600,7 +600,7 @@ select.form-input option { background:var(--bg3); }
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script>
+<script type="module">
 // ════════════════════════════════════════════
 // MHVwork App Logic v2 — Apple Style
 // ════════════════════════════════════════════
@@ -2269,9 +2269,33 @@ document.addEventListener('click',e=>{
   if(p.classList.contains('open')&&!p.contains(e.target)&&!$('notifBtn').contains(e.target))
     p.classList.remove('open');
 });
+
+// ── Expose functions to global scope voor HTML onclick handlers ──
+// (vereist omdat dit een type=module script is)
+window.nav=nav; window.toast=toast; window.closeModal=closeModal;
+window.modal=modal; window.confirm2=confirm2; window.doLogout=doLogout;
+window.openInstallGuide=openInstallGuide; window.openAvailModal=openAvailModal;
+window.saveAvail=saveAvail; window.deleteAvail=deleteAvail;
+window.openEmployeeMsg=openEmployeeMsg; window.openSendToAdmin=openSendToAdmin;
+window.sendToAdmin=sendToAdmin; window.switchEmpTab=switchEmpTab;
+window.markRead=markRead; window.markAllRead=markAllRead;
+window.confirmShiftOk=confirmShiftOk; window.openCorrectShift=openCorrectShift;
+window.openInviteModal=openInviteModal; window.createInvite=createInvite;
+window.sendInviteEmail=sendInviteEmail; window.openEditEmployee=openEditEmployee;
+window.deleteEmployee=deleteEmployee; window.resetPwAdmin=resetPwAdmin;
+window.openAddEmployee=openAddEmployee;
+window.openPayModal=openPayModal; window.markPaid=markPaid;
+window.sendMsg=sendMsg; window.renderAdminMsgTab=renderAdminMsgTab;
+window.setAdminMsgTab=setAdminMsgTab;
+window.sendChatMsg=sendChatMsg; window.insertMention=insertMention;
+window.clearChatImg=clearChatImg; window.handleChatImage=handleChatImage;
+window.openImgFull=openImgFull; window.sendSwMsg=sendSwMsg;
+window.swDeleteUser=swDeleteUser; window.deleteAvailAdmin=deleteAvailAdmin;
+window.renderEmpInbox=renderEmpInbox; window.renderEmpStuur=renderEmpStuur;
+window.setAdminRTab=window.setAdminRTab||function(){};
 </script>
 
-<script>
+<script type="module">
 // Service Worker registratie voor Push Notificaties (PWA)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
@@ -2613,7 +2637,7 @@ async function sendSwMsg(){
 }
 
 async function swDeleteUser(uid,name){
-  const ok=await confirm2('Account verwijderen',`${name} verwijderen uit MHVwork? De gebruiker kan dan niet meer inloggen.`,'Verwijderen','btn-red');
+  const ok=await confirm2('Account verwijderen',name+' verwijderen uit MHVwork? De gebruiker kan dan niet meer inloggen.','Verwijderen','btn-red');
   if(!ok)return;
   const{db,doc,deleteDoc}=window._f;
   await deleteDoc(doc(db,'users',uid));
