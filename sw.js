@@ -1,15 +1,45 @@
 // MHVwork Service Worker — Push Notifications
-const CACHE = 'mhvwork-v1';
+const CACHE = 'mhvwork-v3';
+const CACHE_URLS = []; // Geen pre-cache — altijd netwerk
 
 self.addEventListener('install', e => {
-  self.skipWaiting();
+  self.skipWaiting(); // Activeer meteen
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
+  // Verwijder ALLE oude caches
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => clients.claim())
+  );
 });
 
-// Push event — toont notificatie
+// Netwerk-first strategie — NOOIT van cache serveren voor HTML
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  // HTML altijd vers ophalen van netwerk
+  if (e.request.destination === 'document' || url.pathname.endsWith('.html')) {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // Overige requests: netwerk, dan cache
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request))
+  );
+});
+
+// Push event
 self.addEventListener('push', e => {
   let data = { title: 'MHVwork', body: 'Je hebt een nieuw bericht.' };
   try { data = e.data.json(); } catch(err) {}
@@ -19,19 +49,14 @@ self.addEventListener('push', e => {
       icon: '/MHVwork/icon.svg',
       badge: '/MHVwork/icon.svg',
       vibrate: [200, 100, 200],
-      data: { url: data.url || '/MHVwork/app.html' },
-      actions: [
-        { action: 'open', title: 'Openen' },
-        { action: 'close', title: 'Sluiten' }
-      ]
+      data: { url: data.url || '/MHVwork/app.html' }
     })
   );
 });
 
-// Klik op notificatie — open app
+// Klik op notificatie
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  if (e.action === 'close') return;
   const url = (e.notification.data && e.notification.data.url) || '/MHVwork/app.html';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
