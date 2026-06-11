@@ -54,21 +54,36 @@ onAuthStateChanged(auth, async (user) => {
     if (snap && snap.exists()) break;
     await new Promise(r => setTimeout(r, 800));
   }
-  // Hardcoded admin fallback: als het de beheerder is maar het Firestore-doc ontbreekt,
-  // maak het automatisch aan zodat de app nooit vastloopt
-  if ((!snap || !snap.exists()) && user.email === 'h.mhvwork@gmail.com') {
-    try {
-      await setDoc(doc(db,'users',user.uid),{
+  // HARDCODED ADMIN BYPASS:
+  // Als het de vaste beheerder is, laad altijd de app — Firestore of niet.
+  // Dit voorkomt vastlopen als het Firestore-doc ontbreekt of de rules blokkeren.
+  if (!snap || !snap.exists()) {
+    if (user.email === 'h.mhvwork@gmail.com') {
+      // Gebruik hardcoded admin data — geen Firestore nodig om in te loggen
+      window._user = { uid: user.uid, email: user.email, name: 'Beheerder', role: 'admin', wage: 0 };
+      _authHandled = true;
+      const _dispatch = () => window.dispatchEvent(new Event("mhv:ready"));
+      if (document.readyState === 'complete') { _dispatch(); }
+      else { window.addEventListener('load', _dispatch, { once: true }); }
+      // Probeer doc op achtergrond aan te maken (geen await = blokkeert niet)
+      setDoc(doc(db,'users',user.uid),{
         name:'Beheerder', email:'h.mhvwork@gmail.com',
         role:'admin', wage:0, createdAt:serverTimestamp()
-      });
-      snap = await getDoc(doc(db,'users',user.uid));
-    } catch(e) { console.error('Admin doc aanmaken mislukt:',e); }
+      }).catch(e => console.warn('Admin doc aanmaken op achtergrond mislukt:', e));
+      setTimeout(() => { if(window.requestPushPermission) window.requestPushPermission(); }, 2000);
+      return;
+    }
+    // Geen doc en geen hardcoded admin: uitloggen
+    await auth.signOut();
+    setTimeout(() => { window.location.href="index.html"; }, 300);
+    return;
   }
-  if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
   _authHandled = true;
   window._user = { uid: user.uid, email: user.email, ...snap.data() };
-  window.dispatchEvent(new Event("mhv:ready"));
+  // Wacht tot het gewone script klaar is met laden, dan pas dispatchen
+  const _dispatch = () => window.dispatchEvent(new Event("mhv:ready"));
+  if (document.readyState === 'complete') { _dispatch(); }
+  else { window.addEventListener('load', _dispatch, { once: true }); }
   // Vraag push toestemming na login
   setTimeout(() => { if(window.requestPushPermission) window.requestPushPermission(); }, 2000);
 });
@@ -228,6 +243,49 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .stat-lbl { font-size:12px; color:var(--text3); margin-top:5px; font-weight:500; }
 
 /* ── SHIFT CARD ─── */
+
+/* ─── Chat ─── */
+#view-chat{padding:0!important;display:flex;flex-direction:column;}
+.chat-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px 12px 0;display:flex;flex-direction:column;gap:8px;}
+.chat-msg{display:flex;gap:10px;align-items:flex-end;}
+.chat-msg.mine{flex-direction:row-reverse;}
+.chat-bubble{max-width:72%;background:var(--bg3);border-radius:18px 18px 18px 4px;padding:10px 14px;font-size:14px;line-height:1.5;color:var(--text);word-break:break-word;}
+.chat-msg.mine .chat-bubble{background:var(--mhv-blue);color:#fff;border-radius:18px 18px 4px 18px;}
+.chat-msg.role-admin .chat-bubble{background:rgba(245,200,0,0.1);border:1px solid rgba(245,200,0,0.18);}
+.chat-msg.role-software .chat-bubble{background:rgba(100,210,255,0.08);border:1px solid rgba(100,210,255,0.18);}
+.chat-av{width:30px;height:30px;border-radius:50%;background:var(--mhv-blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-msg.role-admin .chat-av{background:var(--mhv-yellow);color:#000;}
+.chat-msg.role-software .chat-av{background:#64d2ff;color:#000;}
+.chat-meta{font-size:11px;color:var(--text3);margin-bottom:3px;}
+.chat-msg.mine .chat-meta{text-align:right;}
+.chat-img-msg{max-width:100%;max-height:200px;border-radius:12px;display:block;margin-top:6px;cursor:zoom-in;}
+.chat-mention{color:var(--mhv-yellow);font-weight:700;}
+.chat-input-area{padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--bg2);border-top:1px solid var(--separator);flex-shrink:0;position:relative;}
+.chat-img-preview{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.chat-img-preview img{height:60px;border-radius:8px;}
+.chat-img-preview button{background:rgba(255,69,58,0.15);border:none;color:#FF453A;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;}
+.chat-input-row{display:flex;align-items:flex-end;gap:8px;}
+.chat-input-row textarea{flex:1;background:var(--bg3);border:1.5px solid var(--separator);border-radius:20px;padding:9px 14px;font-size:14px;color:var(--text);font-family:inherit;resize:none;max-height:120px;outline:none;line-height:1.5;transition:border-color 0.2s;}
+.chat-input-row textarea:focus{border-color:var(--mhv-yellow);}
+.chat-send-btn{width:38px;height:38px;border-radius:50%;background:var(--mhv-yellow);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity 0.15s;}
+.chat-send-btn svg{width:18px;height:18px;stroke:#000;}
+.chat-img-btn{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-img-btn svg{width:16px;height:16px;stroke:var(--text2);}
+.mention-popup{position:absolute;bottom:100%;left:10px;right:10px;background:var(--bg2);border:1px solid var(--separator);border-radius:12px;overflow:hidden;box-shadow:0 -4px 20px rgba(0,0,0,0.25);z-index:200;display:none;}
+.mention-popup.open{display:block;}
+.mention-opt{padding:10px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s;}
+.mention-opt:hover{background:var(--bg3);}
+.chat-date-div{text-align:center;font-size:11px;color:var(--text3);margin:6px 0;font-weight:600;}
+.chat-role-pill{font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;}
+.pill-adm{background:rgba(245,200,0,0.15);color:var(--mhv-yellow);}
+.pill-sw{background:rgba(100,210,255,0.15);color:#64d2ff;}
+/* ─── Software dashboard ─── */
+.sw-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.sw-tile{background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center;}
+.sw-num{font-size:28px;font-weight:800;color:var(--mhv-yellow);letter-spacing:-1px;}
+.sw-lbl{font-size:12px;color:var(--text3);margin-top:4px;}
+
 .shift-card {
   background:var(--bg2); border-radius:var(--radius); padding:16px;
   margin-bottom:10px; border:1px solid var(--separator);
@@ -481,26 +539,48 @@ select.form-input option { background:var(--bg3); }
     <!-- PROFIEL -->
     <div class="view" id="view-profile"></div>
 
+    <!-- GROEPSCHAT -->
+    <div class="view" id="view-chat" style="display:flex;flex-direction:column;height:100%;padding:0"></div>
+
+    <!-- SOFTWARE HOME -->
+    <div class="view" id="view-swdev"></div>
+
   </div>
 
   <!-- TAB BAR -->
   <nav id="tabbar">
-    <button class="tab active" onclick="nav('home',this)">
+    <!-- NORMALE TABS (admin + medewerker) -->
+    <button class="tab active sw-hide" onclick="nav('home',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span class="tab-label">Home</span>
     </button>
-    <button class="tab" onclick="nav('roster',this)">
+    <button class="tab sw-hide" onclick="nav('roster',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span class="tab-label">Rooster</span>
     </button>
-    <button class="tab" id="tab-avail" onclick="nav('avail',this)">
+    <button class="tab sw-hide" id="tab-avail" onclick="nav('avail',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
       <span class="tab-label" id="tab-avail-label">Beschikbaar</span>
     </button>
-    <button class="tab" id="tab-admin" style="display:none" onclick="nav('admin',this)">
+    <button class="tab sw-hide" id="tab-admin" style="display:none" onclick="nav('admin',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
       <span class="tab-label">Beheer</span>
     </button>
+    <!-- CHAT TAB: zichtbaar voor admin én software -->
+    <button class="tab" id="tab-chat" style="display:none" onclick="nav('chat',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span class="tab-label">Chat</span>
+    </button>
+    <!-- SOFTWARE-ONLY TABS -->
+    <button class="tab sw-only" style="display:none" onclick="nav('swdev',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span class="tab-label">Dashboard</span>
+    </button>
+    <button class="tab sw-only" style="display:none" onclick="nav('admin',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+      <span class="tab-label">Accounts</span>
+    </button>
+    <!-- PROFIEL: altijd zichtbaar -->
     <button class="tab" onclick="nav('profile',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       <span class="tab-label">Profiel</span>
@@ -528,10 +608,10 @@ const LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIg
 const MO   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
 const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
 
-let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[];
+let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[], allChat=[];
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
 let rosterTab='mine', adminTab='roster', payMonth=0;
-let unsubShifts, unsubNotifs, unsubAvail;
+let unsubShifts, unsubNotifs, unsubAvail, unsubChat;
 
 // ── INIT ──────────────────────────────────────
 window.addEventListener('mhv:ready', async ()=>{
@@ -541,7 +621,21 @@ window.addEventListener('mhv:ready', async ()=>{
     emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
   if (U.role==='admin') {
     document.getElementById('tab-admin').style.display='flex';
+    document.getElementById('tab-chat').style.display='flex';
     document.getElementById('tab-avail-label').textContent='Beschikbaar';
+  }
+  if (U.role==='software') {
+    // Verberg normale tabs, toon software tabs
+    document.querySelectorAll('.sw-hide').forEach(el=>el.style.display='none');
+    document.querySelectorAll('.sw-only').forEach(el=>el.style.display='flex');
+    document.getElementById('tab-chat').style.display='flex';
+    document.getElementById('tab-admin').style.display='flex';
+    // Navigeer naar software dashboard
+    nav('swdev', document.querySelector('.sw-only'));
+  }
+  // Start chat subscription voor admin en software
+  if (U.role==='admin' || U.role==='software') {
+    subChat();
   }
   // Check for pending forgot-pw requests
   if(U.role==='admin'){
@@ -696,6 +790,8 @@ function render(v){
   if(v==='avail')   renderAvail();
   if(v==='admin')   renderAdmin();
   if(v==='profile') renderProfile();
+  if(v==='chat')    renderChat();
+  if(v==='swdev')   renderSwDev();
 }
 
 // ═══════════════════════════════════════════
@@ -2185,6 +2281,307 @@ window.requestPushPermission = async function() {
   const perm = await Notification.requestPermission();
   console.log('Push toestemming:', perm);
 };
+
+// ═══════════════════════════════════════════════════════════
+// GROEPSCHAT
+// ═══════════════════════════════════════════════════════════
+let _chatImgData = null; // base64 afbeelding klaar voor verzending
+let _mentionQuery = null; // huidige @-zoekterm
+
+function subChat(){
+  const{db,collection,onSnapshot,orderBy,query,limit}=window._f;
+  const q=query(collection(db,'chat'),orderBy('createdAt','asc'),limit(200));
+  unsubChat=onSnapshot(q,s=>{
+    allChat=s.docs.map(d=>({id:d.id,...d.data()}));
+    if(document.querySelector('#view-chat.active')) renderChat();
+  });
+}
+
+function renderChat(){
+  const c=$('view-chat'); if(!c)return;
+  c.innerHTML=`
+    <div style="padding:14px 14px 10px;flex-shrink:0;border-bottom:1px solid var(--separator)">
+      <div class="page-title" style="margin:0;font-size:20px">💬 Groepschat</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">Alleen zichtbaar voor beheerders en dev</div>
+    </div>
+    <div class="chat-msgs" id="chatMsgs">
+      ${allChat.length ? renderChatMessages() : '<div class="empty" style="margin:auto"><div class="empty-icon">💬</div><p>Nog geen berichten</p></div>'}
+    </div>
+    <div class="chat-input-area">
+      <div class="mention-popup" id="mentionPopup"></div>
+      <div class="chat-img-preview" id="chatImgPreview" style="display:none"></div>
+      <div class="chat-input-row">
+        <button class="chat-img-btn" onclick="document.getElementById('chatFileInput').click()" title="Afbeelding toevoegen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 19"/></svg>
+        </button>
+        <textarea id="chatInput" placeholder="Bericht… gebruik @ om te taggen" rows="1"
+          oninput="autoResizeChatInput(this);handleMentionInput(this)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}"></textarea>
+        <button class="chat-send-btn" onclick="sendChatMsg()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
+    </div>`;
+  // Scroll naar beneden
+  setTimeout(()=>{const m=$('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},50);
+}
+
+function renderChatMessages(){
+  let html=''; let lastDate='';
+  allChat.forEach(msg=>{
+    const t=msg.createdAt?.toDate?msg.createdAt.toDate():new Date();
+    const dateStr=t.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+    if(dateStr!==lastDate){
+      html+=`<div class="chat-date-div">${dateStr}</div>`;
+      lastDate=dateStr;
+    }
+    const mine=msg.uid===U.uid;
+    const initials=getInitials(msg.name||'?');
+    const timeStr=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    const rolePill=msg.role==='admin'?`<span class="chat-role-pill pill-adm">Beheerder</span>`
+      :msg.role==='software'?`<span class="chat-role-pill pill-sw">Dev</span>`:'';
+    const bubbleText=msg.text?formatMentions(msg.text):'';
+    const imgHtml=msg.imageData?`<img src="${msg.imageData}" class="chat-img-msg" onclick="openImgFull('${msg.imageData}')" alt="afbeelding">`:'';
+    html+=`<div class="chat-msg ${mine?'mine':''} role-${msg.role||'employee'}">
+      ${!mine?`<div class="chat-av">${initials}</div>`:''}
+      <div style="max-width:75%">
+        ${!mine?`<div class="chat-meta">${msg.name||'?'}${rolePill} · ${timeStr}</div>`:`<div class="chat-meta">${timeStr}</div>`}
+        <div class="chat-bubble">${bubbleText}${imgHtml}</div>
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
+function formatMentions(text){
+  return text.replace(/@(\S+)/g,'<span class="chat-mention">@$1</span>');
+}
+
+function autoResizeChatInput(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,120)+'px';
+}
+
+function handleMentionInput(el){
+  const val=el.value;
+  const pos=el.selectionStart;
+  // Zoek @ voor cursor positie
+  const before=val.slice(0,pos);
+  const match=before.match(/@(\w*)$/);
+  if(match){
+    _mentionQuery=match[1].toLowerCase();
+    showMentionPopup(match[1]);
+  } else {
+    _mentionQuery=null;
+    hideMentionPopup();
+  }
+}
+
+function showMentionPopup(query){
+  const popup=$('mentionPopup'); if(!popup)return;
+  const users=[{uid:'all',name:'Iedereen'},...allUsers.filter(u=>u.uid!==U.uid)];
+  const filtered=query?users.filter(u=>u.name.toLowerCase().includes(query)):users;
+  if(!filtered.length){hideMentionPopup();return;}
+  popup.innerHTML=filtered.slice(0,6).map(u=>`
+    <div class="mention-opt" onclick="insertMention('${u.name}')">
+      <div class="chat-av" style="width:26px;height:26px;font-size:10px">${u.uid==='all'?'👥':getInitials(u.name)}</div>
+      <span>${u.name}</span>
+    </div>`).join('');
+  popup.classList.add('open');
+}
+
+function hideMentionPopup(){
+  const popup=$('mentionPopup');
+  if(popup) popup.classList.remove('open');
+}
+
+function insertMention(name){
+  const ta=$('chatInput'); if(!ta)return;
+  const pos=ta.selectionStart;
+  const before=ta.value.slice(0,pos).replace(/@\w*$/,'');
+  const after=ta.value.slice(pos);
+  ta.value=before+'@'+name+' '+after;
+  ta.focus();
+  hideMentionPopup();
+}
+
+function handleChatImage(input){
+  const file=input.files[0]; if(!file)return;
+  if(file.size>5*1024*1024){toast('Afbeelding te groot (max 5MB)','err');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    // Comprimeer via canvas
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const maxW=800,maxH=800;
+      let w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      _chatImgData=canvas.toDataURL('image/jpeg',0.7);
+      const prev=$('chatImgPreview');
+      if(prev){
+        prev.style.display='flex';
+        prev.innerHTML=`<img src="${_chatImgData}"><button onclick="clearChatImg()">✕ Verwijder</button>`;
+      }
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
+function clearChatImg(){
+  _chatImgData=null;
+  const prev=$('chatImgPreview');
+  if(prev){prev.style.display='none';prev.innerHTML='';}
+}
+
+async function sendChatMsg(){
+  const ta=$('chatInput');
+  const text=ta?ta.value.trim():'';
+  if(!text&&!_chatImgData)return;
+  const{db,collection,addDoc,serverTimestamp}=window._f;
+  // Detecteer mentions
+  const mentions=[...text.matchAll(/@(\S+)/g)].map(m=>m[1].toLowerCase());
+  const mentionedUids=[];
+  if(mentions.includes('iedereen')||mentions.includes('everyone')||mentions.includes('all')){
+    mentionedUids.push('all');
+  } else {
+    mentions.forEach(m=>{
+      const u=allUsers.find(x=>x.name.toLowerCase()===m||x.name.toLowerCase().startsWith(m));
+      if(u&&!mentionedUids.includes(u.uid)) mentionedUids.push(u.uid);
+    });
+  }
+  try{
+    const payload={uid:U.uid,name:U.name,role:U.role||'employee',text,
+      mentions:mentionedUids,createdAt:serverTimestamp()};
+    if(_chatImgData) payload.imageData=_chatImgData;
+    await addDoc(collection(db,'chat'),payload);
+    // Stuur notificatie naar genoemde gebruikers
+    if(mentionedUids.length){
+      const targets=mentionedUids.includes('all')
+        ?allUsers.filter(u=>u.uid!==U.uid).map(u=>u.uid)
+        :mentionedUids;
+      await sendNotifMulti(targets,`${U.name} heeft je getagd in de chat`,text.slice(0,80));
+    }
+    if(ta) ta.value='';
+    clearChatImg();
+    hideMentionPopup();
+    setTimeout(()=>{const m=$('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},100);
+  }catch(e){
+    toast('Verzenden mislukt: '+e.message,'err');
+    console.error(e);
+  }
+}
+
+function openImgFull(src){
+  modal(`<div class="modal-handle"></div>
+    <img src="${src}" style="width:100%;border-radius:12px;display:block">
+    <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeModal()">Sluiten</button>`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SOFTWARE ROL DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function renderSwDev(){
+  const c=$('view-swdev'); if(!c)return;
+  const totalUsers=allUsers.length;
+  c.innerHTML=`
+    <div class="page-title">🛠 Dev Dashboard</div>
+    <div class="sw-grid">
+      <div class="sw-tile"><div class="sw-num">${totalUsers}</div><div class="sw-lbl">Gebruikers</div></div>
+      <div class="sw-tile"><div class="sw-num">${allShifts.length}</div><div class="sw-lbl">Diensten</div></div>
+    </div>
+
+    <div class="section-label">Meldingen versturen</div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label class="form-label">Ontvangers</label>
+          <label class="worker-check" style="margin-bottom:6px">
+            <input type="checkbox" id="swMsgAll" onchange="toggleSwAll(this)">
+            <div style="font-size:14px;font-weight:600">Iedereen (${allUsers.length})</div>
+          </label>
+          ${allUsers.map(u=>`<label class="worker-check" style="margin-bottom:4px">
+            <input type="checkbox" class="sw-rcpt" value="${u.uid}">
+            <div class="avatar" style="width:24px;height:24px;font-size:10px">${getInitials(u.name)}</div>
+            <div style="font-size:13px">${u.name}</div>
+          </label>`).join('')}
+        </div>
+        <div>
+          <label class="form-label">Type melding</label>
+          <select class="form-input" id="swMsgType" style="padding:10px 12px">
+            <option value="notif">📱 In-app notificatie</option>
+            <option value="email">📧 Email</option>
+            <option value="both">📱 + 📧 Allebei</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Titel</label>
+          <input type="text" class="form-input" id="swMsgTitle" placeholder="Bijv. App update v2.1">
+        </div>
+        <div>
+          <label class="form-label">Bericht</label>
+          <textarea class="form-input" id="swMsgBody" rows="3" placeholder="Typ je bericht…" style="resize:none"></textarea>
+        </div>
+        <button class="btn btn-yellow btn-full" onclick="sendSwMsg()">Versturen</button>
+      </div>
+    </div>
+
+    <div class="section-label">Account beheer</div>
+    <div class="card">
+      ${allUsers.map(u=>`
+        <div class="card-row" style="padding:12px 16px">
+          <div class="avatar">${getInitials(u.name)}</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600">${u.name}</div>
+            <div style="font-size:12px;color:var(--text3)">${u.email} · <span class="badge ${u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray'}">${u.role}</span></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="swDeleteUser('${u.uid}','${u.name}')">✕</button>
+        </div>`).join('')||'<div class="empty"><p>Geen gebruikers</p></div>'}
+    </div>`;
+}
+
+window.toggleSwAll=(cb)=>document.querySelectorAll('.sw-rcpt').forEach(r=>r.checked=cb.checked);
+
+async function sendSwMsg(){
+  const recipients=[...document.querySelectorAll('.sw-rcpt:checked')].map(i=>i.value);
+  const title=$('swMsgTitle').value.trim();
+  const body=$('swMsgBody').value.trim();
+  const type=$('swMsgType').value;
+  if(!recipients.length){toast('Kies ontvangers','err');return;}
+  if(!title||!body){toast('Vul titel en bericht in','err');return;}
+  if(type==='notif'||type==='both'){
+    await sendNotifMulti(recipients,title,body);
+  }
+  if(type==='email'||type==='both'){
+    for(const uid of recipients){
+      const u=allUsers.find(x=>x.uid===uid);
+      if(u?.email){
+        try{await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,
+          {to_email:u.email,to_name:u.name,title,body});}
+        catch(e){console.warn('Email failed:',e);}
+      }
+    }
+  }
+  $('swMsgTitle').value='';$('swMsgBody').value='';
+  document.querySelectorAll('.sw-rcpt').forEach(r=>r.checked=false);
+  $('swMsgAll').checked=false;
+  toast('Verstuurd naar '+recipients.length+' gebruiker(s)!','ok');
+}
+
+async function swDeleteUser(uid,name){
+  const ok=await confirm2('Account verwijderen',`${name} verwijderen uit MHVwork? De gebruiker kan dan niet meer inloggen.`,'Verwijderen','btn-red');
+  if(!ok)return;
+  const{db,doc,deleteDoc}=window._f;
+  await deleteDoc(doc(db,'users',uid));
+  toast(name+' verwijderd','ok');
+}
+
 </script>
 </body>
 </html>
