@@ -2,6 +2,9 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -54,38 +57,18 @@ onAuthStateChanged(auth, async (user) => {
     if (snap && snap.exists()) break;
     await new Promise(r => setTimeout(r, 800));
   }
-  // HARDCODED ADMIN BYPASS:
-  // Als het de vaste beheerder is, laad altijd de app — Firestore of niet.
-  // Dit voorkomt vastlopen als het Firestore-doc ontbreekt of de rules blokkeren.
-  if (!snap || !snap.exists()) {
-    if (user.email === 'h.mhvwork@gmail.com') {
-      // Gebruik hardcoded admin data — geen Firestore nodig om in te loggen
-      window._user = { uid: user.uid, email: user.email, name: 'Beheerder', role: 'admin', wage: 0 };
-      _authHandled = true;
-      const _dispatch = () => window.dispatchEvent(new Event("mhv:ready"));
-      if (document.readyState === 'complete') { _dispatch(); }
-      else { window.addEventListener('load', _dispatch, { once: true }); }
-      // Probeer doc op achtergrond aan te maken (geen await = blokkeert niet)
-      setDoc(doc(db,'users',user.uid),{
-        name:'Beheerder', email:'h.mhvwork@gmail.com',
-        role:'admin', wage:0, createdAt:serverTimestamp()
-      }).catch(e => console.warn('Admin doc aanmaken op achtergrond mislukt:', e));
-      setTimeout(() => { if(window.requestPushPermission) window.requestPushPermission(); }, 2000);
-      return;
-    }
-    // Geen doc en geen hardcoded admin: uitloggen
-    await auth.signOut();
-    setTimeout(() => { window.location.href="index.html"; }, 300);
+  // Hardcoded admin bypass: als doc ontbreekt maar email klopt, laad app altijd
+  if ((!snap || !snap.exists()) && user.email === 'h.mhvwork@gmail.com') {
+    window._user = { uid: user.uid, email: user.email, name: 'Beheerder', role: 'admin', wage: 0 };
+    _authHandled = true;
+    window.dispatchEvent(new Event("mhv:ready"));
+    setDoc(doc(db,'users',user.uid),{ name:'Beheerder', email:'h.mhvwork@gmail.com', role:'admin', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
     return;
   }
+  if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
   _authHandled = true;
   window._user = { uid: user.uid, email: user.email, ...snap.data() };
-  // Wacht tot het gewone script klaar is met laden, dan pas dispatchen
-  const _dispatch = () => window.dispatchEvent(new Event("mhv:ready"));
-  if (document.readyState === 'complete') { _dispatch(); }
-  else { window.addEventListener('load', _dispatch, { once: true }); }
-  // Vraag push toestemming na login
-  setTimeout(() => { if(window.requestPushPermission) window.requestPushPermission(); }, 2000);
+  window.dispatchEvent(new Event("mhv:ready"));
 });
 </script>
 
@@ -163,7 +146,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
   display:flex; align-items:center; padding:0 16px; gap:10px;
   position:relative; z-index:50;
 }
-#topbar img { width:28px; height:28px; border-radius:6px; object-fit:contain; background:var(--mhv-blue); }
+#topbar img { width:28px; height:28px; border-radius:6px; object-fit:contain; }
 #topbar .app-name { font-size:17px; font-weight:700; flex:1; letter-spacing:-0.3px; }
 #topbar .app-name span { color:var(--mhv-yellow); }
 .notif-pill {
@@ -243,49 +226,6 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .stat-lbl { font-size:12px; color:var(--text3); margin-top:5px; font-weight:500; }
 
 /* ── SHIFT CARD ─── */
-
-/* ─── Chat ─── */
-#view-chat{padding:0!important;display:flex;flex-direction:column;}
-.chat-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.chat-msgs{flex:1;overflow-y:auto;padding:12px 12px 0;display:flex;flex-direction:column;gap:8px;}
-.chat-msg{display:flex;gap:10px;align-items:flex-end;}
-.chat-msg.mine{flex-direction:row-reverse;}
-.chat-bubble{max-width:72%;background:var(--bg3);border-radius:18px 18px 18px 4px;padding:10px 14px;font-size:14px;line-height:1.5;color:var(--text);word-break:break-word;}
-.chat-msg.mine .chat-bubble{background:var(--mhv-blue);color:#fff;border-radius:18px 18px 4px 18px;}
-.chat-msg.role-admin .chat-bubble{background:rgba(245,200,0,0.1);border:1px solid rgba(245,200,0,0.18);}
-.chat-msg.role-software .chat-bubble{background:rgba(100,210,255,0.08);border:1px solid rgba(100,210,255,0.18);}
-.chat-av{width:30px;height:30px;border-radius:50%;background:var(--mhv-blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.chat-msg.role-admin .chat-av{background:var(--mhv-yellow);color:#000;}
-.chat-msg.role-software .chat-av{background:#64d2ff;color:#000;}
-.chat-meta{font-size:11px;color:var(--text3);margin-bottom:3px;}
-.chat-msg.mine .chat-meta{text-align:right;}
-.chat-img-msg{max-width:100%;max-height:200px;border-radius:12px;display:block;margin-top:6px;cursor:zoom-in;}
-.chat-mention{color:var(--mhv-yellow);font-weight:700;}
-.chat-input-area{padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--bg2);border-top:1px solid var(--separator);flex-shrink:0;position:relative;}
-.chat-img-preview{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.chat-img-preview img{height:60px;border-radius:8px;}
-.chat-img-preview button{background:rgba(255,69,58,0.15);border:none;color:#FF453A;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;}
-.chat-input-row{display:flex;align-items:flex-end;gap:8px;}
-.chat-input-row textarea{flex:1;background:var(--bg3);border:1.5px solid var(--separator);border-radius:20px;padding:9px 14px;font-size:14px;color:var(--text);font-family:inherit;resize:none;max-height:120px;outline:none;line-height:1.5;transition:border-color 0.2s;}
-.chat-input-row textarea:focus{border-color:var(--mhv-yellow);}
-.chat-send-btn{width:38px;height:38px;border-radius:50%;background:var(--mhv-yellow);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity 0.15s;}
-.chat-send-btn svg{width:18px;height:18px;stroke:#000;}
-.chat-img-btn{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.chat-img-btn svg{width:16px;height:16px;stroke:var(--text2);}
-.mention-popup{position:absolute;bottom:100%;left:10px;right:10px;background:var(--bg2);border:1px solid var(--separator);border-radius:12px;overflow:hidden;box-shadow:0 -4px 20px rgba(0,0,0,0.25);z-index:200;display:none;}
-.mention-popup.open{display:block;}
-.mention-opt{padding:10px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s;}
-.mention-opt:hover{background:var(--bg3);}
-.chat-date-div{text-align:center;font-size:11px;color:var(--text3);margin:6px 0;font-weight:600;}
-.chat-role-pill{font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;}
-.pill-adm{background:rgba(245,200,0,0.15);color:var(--mhv-yellow);}
-.pill-sw{background:rgba(100,210,255,0.15);color:#64d2ff;}
-/* ─── Software dashboard ─── */
-.sw-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-.sw-tile{background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center;}
-.sw-num{font-size:28px;font-weight:800;color:var(--mhv-yellow);letter-spacing:-1px;}
-.sw-lbl{font-size:12px;color:var(--text3);margin-top:4px;}
-
 .shift-card {
   background:var(--bg2); border-radius:var(--radius); padding:16px;
   margin-bottom:10px; border:1px solid var(--separator);
@@ -539,48 +479,26 @@ select.form-input option { background:var(--bg3); }
     <!-- PROFIEL -->
     <div class="view" id="view-profile"></div>
 
-    <!-- GROEPSCHAT -->
-    <div class="view" id="view-chat" style="display:flex;flex-direction:column;height:100%;padding:0"></div>
-
-    <!-- SOFTWARE HOME -->
-    <div class="view" id="view-swdev"></div>
-
   </div>
 
   <!-- TAB BAR -->
   <nav id="tabbar">
-    <!-- NORMALE TABS (admin + medewerker) -->
-    <button class="tab active sw-hide" onclick="nav('home',this)">
+    <button class="tab active" onclick="nav('home',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span class="tab-label">Home</span>
     </button>
-    <button class="tab sw-hide" onclick="nav('roster',this)">
+    <button class="tab" onclick="nav('roster',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span class="tab-label">Rooster</span>
     </button>
-    <button class="tab sw-hide" id="tab-avail" onclick="nav('avail',this)">
+    <button class="tab" id="tab-avail" onclick="nav('avail',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
       <span class="tab-label" id="tab-avail-label">Beschikbaar</span>
     </button>
-    <button class="tab sw-hide" id="tab-admin" style="display:none" onclick="nav('admin',this)">
+    <button class="tab" id="tab-admin" style="display:none" onclick="nav('admin',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
       <span class="tab-label">Beheer</span>
     </button>
-    <!-- CHAT TAB: zichtbaar voor admin én software -->
-    <button class="tab" id="tab-chat" style="display:none" onclick="nav('chat',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      <span class="tab-label">Chat</span>
-    </button>
-    <!-- SOFTWARE-ONLY TABS -->
-    <button class="tab sw-only" style="display:none" onclick="nav('swdev',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      <span class="tab-label">Dashboard</span>
-    </button>
-    <button class="tab sw-only" style="display:none" onclick="nav('admin',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
-      <span class="tab-label">Accounts</span>
-    </button>
-    <!-- PROFIEL: altijd zichtbaar -->
     <button class="tab" onclick="nav('profile',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       <span class="tab-label">Profiel</span>
@@ -604,57 +522,39 @@ select.form-input option { background:var(--bg3); }
 // ════════════════════════════════════════════
 // MHVwork App Logic v2 — Apple Style
 // ════════════════════════════════════════════
-const LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTAwIiBmaWxsPSIjMUEzQkI1Ii8+CjxyZWN0IHg9IjExMCIgeT0iMTYwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjIzMCIgcng9IjMyIiBmaWxsPSIjMUEzQkI1IiBzdHJva2U9IiNGNUM4MDAiIHN0cm9rZS13aWR0aD0iMjQiLz4KPHBhdGggZD0iTTM0MCAyMTUgQzM5NSAyMTUgNDEwIDIzOCA0MTAgMjc1IEM0MTAgMzEyIDM5NSAzMzUgMzQwIDMzNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjVDODAwIiBzdHJva2Utd2lkdGg9IjI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI3MiIgZmlsbD0iIzFBM0JCNSIgc3Ryb2tlPSIjRjVDODAwIiBzdHJva2Utd2lkdGg9IjIwIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxMzMiIHgyPSIzNDAiIHkyPSIxNDgiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIyNDIiIHgyPSIzNDAiIHkyPSIyNTciIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIyNzgiIHkxPSIxOTUiIHgyPSIyOTMiIHkyPSIxOTUiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzODciIHkxPSIxOTUiIHgyPSI0MDIiIHkyPSIxOTUiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxOTUiIHgyPSIzNDAiIHkyPSIxNjQiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxOTUiIHgyPSIzNjYiIHkyPSIxOTUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjM0MCIgY3k9IjE5NSIgcj0iMTYiIGZpbGw9IiMxQTNCQjUiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI4IiBmaWxsPSIjZmZmZmZmIi8+Cjwvc3ZnPg==";
+const LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTAwIiBmaWxsPSIjMUEzQkI1Ii8+CjxyZWN0IHg9IjExMCIgeT0iMTYwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjIzMCIgcng9IjMyIiBmaWxsPSIjMUEzQkI1IiBzdHJva2U9IiNGNUM4MDAiIHN0cm9rZS13aWR0aD0iMjQiLz4KPHBhdGggZD0iTTM0MCAyMTUgQzM5NSAyMTUgNDEwIDIzOCA0MTAgMjc1IEM0MTAgMzEyIDM5NSAzMzUgMzQwIDMzNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjVDODAwIiBzdHJva2Utd2lkdGg9IjI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI3MiIgZmlsbD0iIzFBM0JCNSIgc3Ryb2tlPSIjRjVDODAwIiBzdHJva2Utd2lkdGg9IjIwIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxMzMiIHgyPSIzNDAiIHkyPSIxNDgiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIyNDIiIHgyPSIzNDAiIHkyPSIyNTciIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIyNzgiIHkxPSIxOTUiIHgyPSIyOTMiIHkyPSIxOTUiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzODciIHkxPSIxOTUiIHgyPSI0MDIiIHkyPSIxOTUiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxOTUiIHgyPSIzNDAiIHkyPSIxNjQiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxOTUiIHgyPSIzNjYiIHkyPSIxOTUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjM0MCIgY3k9IjE5NSIgcj0iMTgiIGZpbGw9IiMxQTNCQjUiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI5IiBmaWxsPSIjZmZmZmZmIi8+Cjwvc3ZnPg==";
 const MO   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
 const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
 
-let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[], allChat=[];
+let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[];
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
 let rosterTab='mine', adminTab='roster', payMonth=0;
-let unsubShifts, unsubNotifs, unsubAvail, unsubChat;
+let unsubShifts, unsubNotifs, unsubAvail;
 
 // ── INIT ──────────────────────────────────────
 window.addEventListener('mhv:ready', async ()=>{
   try {
-  U = window._user;
-  // Helper: veilig element ophalen zonder crash
-  const el = id => { try { return document.getElementById(id); } catch(e){ return null; } };
-  if(el('topLogo')) el('topLogo').src = LOGO;
-  if (window._f && window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
-    emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
-  if (U.role==='admin') {
-    if(el('tab-admin')) el('tab-admin').style.display='flex';
-    if(el('tab-chat'))  el('tab-chat').style.display='flex';
-    if(el('tab-avail-label')) el('tab-avail-label').textContent='Beschikbaar';
+    U = window._user;
+    const safeEl = id => document.getElementById(id);
+    if(safeEl('topLogo')) safeEl('topLogo').src = LOGO;
+    if(window._f && window._f.EMAILJS_PUBLIC_KEY !== 'JOUW_EMAILJS_PUBLIC_KEY')
+      emailjs.init({ publicKey: window._f.EMAILJS_PUBLIC_KEY });
+    if(U.role==='admin'){
+      const ta=safeEl('tab-admin'); if(ta) ta.style.display='flex';
+      const tl=safeEl('tab-avail-label'); if(tl) tl.textContent='Beschikbaar';
+    }
+    try { await loadUsers(); } catch(e){ allUsers=[]; }
+    try { subShifts(); } catch(e){}
+    try { subNotifs(); } catch(e){}
+    try { subAvail();  } catch(e){}
+    render('home');
+  } catch(err){ console.error('mhv:ready fout:', err); }
+  finally {
+    const l=document.getElementById('loader'), a=document.getElementById('app');
+    if(l) l.style.display='none';
+    if(a) a.style.display='flex';
   }
-  if (U.role==='software') {
-    document.querySelectorAll('.sw-hide').forEach(e=>e.style.display='none');
-    document.querySelectorAll('.sw-only').forEach(e=>e.style.display='flex');
-    if(el('tab-chat'))  el('tab-chat').style.display='flex';
-    if(el('tab-admin')) el('tab-admin').style.display='flex';
-    nav('swdev', document.querySelector('.sw-only'));
-  }
-  if (U.role==='admin' || U.role==='software') {
-    try { subChat(); } catch(e){ console.warn('subChat fout:', e); }
-  }
-
-  // (wachtwoord vergeten verzoeken verlopen via EmailJS)
-
-  try { await loadUsers(); } catch(e){ console.warn('loadUsers fout:', e); allUsers=[]; }
-  try { subShifts(); } catch(e){ console.warn('subShifts:', e); }
-  try { subNotifs(); } catch(e){ console.warn('subNotifs:', e); }
-  try { subAvail();  } catch(e){ console.warn('subAvail:',  e); }
-  render(U.role==='software' ? 'swdev' : 'home');
-  } catch(fatalErr) {
-    console.error('mhv:ready fatal error:', fatalErr);
-  } finally {
-    // Laadscherm ALTIJD verbergen — ook als er een fout is
-    const loader = document.getElementById('loader');
-    const app    = document.getElementById('app');
-    if(loader) loader.style.display='none';
-    if(app)    app.style.display='flex';
-  }
-});
+});;
 
 // ── DATA ──────────────────────────────────────
 async function loadUsers(){
@@ -781,8 +681,6 @@ function render(v){
   if(v==='avail')   renderAvail();
   if(v==='admin')   renderAdmin();
   if(v==='profile') renderProfile();
-  if(v==='chat')    renderChat();
-  if(v==='swdev')   renderSwDev();
 }
 
 // ═══════════════════════════════════════════
@@ -891,48 +789,31 @@ function renderAdminShiftCard(s){
 // EMPLOYEE HOME
 function renderEmployeeHome(c){
   const now=new Date();
-  const todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const myShifts=allShifts.filter(s=>s.workers?.includes(U.uid));
+  // Komende = niet uitbetaald, niet goedgekeurd, in de toekomst of vandaag nog niet voorbij
   const upcoming=myShifts.filter(s=>{
     const st=getShiftStatus(s,U.uid);
     if(st==='paid')return false;
-    return toDate(s.date)>=todayStart;
+    const d=toDate(s.date);
+    return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   });
   const toConfirm=myShifts.filter(s=>shiftFinished(s)&&getShiftStatus(s,U.uid)==='pending');
-  // In beoordeling (wacht op admin goedkeuring)
-  const inReview=myShifts.filter(s=>getShiftStatus(s,U.uid)==='reviewing');
-  // Goedgekeurd maar nog niet betaald
-  const approved=myShifts.filter(s=>getShiftStatus(s,U.uid)==='approved');
-
-  // Verdiensten deze maand: goedgekeurd + uitbetaald
+  // Verdiensten = alleen approved+paid
   const thisMonthEarned=myShifts.filter(s=>{
     const d=toDate(s.date);
     const st=getShiftStatus(s,U.uid);
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&(st==='approved'||st==='paid');
   }).reduce((sum,s)=>sum+getApprovedPay(s,U.uid),0);
 
-  // Voorspeld salaris = toekomstige diensten * uurtarief
-  const expectedEarnings=upcoming.filter(s=>getShiftStatus(s,U.uid)!=='approved'&&getShiftStatus(s,U.uid)!=='paid')
-    .reduce((sum,s)=>{
-      const{start,end}=getEffectiveTimes(s,U.uid);
-      return sum+calcPay(start,end,U.wage||0);
-    },0);
-
-  // Gewerkte diensten totaal (afgerond)
-  const workedTotal=myShifts.filter(s=>shiftFinished(s)).length;
-  const paidTotal=myShifts.filter(s=>getShiftStatus(s,U.uid)==='paid').length;
-  const paidAmount=myShifts.filter(s=>getShiftStatus(s,U.uid)==='paid').reduce((sum,s)=>sum+getApprovedPay(s,U.uid),0);
-
   const next=upcoming[0];
 
   c.innerHTML=`
     <div class="page-title">
       <span class="hi">Welkom terug,</span>
-      ${U.name?.split(' ')[0]||'—'} 👋
+      ${U.name?.split(' ')[0]||'—'}
     </div>
 
-    <div class="section-label">📊 Jouw overzicht</div>
-    <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <div class="stats-grid">
       <div class="stat-tile yellow">
         <div class="stat-num yellow">${upcoming.length}</div>
         <div class="stat-lbl">Komende diensten</div>
@@ -941,65 +822,14 @@ function renderEmployeeHome(c){
         <div class="stat-num ${toConfirm.length?'red':'green'}">${toConfirm.length}</div>
         <div class="stat-lbl">Te bevestigen</div>
       </div>
-      <div class="stat-tile ${inReview.length?'orange':approved.length?'green':''}">
-        <div class="stat-num" style="color:${inReview.length?'var(--orange)':approved.length?'var(--green)':'var(--text3)'}">
-          ${inReview.length?inReview.length:approved.length?approved.length:'0'}
-        </div>
-        <div class="stat-lbl">${inReview.length?'In beoordeling door baas':approved.length?'Goedgekeurd ✓':'Geen openstaand'}</div>
-      </div>
-      <div class="stat-tile">
-        <div class="stat-num" style="color:var(--text2);font-size:22px">${workedTotal}</div>
-        <div class="stat-lbl">Gewerkte diensten</div>
+      <div class="stat-tile green" style="grid-column:span 2">
+        <div class="stat-num green" style="font-size:26px">${fmtMoney(thisMonthEarned)}</div>
+        <div class="stat-lbl">Goedgekeurd deze maand</div>
       </div>
     </div>
-
-    <div class="section-label">💶 Financieel</div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-row">
-        <div class="card-row-label">Goedgekeurd deze maand</div>
-        <div class="card-row-value ${thisMonthEarned>0?'green':''}">${fmtMoney(thisMonthEarned)}</div>
-      </div>
-      <div class="card-row">
-        <div class="card-row-label">Verwacht (komende diensten)</div>
-        <div class="card-row-value accent">${fmtMoney(expectedEarnings)}</div>
-      </div>
-      <div class="card-row">
-        <div class="card-row-label">Totaal uitbetaald</div>
-        <div class="card-row-value">${fmtMoney(paidAmount)}</div>
-      </div>
-      <div class="card-row" style="border:none;padding-top:8px">
-        <div style="font-size:12px;color:var(--text3)">Uurtarief</div>
-        <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(U.wage||0)}/uur</div>
-      </div>
-    </div>
-
-    ${approved.length?`
-    <div class="section-label">✅ Goedgekeurd door beheerder</div>
-    ${approved.map(s=>`
-      <div class="shift-card done" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
-        <div>
-          <div class="shift-time" style="font-size:17px">${getEffectiveTimes(s,U.uid).start} – ${getEffectiveTimes(s,U.uid).end}</div>
-          <div class="shift-date">${fmtDate(s.date)}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(getApprovedPay(s,U.uid))}</div>
-          <span class="badge badge-green" style="font-size:10px">✓ Goedgekeurd</span>
-        </div>
-      </div>`).join('')}` : ''}
-
-    ${inReview.length?`
-    <div class="section-label">⏳ Wacht op goedkeuring baas</div>
-    ${inReview.map(s=>`
-      <div class="shift-card pending" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
-        <div>
-          <div class="shift-time" style="font-size:17px">${s.startTime} – ${s.endTime}</div>
-          <div class="shift-date">${fmtDate(s.date)}</div>
-        </div>
-        <span class="badge badge-orange">In beoordeling</span>
-      </div>`).join('')}` : ''}
 
     ${toConfirm.length?`
-    <div class="section-label">⚠️ Bevestig jouw diensten</div>
+    <div class="section-label">⏳ Bevestig jouw diensten</div>
     ${toConfirm.map(s=>`
       <div class="shift-card pending">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -1013,7 +843,8 @@ function renderEmployeeHome(c){
           <button class="btn btn-green btn-sm" style="flex:1" onclick="confirmShiftOk('${s.id}')">✓ Klopt</button>
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openCorrectShift('${s.id}')">✏ Aanpassen</button>
         </div>
-      </div>`).join('')}` : ''}
+      </div>
+    `).join('')}` : ''}
 
     <div class="section-label">📅 Volgende dienst</div>
     ${next?`
@@ -1034,10 +865,7 @@ function renderEmployeeHome(c){
                 ${userName(uid)}
               </span>`).join('')}
           </div>` : `<div style="margin-top:8px;font-size:13px;color:var(--text3)">Je werkt alleen</div>`}
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--separator);font-size:12px;color:var(--text3)">
-          Verwachte verdienste: <strong style="color:var(--mhv-yellow)">${fmtMoney(calcPay(next.startTime,next.endTime,U.wage||0))}</strong>
-        </div>
-      </div>` : `<div class="empty"><div class="empty-icon">🎉</div><p>Geen komende diensten ingepland</p></div>`}
+      </div>` : `<div class="empty"><div class="empty-icon">🎉</div><p>Geen komende diensten</p></div>`}
   `;
 }
 
@@ -1270,123 +1098,76 @@ function renderAdminAvail(c){
   const upcoming=allAvail.filter(a=>toDate(a.date)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()));
   c.innerHTML=`
     <div class="page-title" style="margin-bottom:16px">Beschikbaarheid</div>
-    <p style="font-size:14px;color:var(--text3);margin-bottom:16px;line-height:1.6">Overzicht van medewerkers die <strong style="color:var(--red)">niet</strong> beschikbaar zijn.</p>
+    <p style="font-size:14px;color:var(--text3);margin-bottom:16px;line-height:1.6">Overzicht van medewerkers die niet beschikbaar zijn.</p>
     ${upcoming.length?upcoming.map(a=>`
       <div class="avail-row">
         <div class="avatar">${getInitials(userName(a.uid))}</div>
         <div class="avail-info">
           <div class="avail-name">${userName(a.uid)}</div>
-          <div class="avail-date">${fmtDate(a.date)}${a.timeFrom?` · ${a.timeFrom}${a.timeTo?'–'+a.timeTo:'+'}`:''}</div>
+          <div class="avail-date">${fmtDate(a.date)}</div>
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="deleteAvailAdmin('${a.id}')">✕</button>
+        <span class="badge badge-red">🚫 Niet beschikbaar</span>
       </div>`).join('')
     :`<div class="empty"><div class="empty-icon">✅</div><p>Iedereen is beschikbaar</p></div>`}
   `;
-}
-async function deleteAvailAdmin(id){
-  const ok=await confirm2('Verwijderen','Blokkade verwijderen?','Verwijderen');
-  if(!ok)return;
-  const{db,doc,deleteDoc}=window._f;
-  await deleteDoc(doc(db,'availability',id));
-  toast('Verwijderd','ok');
 }
 
 function renderEmployeeAvail(c){
   const now=new Date();
   const myAvail=allAvail.filter(a=>a.uid===U.uid);
   const upcoming=myAvail.filter(a=>toDate(a.date)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()));
-  const past=myAvail.filter(a=>toDate(a.date)<new Date(now.getFullYear(),now.getMonth(),now.getDate())).slice(-5);
+  const past=myAvail.filter(a=>toDate(a.date)<new Date(now.getFullYear(),now.getMonth(),now.getDate()));
   c.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div class="page-title" style="margin:0">Beschikbaar</div>
-      <button class="btn btn-yellow btn-sm" onclick="openAvailModal()">+ Opgeven</button>
+      <button class="btn btn-yellow btn-sm" onclick="openAvailModal()">+ Toevoegen</button>
     </div>
-    <p style="font-size:14px;color:var(--text3);margin-bottom:20px;line-height:1.6">Geef hier aan wanneer je <strong style="color:var(--red)">niet</strong> kunt werken. De beheerder ziet dit bij het inplannen.</p>
-    ${upcoming.length?`<div class="section-label">Aankomend (${upcoming.length})</div>
+    <p style="font-size:14px;color:var(--text3);margin-bottom:20px;line-height:1.6">Geef aan wanneer je <strong style="color:var(--red)">niet</strong> kunt werken.</p>
+    ${upcoming.length?`<div class="section-label">Aankomend</div>`:''}
     ${upcoming.map(a=>`
       <div class="avail-row">
-        <div style="font-size:22px;flex-shrink:0">🚫</div>
+        <div style="font-size:24px">🚫</div>
         <div class="avail-info">
-          <div class="avail-date" style="font-size:15px;font-weight:600;color:var(--text)">${fmtDate(a.date)}</div>
-          ${(a.timeFrom||a.timeTo)?`<div style="font-size:12px;color:var(--orange);font-weight:600;margin-top:2px">⏰ ${a.timeFrom||'?'}${a.timeTo?' – '+a.timeTo:''}</div>`:'<div style="font-size:12px;color:var(--text3);margin-top:2px">Hele dag</div>'}
+          <div class="avail-date" style="font-size:15px;font-weight:600">${fmtDate(a.date)}</div>
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
         <button class="btn btn-red btn-sm" onclick="deleteAvail('${a.id}')">Verwijder</button>
-      </div>`).join('')}`
-    :`<div class="empty"><div class="empty-icon">✅</div><p>Geen aankomende blokkades.<br>Je bent overal beschikbaar!</p></div>`}
-    ${past.length?`<div class="section-label" style="margin-top:20px">Afgelopen (${past.length})</div>${past.map(a=>`
-      <div class="avail-row" style="opacity:0.45">
-        <div style="font-size:20px;flex-shrink:0">🚫</div>
+      </div>`).join('')}
+    ${!myAvail.length?`<div class="empty"><div class="empty-icon">✅</div><p>Geen blokkades ingevoerd</p></div>`:''}
+    ${past.length?`<div class="section-label" style="margin-top:20px">Verleden</div>${past.map(a=>`
+      <div class="avail-row" style="opacity:0.5">
+        <div style="font-size:24px">🚫</div>
         <div class="avail-info">
-          <div class="avail-date" style="font-size:13px;font-weight:600">${fmtDate(a.date)}</div>
-          ${(a.timeFrom||a.timeTo)?`<div style="font-size:11px;color:var(--text3)">⏰ ${a.timeFrom||'?'}${a.timeTo?' – '+a.timeTo:''}</div>`:''}
+          <div class="avail-date" style="font-size:14px;font-weight:600">${fmtDate(a.date)}</div>
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="deleteAvail('${a.id}')">✕</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteAvail('${a.id}')">✕</button>
       </div>`).join('')}`:''}
   `;
 }
 function openAvailModal(){
-  const todayStr=new Date().toISOString().split('T')[0];
   modal(`
     <div class="modal-handle"></div>
-    <div class="modal-title">Niet beschikbaar opgeven</div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.5">Voeg één of meerdere dagen toe waarop je <strong style="color:var(--red)">niet</strong> kunt werken.</p>
+    <div class="modal-title">Niet beschikbaar</div>
     <div class="form-section">
-      <label class="form-label">Periode</label>
-      <div class="form-row">
-        <div class="form-section">
-          <label class="form-label" style="font-size:11px">Van datum</label>
-          <input type="date" class="form-input" id="aDateFrom" min="${todayStr}" value="${todayStr}">
-        </div>
-        <div class="form-section">
-          <label class="form-label" style="font-size:11px">Tot datum (optioneel)</label>
-          <input type="date" class="form-input" id="aDateTo" min="${todayStr}">
-        </div>
-      </div>
-    </div>
-    <div class="form-section">
-      <label class="form-label">Tijdvak (optioneel — leeg = hele dag)</label>
-      <div class="form-row">
-        <div class="form-section">
-          <label class="form-label" style="font-size:11px">Vanaf</label>
-          <input type="time" class="form-input" id="aTimeFrom">
-        </div>
-        <div class="form-section">
-          <label class="form-label" style="font-size:11px">Tot</label>
-          <input type="time" class="form-input" id="aTimeTo">
-        </div>
-      </div>
+      <label class="form-label">Datum</label>
+      <input type="date" class="form-input" id="aDate" min="${new Date().toISOString().split('T')[0]}">
     </div>
     <div class="form-section">
       <label class="form-label">Reden (optioneel)</label>
-      <input type="text" class="form-input" id="aNote" placeholder="Vakantie, verjaardag, andere afspraak…">
+      <input type="text" class="form-input" id="aNote" placeholder="Vakantie, verjaardag…">
     </div>
     <button class="btn btn-yellow btn-full" onclick="saveAvail()" style="margin-top:4px">Opslaan</button>
   `);
 }
 async function saveAvail(){
-  const fromVal=$('aDateFrom').value, toVal=$('aDateTo').value||$('aDateFrom').value;
-  const timeFrom=$('aTimeFrom').value||null, timeTo=$('aTimeTo').value||null;
-  const note=$('aNote').value.trim();
-  if(!fromVal){toast('Kies een begindatum','err');return;}
-  const[fy,fm,fd]=fromVal.split('-').map(Number);
-  const[ty,tm,td]=toVal.split('-').map(Number);
-  const startD=new Date(fy,fm-1,fd), endD=new Date(ty,tm-1,td);
-  if(endD<startD){toast('Einddatum moet na begindatum zijn','err');return;}
+  const v=$('aDate').value, note=$('aNote').value;
+  if(!v){toast('Kies een datum','err');return;}
+  const[y,m,d]=v.split('-').map(Number);
   const{db,collection,addDoc,Timestamp,serverTimestamp}=window._f;
-  const cur=new Date(startD); let count=0; const promises=[];
-  while(cur<=endD){
-    const entry={uid:U.uid,date:Timestamp.fromDate(new Date(cur)),note,createdAt:serverTimestamp()};
-    if(timeFrom)entry.timeFrom=timeFrom;
-    if(timeTo)entry.timeTo=timeTo;
-    promises.push(addDoc(collection(db,'availability'),entry));
-    cur.setDate(cur.getDate()+1); count++;
-    if(count>60){toast('Maximaal 60 dagen tegelijk','err');return;}
-  }
-  await Promise.all(promises);
-  closeModal(); toast(count===1?'Dag opgeslagen!':count+' dagen opgeslagen!','ok');
+  await addDoc(collection(db,'availability'),{uid:U.uid,date:Timestamp.fromDate(new Date(y,m-1,d)),note,createdAt:serverTimestamp()});
+  closeModal();toast('Opgeslagen!','ok');
 }
 async function deleteAvail(id){
   const ok=await confirm2('Verwijderen','Blokkade verwijderen?','Verwijderen');
@@ -1401,8 +1182,6 @@ async function deleteAvail(id){
 // ═══════════════════════════════════════════
 function renderAdmin(){
   if(U.role!=='admin')return;
-  // Reset naar medewerkers als adminTab een roster-waarde heeft
-  if(!['medewerkers','uitbetaling','berichten'].includes(adminTab)) adminTab='medewerkers';
   const c=$('view-admin');
   const tabs=`
     <div class="pill-tabs">
@@ -1466,38 +1245,21 @@ function openAddEmployee(){
 async function createInvite(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim(), wage=parseFloat($('eWage').value)||0;
   if(!name||!email){toast('Naam en e-mail verplicht','err');return;}
-  const btn=document.querySelector('#modal-root .btn-yellow');
-  if(btn){btn.disabled=true;btn.textContent='Bezig...';}
-  try{
-    const{db,collection,addDoc,serverTimestamp}=window._f;
-    // Genereer tijdelijk wachtwoord — zodat we bij "email already in use" toch kunnen inloggen
-    const _chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    let _tempPw='';for(let i=0;i<12;i++)_tempPw+=_chars[Math.floor(Math.random()*_chars.length)];
-    const ref=await addDoc(collection(db,'invites'),{name,email,wage,used:false,tempPw:_tempPw,createdBy:U.uid,createdAt:serverTimestamp()});
-    const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
-    const link=`${base}/register.html?invite=${ref.id}`;
-    const r=$('inviteResult');
-    r.style.display='block';
-    r.innerHTML=`
-      <div style="background:var(--green-dim);border:1px solid rgba(48,209,88,0.2);border-radius:10px;padding:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">✓ Uitnodigingslink aangemaakt</div>
-        <div style="font-size:12px;word-break:break-all;color:var(--text2);background:var(--bg3);padding:10px;border-radius:8px;margin-bottom:10px;line-height:1.5">${link}</div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-green btn-sm" style="flex:1" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">📋 Kopieer</button>
-          <button class="btn btn-yellow btn-sm" style="flex:1" onclick="sendInviteEmail('${email}','${name}','${link}')">📧 Stuur email</button>
-        </div>
-      </div>`;
-    if(btn){btn.disabled=false;btn.textContent='Link genereren';}
-  }catch(e){
-    console.error('createInvite error:',e);
-    const r=$('inviteResult');
-    r.style.display='block';
-    r.innerHTML=`<div style="background:var(--red-dim);border:1px solid rgba(255,69,58,0.2);border-radius:10px;padding:14px;font-size:13px;color:var(--red)">
-      ✗ Fout: ${e.message||e.code||'Onbekende fout'}<br><br>
-      <span style="color:var(--text3);font-size:12px">Controleer of je internetverbinding werkt en je als beheerder bent ingelogd.</span>
+  const{db,collection,addDoc,serverTimestamp}=window._f;
+  const ref=await addDoc(collection(db,'invites'),{name,email,wage,used:false,createdBy:U.uid,createdAt:serverTimestamp()});
+  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
+  const link=`${base}/register.html?invite=${ref.id}`;
+  const r=$('inviteResult');
+  r.style.display='block';
+  r.innerHTML=`
+    <div style="background:var(--green-dim);border:1px solid rgba(48,209,88,0.2);border-radius:10px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">✓ Link aangemaakt</div>
+      <div style="font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:10px">${link}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-green btn-sm" style="flex:1" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">Kopieer</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="sendInviteEmail('${email}','${name}','${link}')">📧 Email</button>
+      </div>
     </div>`;
-    if(btn){btn.disabled=false;btn.textContent='Link genereren';}
-  }
 }
 async function sendInviteEmail(email,name,link){
   try{
@@ -1533,48 +1295,28 @@ async function makeAdmin(uid,name){
 }
 
 async function resetPwAdmin(uid,name,email){
-  const ok=await confirm2('Wachtwoord resetten',`Een herstellink aanmaken voor ${name} (${email})?`,'Verstuur link','btn-yellow');
+  const ok=await confirm2('Wachtwoord resetten',`Een herstelmail sturen naar ${name} (${email})?`,'Verstuur link','btn-yellow');
   if(!ok)return;
-  // Tijdelijk wachtwoord genereren (8 tekens, alfanumeriek)
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let tempPw='';for(let i=0;i<10;i++)tempPw+=chars[Math.floor(Math.random()*chars.length)];
-  const{db,collection,addDoc,serverTimestamp,doc,updateDoc}=window._f;
-  // Stel tijdelijk wachtwoord in via Firebase REST API
+  // Create a reset invite in Firestore
+  const{db,collection,addDoc,serverTimestamp}=window._f;
+  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
+  const ref=await addDoc(collection(db,'pwresets'),{uid,email,name,used:false,createdAt:serverTimestamp()});
+  const link=`${base}/reset-pw.html?token=${ref.id}`;
+  // Send email
   try{
-    const apiKey='AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw';
-    // Haal UID-based idToken op door in te loggen als admin (we hebben al een sessie)
-    // Gebruik de Firebase Admin REST endpoint via de API key om wachtwoord te resetten
-    // We slaan tempPw op in Firestore — reset-pw.html logt daarmee in en wijzigt naar nieuw ww
-    const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
-    const ref=await addDoc(collection(db,'pwresets'),{
-      uid,email,name,used:false,tempPw,
-      createdAt:serverTimestamp()
+    await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
+      to_email:email, to_name:name,
+      title:'Wachtwoord resetten — MHVwork',
+      body:`Klik op de volgende link om je wachtwoord te resetten:\n${link}\n\nDeze link is eenmalig geldig.`
     });
-    const link=`${base}/reset-pw.html?token=${ref.id}`;
-    // Probeer email te sturen
-    let emailOk=false;
-    try{
-      await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
-        to_email:email,to_name:name,
-        title:'Wachtwoord resetten — MHVwork',
-        body:`Hoi ${name},\n\nKlik op onderstaande link om je wachtwoord opnieuw in te stellen:\n\n${link}\n\nDeze link is 48 uur geldig en eenmalig bruikbaar.\n\nGroeten,\nMHVwork — h.mhvwork@gmail.com`
-      });
-      emailOk=true;
-    }catch(e){console.warn('Email mislukt:',e);}
-    // Toon link altijd (ongeacht email), zodat admin hem ook handmatig kan sturen
-    modal(`<div class="modal-handle"></div>
-      <div class="modal-title">🔑 Herstellink aangemaakt</div>
-      ${emailOk?`<div style="background:var(--green-dim);border:1px solid rgba(48,209,88,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--green)">✓ Herstelmail verstuurd naar ${email}</div>`
-        :`<div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--orange)">⚠ Email kon niet worden verstuurd. Stuur de link hieronder zelf naar ${name}.</div>`}
-      <p style="font-size:13px;color:var(--text3);margin-bottom:10px">Link (48 uur geldig):</p>
-      <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:14px">${link}</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-yellow btn-sm" style="flex:1" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">📋 Kopieer link</button>
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeModal()">Sluiten</button>
-      </div>`);
+    toast('Herstelmail verstuurd!','ok');
   }catch(e){
-    console.error('Reset error:',e);
-    toast('Er ging iets mis bij het aanmaken van de herstellink','err');
+    // Fallback: show the link to admin
+    modal(`<div class="modal-handle"></div>
+      <div class="modal-title">Herstellink</div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Email versturen mislukt. Stuur deze link handmatig naar ${name}:</p>
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;font-size:12px;word-break:break-all;color:var(--text2);margin-bottom:14px">${link}</div>
+      <button class="btn btn-yellow btn-full" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('Gekopieerd!','ok'))">Kopieer link</button>`);
   }
 }
 
@@ -1829,64 +1571,18 @@ function showPayDetail(uid,y,m){
   `);
 }
 
-// BERICHTEN (admin) — Inbox + Versturen
-let adminMsgTab='inbox';
+// BERICHTEN
 function renderBerichten(c){
-  c.innerHTML=`
-    <div class="pill-tabs" style="margin-bottom:16px">
-      <button class="pill-tab ${adminMsgTab==='inbox'?'active':''}" onclick="setAdminMsgTab('inbox',this)">📥 Inbox</button>
-      <button class="pill-tab ${adminMsgTab==='stuur'?'active':''}" onclick="setAdminMsgTab('stuur',this)">📣 Versturen</button>
-    </div>
-    <div id="adminMsgContent"></div>`;
-  renderAdminMsgTab();
-}
-window.setAdminMsgTab=(t,btn)=>{adminMsgTab=t;document.querySelectorAll('#adminTabContent .pill-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderAdminMsgTab();};
-function renderAdminMsgTab(){
-  const c=$('adminMsgContent'); if(!c)return;
-  if(adminMsgTab==='inbox') renderAdminInbox(c);
-  else renderAdminStuur(c);
-}
-function renderAdminInbox(c){
-  // Alle notificaties waarbij admin in 'to' staat — inclusief berichten van medewerkers
-  if(!allNotifs.length){
-    c.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>Inbox is leeg</p></div>`;
-    return;
-  }
-  c.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div style="font-size:13px;color:var(--text3)">${allNotifs.length} bericht(en)</div>
-      <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Alles gelezen</button>
-    </div>
-    ${allNotifs.map(n=>{
-      const unread=!n.readBy?.includes(U.uid);
-      const sender=n.from&&n.from!==U.uid?allUsers.find(x=>x.uid===n.from):null;
-      const t=n.createdAt?.toDate?n.createdAt.toDate():new Date();
-      return `<div class="card" style="margin-bottom:8px;${unread?'border-color:var(--mhv-yellow)':''}" onclick="markRead('${n.id}')">
-        <div style="padding:14px 16px">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-            <div style="font-size:14px;font-weight:${unread?'700':'600'};flex:1">${n.title}</div>
-            ${unread?`<span class="badge badge-yellow" style="font-size:10px;flex-shrink:0">Nieuw</span>`:''}
-          </div>
-          <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:6px">${n.body}</div>
-          <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between">
-            <span>${sender?`Van: ${sender.name}`:'Systeem'}</span>
-            <span>${t.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
-          </div>
-        </div>
-      </div>`;
-    }).join('')}`;
-}
-function renderAdminStuur(c){
   const emp=employees();
   c.innerHTML=`
     <div class="card">
-      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div class="card-row" style="flex-direction:column;align-items:flex-start;gap:12px">
         <div style="font-size:15px;font-weight:700">📣 Bericht sturen</div>
-        <div>
+        <div style="width:100%">
           <label class="form-label">Ontvangers</label>
           <label class="worker-check" style="margin-bottom:6px">
             <input type="checkbox" id="msgAll" onchange="toggleAll(this)">
-            <div style="font-size:14px;font-weight:600">Iedereen (${emp.length} medewerkers)</div>
+            <div style="font-size:14px;font-weight:600">Iedereen</div>
           </label>
           ${emp.map(u=>`<label class="worker-check" style="margin-bottom:6px">
             <input type="checkbox" class="msg-r" value="${u.uid}">
@@ -1894,18 +1590,15 @@ function renderAdminStuur(c){
             <div style="font-size:14px">${u.name}</div>
           </label>`).join('')}
         </div>
-        <div>
+        <div style="width:100%">
           <label class="form-label">Titel</label>
           <input type="text" class="form-input" id="msgTitle" placeholder="Bijv. Roosterwijziging">
         </div>
-        <div>
+        <div style="width:100%">
           <label class="form-label">Bericht</label>
-          <textarea class="form-input" id="msgBody" rows="4" placeholder="Typ je bericht…" style="resize:none"></textarea>
+          <textarea class="form-input" id="msgBody" rows="3" placeholder="Typ je bericht…" style="resize:none"></textarea>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--text3)">
-          <span>📧</span><span>Medewerkers ontvangen ook een e-mail via h.mhvwork@gmail.com</span>
-        </div>
-        <button class="btn btn-yellow btn-full" onclick="sendMsg()">Verstuur bericht</button>
+        <button class="btn btn-yellow btn-full" onclick="sendMsg()">Verstuur</button>
       </div>
     </div>`;
 }
@@ -1926,70 +1619,28 @@ async function sendMsg(){
   $('msgTitle').value=''; $('msgBody').value='';
   document.querySelectorAll('.msg-r').forEach(r=>r.checked=false);
   $('msgAll').checked=false;
-  toast('Verstuurd naar '+recipients.length+' persoon/personen!','ok');
+  toast(`Verstuurd naar ${recipients.length} persoon/personen!`,'ok');
 }
 
-// MEDEWERKER → ADMIN bericht + inbox
-function openEmployeeMsg(){
+// MEDEWERKER → ADMIN bericht
+function openSendToAdmin(){
   modal(`
     <div class="modal-handle"></div>
-    <div class="pill-tabs" style="margin-bottom:4px">
-      <button class="pill-tab active" id="empTabInbox" onclick="switchEmpTab('inbox')">📥 Inbox</button>
-      <button class="pill-tab" id="empTabStuur" onclick="switchEmpTab('stuur')">✉️ Nieuw</button>
-    </div>
-    <div id="empMsgContent" style="min-height:200px"></div>
-  `);
-  renderEmpInbox();
-}
-window.switchEmpTab=(tab)=>{
-  document.getElementById('empTabInbox').classList.toggle('active',tab==='inbox');
-  document.getElementById('empTabStuur').classList.toggle('active',tab==='stuur');
-  if(tab==='inbox') renderEmpInbox();
-  else renderEmpStuur();
-};
-function renderEmpInbox(){
-  const c=$('empMsgContent'); if(!c)return;
-  if(!allNotifs.length){c.innerHTML=`<div class="empty" style="padding:24px 0"><div class="empty-icon">📭</div><p>Geen berichten</p></div>`;return;}
-  c.innerHTML=`<div style="margin-top:8px">${allNotifs.slice(0,15).map(n=>{
-    const unread=!n.readBy?.includes(U.uid);
-    const t=n.createdAt?.toDate?n.createdAt.toDate():new Date();
-    return `<div style="padding:12px;background:${unread?'var(--mhv-yellow-dim)':'var(--bg3)'};border-radius:10px;margin-bottom:8px;border:1px solid ${unread?'rgba(245,200,0,0.2)':'var(--separator)'}" onclick="markRead('${n.id}')">
-      <div style="font-size:14px;font-weight:${unread?'700':'600'};margin-bottom:4px">${n.title}</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:4px">${n.body}</div>
-      <div style="font-size:11px;color:var(--text3)">${t.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
-    </div>`;
-  }).join('')}</div>`;
-}
-function renderEmpStuur(){
-  const c=$('empMsgContent'); if(!c)return;
-  c.innerHTML=`<div style="margin-top:8px">
+    <div class="modal-title">Bericht aan beheerder</div>
     <div class="form-section"><label class="form-label">Titel</label>
       <input type="text" class="form-input" id="empMsgTitle" placeholder="Bijv. Vraag over rooster"></div>
     <div class="form-section"><label class="form-label">Bericht</label>
       <textarea class="form-input" id="empMsgBody" rows="4" placeholder="Typ je bericht…" style="resize:none"></textarea></div>
-    <button class="btn btn-yellow btn-full" style="margin-top:8px" onclick="sendToAdmin()">Verstuur aan beheerder</button>
-  </div>`;
+    <button class="btn btn-yellow btn-full" onclick="sendToAdmin()">Verstuur</button>
+  `);
 }
 async function sendToAdmin(){
   const title=$('empMsgTitle').value.trim(), body=$('empMsgBody').value.trim();
   if(!title||!body){toast('Vul alles in','err');return;}
   const adminUids=admins().map(a=>a.uid);
-  // Stuur notificatie naar alle admins — from = eigen uid zodat admin weet wie het stuurde
-  await sendNotifMulti(adminUids,'📩 '+U.name+': '+title,body);
-  // Stuur ook een email naar de app-mailbox
-  try{
-    await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{
-      to_email:'h.mhvwork@gmail.com',to_name:'MHVwork Beheer',
-      title:'Nieuw bericht van '+U.name+': '+title,
-      body:body+'\n\n— Verstuurd via MHVwork\nAfzender: '+U.name+' ('+U.email+')'
-    });
-  }catch(e){console.warn('Email mislukt:',e);}
-  $('empMsgBody')&&($('empMsgTitle').value=$('empMsgBody').value='');
-  toast('Bericht verstuurd naar beheerder!','ok');
-  switchEmpTab('inbox');
+  await sendNotifMulti(adminUids,`${U.name}: ${title}`,body);
+  closeModal(); toast('Bericht verstuurd!','ok');
 }
-// Alias voor profiel-knop
-function openSendToAdmin(){ openEmployeeMsg(); }
 
 // ═══════════════════════════════════════════
 // NOTIFICATIES
@@ -2033,20 +1684,11 @@ function renderProfile(){
     </div>
 
     ${U.role!=='admin'?`
-    <div class="section-label">Berichten</div>
+    <div class="section-label">Communicatie</div>
     <div class="card">
-      <div class="card-row" style="cursor:pointer" onclick="openEmployeeMsg()">
-        <div style="display:flex;align-items:center;gap:12px;flex:1">
-          <div style="font-size:22px">💬</div>
-          <div>
-            <div class="card-row-label" style="font-size:15px;font-weight:600">Inbox &amp; Berichten</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">Lees meldingen of stuur bericht naar beheerder</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          ${allNotifs.filter(n=>!n.readBy?.includes(U.uid)).length>0?`<span class="badge badge-red" style="font-size:11px">${allNotifs.filter(n=>!n.readBy?.includes(U.uid)).length}</span>`:''}
-          <div style="color:var(--text3)">›</div>
-        </div>
+      <div class="card-row" style="cursor:pointer" onclick="openSendToAdmin()">
+        <div class="card-row-label">💬 Bericht naar beheerder</div>
+        <div style="color:var(--text3)">›</div>
       </div>
     </div>`:''}
 
@@ -2063,21 +1705,9 @@ function renderProfile(){
       </div>
     </div>
 
-    <div class="section-label">App installeren</div>
-    <div class="card" id="installCard">
-      <div class="card-row" style="cursor:pointer;align-items:flex-start;gap:14px;padding:16px" onclick="openInstallGuide()">
-        <div style="font-size:26px;flex-shrink:0;margin-top:2px">📲</div>
-        <div style="flex:1">
-          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px">Download app</div>
-          <div style="font-size:12px;color:var(--text3);line-height:1.5">Installeer MHVwork als app op je telefoon of computer voor snellere toegang en push notificaties</div>
-        </div>
-        <div style="color:var(--text3);margin-top:4px">›</div>
-      </div>
-    </div>
-
     <button class="btn btn-red btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931 · <a href='mailto:h.mhvwork@gmail.com' style='color:var(--text3);text-decoration:none'>h.mhvwork@gmail.com</a></p>
-  \`;
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931</p>
+  `;
 }
 async function changePw(){
   const cur=$('pwC').value, nw=$('pwN').value, nw2=$('pwN2').value;
@@ -2103,139 +1733,6 @@ async function doLogout(){
   window.location.href='index.html';
 }
 
-function openInstallGuide(){
-  const ua=navigator.userAgent||'';
-  const isIOS=/iPad|iPhone|iPod/.test(ua)&&!window.MSStream;
-  const isAndroid=/Android/.test(ua);
-  const isSafari=/Safari/.test(ua)&&!/Chrome/.test(ua);
-  const isChrome=/Chrome/.test(ua)&&!/Edg/.test(ua);
-  const isEdge=/Edg/.test(ua);
-  const isStandalone=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
-
-  if(isStandalone){
-    modal('<div class="modal-handle"></div><div class="modal-title">\u2705 Al ge\xebnstalleerd!</div>'
-      +'<p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Je gebruikt MHVwork al als ge\xebnstalleerde app.</p>'
-      +'<button class="btn btn-ghost btn-full" onclick="closeModal()">Sluiten</button>');
-    return;
-  }
-
-  let steps='', platformName='';
-
-  if(isIOS&&!isSafari){
-    platformName='iPhone/iPad (Chrome)';
-    steps='<div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--orange)">'
-      +'\u26a0\ufe0f Op iPhone/iPad werkt installeren <strong>alleen via Safari</strong>. Open deze pagina in Safari.</div>'
-      +'<div style="font-size:13px;color:var(--text2)">Kopieer deze URL en open in Safari:<br>'
-      +'<code style="font-size:12px;background:var(--bg3);padding:4px 8px;border-radius:6px;display:block;margin-top:8px;word-break:break-all">'+window.location.href+'</code></div>';
-  } else if(isIOS&&isSafari){
-    platformName='iPhone/iPad (Safari)';
-    steps='<div class="install-step"><span class="install-num">1</span><div>Tik op het <strong>deel-icoon \u23cb</strong> onderaan Safari</div></div>'
-      +'<div class="install-step"><span class="install-num">2</span><div>Tik op <strong>"Zet op beginscherm"</strong></div></div>'
-      +'<div class="install-step"><span class="install-num">3</span><div>Tik rechtsboven op <strong>"Voeg toe"</strong></div></div>'
-      +'<div class="install-step"><span class="install-num">4</span><div>Open MHVwork via het nieuwe icoon \ud83c\udf89</div></div>';
-  } else if(isAndroid){
-    platformName='Android';
-    steps='<div class="install-step"><span class="install-num">1</span><div>Tik op de <strong>drie puntjes</strong> rechts bovenin Chrome</div></div>'
-      +'<div class="install-step"><span class="install-num">2</span><div>Tik op <strong>"App installeren"</strong> of <strong>"Toevoegen aan startscherm"</strong></div></div>'
-      +'<div class="install-step"><span class="install-num">3</span><div>Tik op <strong>"Installeren"</strong> \ud83c\udf89</div></div>';
-  } else if(isChrome||isEdge){
-    platformName=isEdge?'Windows/Mac (Edge)':'Windows/Mac (Chrome)';
-    steps='<div class="install-step"><span class="install-num">1</span><div>Klik op het <strong>installatie-icoon \u2295</strong> rechts in de adresbalk</div></div>'
-      +'<div class="install-step"><span class="install-num">2</span><div>Klik op <strong>"Installeren"</strong></div></div>'
-      +'<div class="install-step"><span class="install-num">3</span><div>MHVwork opent als eigen app \ud83c\udf89</div></div>'
-      +'<div style="font-size:12px;color:var(--text3);margin-top:8px">Zie je het niet? Klik op de drie puntjes \u2192 "MHVwork installeren"</div>';
-  } else {
-    platformName='jouw apparaat';
-    steps='<div style="font-size:13px;color:var(--text2);line-height:1.6">Open MHVwork in <strong>Chrome</strong> of <strong>Safari</strong> en kies "Toevoegen aan startscherm" of "App installeren" in het browsermenu.</div>';
-  }
-
-  modal('<div class="modal-handle"></div>'
-    +'<div class="modal-title">\ud83d\udcf2 App installeren</div>'
-    +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px">Instructies voor <strong>'+platformName+'</strong></p>'
-    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">'+steps+'</div>'
-    +'<button class="btn btn-yellow btn-full" onclick="closeModal()">Begrepen</button>');
-}
-async function doLogout(){
-  const ok=await confirm2('Uitloggen','Weet je zeker dat je wilt uitloggen?','Uitloggen');
-  if(!ok)return;
-  await window._f.signOut(window._f.auth);
-  window.location.href='index.html';
-}
-
-function openInstallGuide(){
-  // Detecteer platform
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  const isAndroid = /Android/.test(ua);
-  const isMac = /Macintosh|Mac OS X/.test(ua) && !isIOS;
-  const isWindows = /Windows/.test(ua);
-  const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
-  const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua);
-  const isEdge = /Edg/.test(ua);
-  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-
-  if(isStandalone){
-    modal(\`<div class="modal-handle"></div>
-      <div class="modal-title">✅ Al geïnstalleerd!</div>
-      <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Je gebruikt MHVwork al als geïnstalleerde app.</p>
-      <button class="btn btn-ghost btn-full" onclick="closeModal()">Sluiten</button>\`);
-    return;
-  }
-
-  let steps = '';
-  let platformName = '';
-
-  if(isIOS && !isSafari){
-    // Chrome / andere browser op iOS
-    platformName = 'iPhone of iPad (Chrome)';
-    steps = \`
-      <div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--orange)">
-        ⚠️ Op iPhone/iPad werkt installeren <strong>alleen via Safari</strong>. Open deze pagina in Safari en probeer opnieuw.
-      </div>
-      <div style="font-size:13px;color:var(--text2)">Kopieer deze URL en open hem in Safari:<br>
-      <code style="font-size:12px;background:var(--bg3);padding:4px 8px;border-radius:6px;display:block;margin-top:8px;word-break:break-all">\${window.location.href}</code></div>\`;
-  } else if(isIOS && isSafari){
-    platformName = 'iPhone of iPad (Safari)';
-    steps = \`
-      <div class="install-step"><span class="install-num">1</span><div>Tik op het <strong>deel-icoon</strong> <span style="font-size:18px">⎋</span> onderaan in Safari</div></div>
-      <div class="install-step"><span class="install-num">2</span><div>Scroll naar beneden en tik op <strong>"Zet op beginscherm"</strong></div></div>
-      <div class="install-step"><span class="install-num">3</span><div>Tik rechtsboven op <strong>"Voeg toe"</strong></div></div>
-      <div class="install-step"><span class="install-num">4</span><div>Open MHVwork via het nieuwe icoon op je beginscherm 🎉</div></div>\`;
-  } else if(isAndroid){
-    platformName = 'Android';
-    steps = \`
-      <div class="install-step"><span class="install-num">1</span><div>Tik op de <strong>drie puntjes</strong> rechts bovenin Chrome</div></div>
-      <div class="install-step"><span class="install-num">2</span><div>Tik op <strong>"Toevoegen aan startscherm"</strong> of <strong>"App installeren"</strong></div></div>
-      <div class="install-step"><span class="install-num">3</span><div>Tik op <strong>"Installeren"</strong> in het pop-up venster</div></div>
-      <div class="install-step"><span class="install-num">4</span><div>Open MHVwork via het icoon op je startscherm 🎉</div></div>\`;
-  } else if(isChrome || isEdge){
-    platformName = isEdge ? 'Windows/Mac (Edge)' : 'Windows/Mac (Chrome)';
-    steps = \`
-      <div class="install-step"><span class="install-num">1</span><div>Klik op het <strong>installatie-icoon</strong> <span style="font-size:16px">⊕</span> rechts in de adresbalk</div></div>
-      <div class="install-step"><span class="install-num">2</span><div>Klik op <strong>"Installeren"</strong> in het pop-up venster</div></div>
-      <div class="install-step"><span class="install-num">3</span><div>MHVwork opent nu als een eigen app venster 🎉</div></div>
-      <div style="font-size:12px;color:var(--text3);margin-top:12px">Zie je het icoon niet? Klik op de drie puntjes → "MHVwork installeren"</div>\`;
-  } else if(isMac && isSafari){
-    platformName = 'Mac (Safari)';
-    steps = \`
-      <div class="install-step"><span class="install-num">1</span><div>Klik in de menubalk op <strong>Archief</strong></div></div>
-      <div class="install-step"><span class="install-num">2</span><div>Klik op <strong>"Voeg toe aan Dock"</strong></div></div>
-      <div class="install-step"><span class="install-num">3</span><div>MHVwork verschijnt nu in je Dock 🎉</div></div>\`;
-  } else {
-    platformName = 'jouw apparaat';
-    steps = \`
-      <div style="font-size:13px;color:var(--text2);line-height:1.6">
-        Open MHVwork in <strong>Chrome</strong> of <strong>Safari</strong> en gebruik de browser-menu om de app te installeren ("Toevoegen aan startscherm" of "App installeren").
-      </div>\`;
-  }
-
-  modal(\`<div class="modal-handle"></div>
-    <div class="modal-title">📲 App installeren</div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Instructies voor <strong>\${platformName}</strong></p>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">\${steps}</div>
-    <button class="btn btn-yellow btn-full" onclick="closeModal()">Begrepen</button>\`);
-}
-
 // ═══════════════════════════════════════════
 // MODAL HELPERS
 // ═══════════════════════════════════════════
@@ -2252,12 +1749,11 @@ document.addEventListener('click',e=>{
     p.classList.remove('open');
 });
 
-// ── Expose functions to global scope voor HTML onclick handlers ──
-// (vereist omdat dit een type=module script is)
+// Expose functions globally voor HTML onclick handlers
 window.nav=nav; window.toast=toast; window.closeModal=closeModal;
 window.modal=modal; window.confirm2=confirm2; window.doLogout=doLogout;
-window.openInstallGuide=openInstallGuide; window.openAvailModal=openAvailModal;
-window.saveAvail=saveAvail; window.deleteAvail=deleteAvail;
+window.openAvailModal=openAvailModal; window.saveAvail=saveAvail;
+window.deleteAvail=deleteAvail; window.deleteAvailAdmin=deleteAvailAdmin;
 window.openEmployeeMsg=openEmployeeMsg; window.openSendToAdmin=openSendToAdmin;
 window.sendToAdmin=sendToAdmin; window.switchEmpTab=switchEmpTab;
 window.markRead=markRead; window.markAllRead=markAllRead;
@@ -2265,367 +1761,20 @@ window.confirmShiftOk=confirmShiftOk; window.openCorrectShift=openCorrectShift;
 window.openInviteModal=openInviteModal; window.createInvite=createInvite;
 window.sendInviteEmail=sendInviteEmail; window.openEditEmployee=openEditEmployee;
 window.deleteEmployee=deleteEmployee; window.resetPwAdmin=resetPwAdmin;
-window.openAddEmployee=openAddEmployee;
 window.openPayModal=openPayModal; window.markPaid=markPaid;
-window.sendMsg=sendMsg; window.renderAdminMsgTab=renderAdminMsgTab;
-window.setAdminMsgTab=setAdminMsgTab;
-window.sendChatMsg=sendChatMsg; window.insertMention=insertMention;
-window.clearChatImg=clearChatImg; window.handleChatImage=handleChatImage;
-window.openImgFull=openImgFull; window.sendSwMsg=sendSwMsg;
-window.swDeleteUser=swDeleteUser; window.deleteAvailAdmin=deleteAvailAdmin;
-window.renderEmpInbox=renderEmpInbox; window.renderEmpStuur=renderEmpStuur;
-window.setAdminRTab=window.setAdminRTab||function(){};
+window.sendMsg=sendMsg; window.openInstallGuide=openInstallGuide;
 </script>
 
-<script type="module">
-// Service Worker registratie voor Push Notificaties (PWA)
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(reg => {
-      window._swReg = reg;
-      console.log('MHVwork SW geregistreerd');
-    })
-    .catch(e => console.warn('SW registratie mislukt:', e));
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(r=>{
+    window._swReg=r;
+  }).catch(()=>{});
 }
-
-// Vraag push toestemming als ingelogd — wordt aangeroepen vanuit app
-window.requestPushPermission = async function() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted') return;
-  if (Notification.permission === 'denied') return;
-  const perm = await Notification.requestPermission();
-  console.log('Push toestemming:', perm);
+window.requestPushPermission=async function(){
+  if(!('Notification' in window)||Notification.permission!=='default') return;
+  await Notification.requestPermission();
 };
-
-// ═══════════════════════════════════════════════════════════
-// GROEPSCHAT
-// ═══════════════════════════════════════════════════════════
-let _chatImgData = null; // base64 afbeelding klaar voor verzending
-let _mentionQuery = null; // huidige @-zoekterm
-
-function subChat(){
-  const{db,collection,onSnapshot,orderBy,query,limit,where,Timestamp}=window._f;
-  // Laad berichten: gepinde altijd, overige max 3 maanden oud
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
-  const cutoff = Timestamp.fromDate(threeMonthsAgo);
-  const q=query(collection(db,'chat'),orderBy('createdAt','asc'),limit(300));
-  unsubChat=onSnapshot(q,s=>{
-    // Filter: toon gepinde berichten altijd, overige alleen als < 3 maanden
-    allChat=s.docs.map(d=>({id:d.id,...d.data()})).filter(msg=>{
-      if(msg.pinned) return true;
-      const t=msg.createdAt?.toDate?.();
-      if(!t) return true;
-      return t >= threeMonthsAgo;
-    });
-    // Verwijder automatisch verlopen ongepinde berichten uit Firestore
-    s.docs.forEach(d=>{
-      const msg=d.data();
-      if(!msg.pinned){
-        const t=msg.createdAt?.toDate?.();
-        if(t && t < threeMonthsAgo){
-          window._f.deleteDoc(window._f.doc(db,'chat',d.id)).catch(()=>{});
-        }
-      }
-    });
-    if(document.querySelector('#view-chat.active')||document.getElementById('view-chat')?.classList.contains('active'))
-      renderChat();
-  });
-}
-
-function renderChat(){
-  const c=$('view-chat'); if(!c)return;
-  const msgsHtml=allChat.length?renderChatMessages()
-    :'<div style="text-align:center;padding:40px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">💬</div><p>Nog geen berichten</p></div>';
-  c.innerHTML=
-    '<div style="padding:14px 14px 10px;flex-shrink:0;border-bottom:1px solid var(--separator)">'
-    +'<div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.5px">💬 Groepschat</div>'
-    +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Alleen voor beheerders en dev</div>'
-    +'</div>'
-    +'<div id="chatMsgs" style="flex:1;overflow-y:auto;padding:12px 12px 0;display:flex;flex-direction:column;gap:8px">'+msgsHtml+'</div>'
-    +'<div class="chat-input-area">'
-    +'<div class="mention-popup" id="mentionPopup"></div>'
-    +'<div class="chat-img-preview" id="chatImgPreview" style="display:none"></div>'
-    +'<div class="chat-input-row">'
-    +'<button class="chat-img-btn" onclick="document.getElementById(&quot;chatFileInput&quot;).click()" title="Afbeelding">'
-    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 19"/></svg>'
-    +'</button>'
-    +'<textarea id="chatInput" placeholder="Bericht... gebruik @ om te taggen" rows="1"'
-    +' oninput="autoResizeChatInput(this);handleMentionInput(this)"'
-    +' onkeydown="if(event.key===&apos;Enter&apos;&&!event.shiftKey){event.preventDefault();sendChatMsg();}"></textarea>'
-    +'<button class="chat-send-btn" onclick="sendChatMsg()">'
-    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>'
-    +'</button>'
-    +'</div>'
-    +'<input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">'
-    +'<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text3);cursor:pointer">'
-    +'<input type="checkbox" id="chatPinToggle" style="accent-color:var(--mhv-yellow)"> 📌 Bewaar permanent'
-    +'</label>'
-    +'</div>';
-  setTimeout(function(){var m=document.getElementById('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},50);
-}
-
-function renderChatMessages(){
-  var html=''; var lastDate='';
-  allChat.forEach(function(msg){
-    var t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
-    var dateStr=t.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-    if(dateStr!==lastDate){
-      html+='<div class="chat-date-div">'+dateStr+'</div>';
-      lastDate=dateStr;
-    }
-    var mine=msg.uid===U.uid;
-    var initials=getInitials(msg.name||'?');
-    var timeStr=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-    var rolePill=msg.role==='admin'?'<span class="chat-role-pill pill-adm">Beheerder</span>'
-      :msg.role==='software'?'<span class="chat-role-pill pill-sw">Dev</span>':'';
-    var bubbleText=msg.text?formatMentions(msg.text):'';
-    var pinMark=msg.pinned?'<span style="font-size:10px;opacity:0.55">📌 </span>':'';
-    var imgHtml=msg.imageData
-      ?'<img src="'+msg.imageData+'" class="chat-img-msg" onclick="openImgFull(this.src)" style="max-width:100%;max-height:200px;border-radius:12px;display:block;margin-top:6px;cursor:zoom-in" alt="afb">'
-      :'';
-    var avHtml=mine?'':'<div class="chat-av">'+initials+'</div>';
-    var metaHtml=mine
-      ?'<div class="chat-meta">'+timeStr+'</div>'
-      :'<div class="chat-meta">'+( msg.name||'?')+rolePill+' · '+timeStr+'</div>';
-    html+='<div class="chat-msg '+(mine?'mine':'')+' role-'+(msg.role||'employee')+'">'
-      +avHtml
-      +'<div style="max-width:75%">'
-      +metaHtml
-      +'<div class="chat-bubble">'+pinMark+bubbleText+imgHtml+'</div>'
-      +'</div>'
-      +'</div>';
-  });
-  return html;
-}
-
-function formatMentions(text){
-  return text.replace(/@(\S+)/g,'<span class="chat-mention">@$1</span>');
-}
-
-function autoResizeChatInput(el){
-  el.style.height='auto';
-  el.style.height=Math.min(el.scrollHeight,120)+'px';
-}
-
-function handleMentionInput(el){
-  const val=el.value;
-  const pos=el.selectionStart;
-  // Zoek @ voor cursor positie
-  const before=val.slice(0,pos);
-  const match=before.match(/@(\w*)$/);
-  if(match){
-    _mentionQuery=match[1].toLowerCase();
-    showMentionPopup(match[1]);
-  } else {
-    _mentionQuery=null;
-    hideMentionPopup();
-  }
-}
-
-function showMentionPopup(query){
-  const popup=$('mentionPopup'); if(!popup)return;
-  const users=[{uid:'all',name:'Iedereen'},...allUsers.filter(u=>u.uid!==U.uid)];
-  const filtered=query?users.filter(u=>u.name.toLowerCase().includes(query)):users;
-  if(!filtered.length){hideMentionPopup();return;}
-  popup.innerHTML=filtered.slice(0,6).map(function(u){
-    return '<div class="mention-opt" onclick="insertMention(&quot;'+u.name+'&quot;)">'
-      +'<div class="chat-av" style="width:26px;height:26px;font-size:10px">'+(u.uid==='all'?'👥':getInitials(u.name))+'</div>'
-      +'<span>'+u.name+'</span>'
-      +'</div>';
-  }).join('');
-  popup.classList.add('open');
-}
-
-function hideMentionPopup(){
-  const popup=$('mentionPopup');
-  if(popup) popup.classList.remove('open');
-}
-
-function insertMention(name){
-  const ta=$('chatInput'); if(!ta)return;
-  const pos=ta.selectionStart;
-  const before=ta.value.slice(0,pos).replace(/@\w*$/,'');
-  const after=ta.value.slice(pos);
-  ta.value=before+'@'+name+' '+after;
-  ta.focus();
-  hideMentionPopup();
-}
-
-function handleChatImage(input){
-  const file=input.files[0]; if(!file)return;
-  if(file.size>5*1024*1024){toast('Afbeelding te groot (max 5MB)','err');return;}
-  const reader=new FileReader();
-  reader.onload=e=>{
-    // Comprimeer via canvas
-    const img=new Image();
-    img.onload=()=>{
-      const canvas=document.createElement('canvas');
-      const maxW=800,maxH=800;
-      let w=img.width,h=img.height;
-      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-      canvas.width=w;canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      _chatImgData=canvas.toDataURL('image/jpeg',0.7);
-      const prev=$('chatImgPreview');
-      if(prev){
-        prev.style.display='flex';
-        prev.innerHTML='<img src="'+_chatImgData+'" style="height:60px;border-radius:8px"> <button onclick="clearChatImg()" style="background:rgba(255,69,58,0.15);border:none;color:#FF453A;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer">✕</button>';
-      }
-    };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
-  input.value='';
-}
-
-function clearChatImg(){
-  _chatImgData=null;
-  const prev=$('chatImgPreview');
-  if(prev){prev.style.display='none';prev.innerHTML='';}
-}
-
-async function sendChatMsg(){
-  const ta=$('chatInput');
-  const text=ta?ta.value.trim():'';
-  if(!text&&!_chatImgData)return;
-  const pinned=document.getElementById('chatPinToggle')?.checked||false;
-  const{db,collection,addDoc,serverTimestamp}=window._f;
-  // Detecteer mentions
-  const mentions=[...text.matchAll(/@(\S+)/g)].map(m=>m[1].toLowerCase());
-  const mentionedUids=[];
-  if(mentions.includes('iedereen')||mentions.includes('everyone')||mentions.includes('all')){
-    mentionedUids.push('all');
-  } else {
-    mentions.forEach(m=>{
-      const u=allUsers.find(x=>x.name.toLowerCase()===m||x.name.toLowerCase().startsWith(m));
-      if(u&&!mentionedUids.includes(u.uid)) mentionedUids.push(u.uid);
-    });
-  }
-  try{
-    const payload={uid:U.uid,name:U.name,role:U.role||'employee',text,
-      mentions:mentionedUids,pinned:pinned||false,createdAt:serverTimestamp()};
-    if(_chatImgData) payload.imageData=_chatImgData;
-    await addDoc(collection(db,'chat'),payload);
-    // Stuur notificatie naar genoemde gebruikers
-    if(mentionedUids.length){
-      const targets=mentionedUids.includes('all')
-        ?allUsers.filter(u=>u.uid!==U.uid).map(u=>u.uid)
-        :mentionedUids;
-      await sendNotifMulti(targets,U.name+' heeft je getagd in de chat',text.slice(0,80));
-    }
-    if(ta) ta.value='';
-    clearChatImg();
-    hideMentionPopup();
-    setTimeout(()=>{const m=$('chatMsgs');if(m)m.scrollTop=m.scrollHeight;},100);
-  }catch(e){
-    toast('Verzenden mislukt: '+e.message,'err');
-    console.error(e);
-  }
-}
-
-function openImgFull(src){
-  modal('<div class="modal-handle"></div>'
-    +'<img src="'+src+'" style="width:100%;border-radius:12px;display:block">'
-    +'<button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeModal()">Sluiten</button>');
-}
-
-// ═══════════════════════════════════════════════════════════
-// SOFTWARE ROL DASHBOARD
-// ═══════════════════════════════════════════════════════════
-function renderSwDev(){
-  const c=$('view-swdev'); if(!c)return;
-  const totalUsers=allUsers.length;
-  var usersHtml=allUsers.map(function(u){
-    var badge=u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray';
-    return '<div class="card-row" style="padding:12px 16px">'
-      +'<div class="avatar">'+getInitials(u.name)+'</div>'
-      +'<div style="flex:1">'
-      +'<div style="font-size:14px;font-weight:600">'+u.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">'+u.email+' <span class="badge '+badge+'">'+u.role+'</span></div>'
-      +'</div>'
-      +'<button class="btn btn-ghost btn-sm" onclick="swDeleteUser(&quot;'+u.uid+'&quot;,&quot;'+u.name+'&quot;)">✕</button>'
-      +'</div>';
-  }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
-
-  var rcptHtml=allUsers.map(function(u){
-    return '<label class="worker-check" style="margin-bottom:4px">'
-      +'<input type="checkbox" class="sw-rcpt" value="'+u.uid+'">'
-      +'<div class="avatar" style="width:24px;height:24px;font-size:10px">'+getInitials(u.name)+'</div>'
-      +'<div style="font-size:13px">'+u.name+'</div>'
-      +'</label>';
-  }).join('');
-
-  c.innerHTML=
-    '<div class="page-title">🛠 Dev Dashboard</div>'
-    +'<div class="sw-grid">'
-    +'<div class="sw-tile"><div class="sw-num">'+totalUsers+'</div><div class="sw-lbl">Gebruikers</div></div>'
-    +'<div class="sw-tile"><div class="sw-num">'+allShifts.length+'</div><div class="sw-lbl">Diensten</div></div>'
-    +'</div>'
-    +'<div class="section-label">Meldingen versturen</div>'
-    +'<div class="card" style="margin-bottom:10px">'
-    +'<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'
-    +'<div>'
-    +'<label class="form-label">Ontvangers</label>'
-    +'<label class="worker-check" style="margin-bottom:6px">'
-    +'<input type="checkbox" id="swMsgAll" onchange="toggleSwAll(this)">'
-    +'<div style="font-size:14px;font-weight:600">Iedereen ('+allUsers.length+')</div>'
-    +'</label>'
-    +rcptHtml
-    +'</div>'
-    +'<div><label class="form-label">Type melding</label>'
-    +'<select class="form-input" id="swMsgType" style="padding:10px 12px">'
-    +'<option value="notif">📱 In-app notificatie</option>'
-    +'<option value="email">📧 Email</option>'
-    +'<option value="both">📱 + 📧 Allebei</option>'
-    +'</select></div>'
-    +'<div><label class="form-label">Titel</label>'
-    +'<input type="text" class="form-input" id="swMsgTitle" placeholder="Bijv. App update v2.1"></div>'
-    +'<div><label class="form-label">Bericht</label>'
-    +'<textarea class="form-input" id="swMsgBody" rows="3" placeholder="Typ je bericht..." style="resize:none"></textarea></div>'
-    +'<button class="btn btn-yellow btn-full" onclick="sendSwMsg()">Versturen</button>'
-    +'</div></div>'
-    +'<div class="section-label">Account beheer</div>'
-    +'<div class="card">'+usersHtml+'</div>';
-}
-
-window.toggleSwAll=(cb)=>document.querySelectorAll('.sw-rcpt').forEach(r=>r.checked=cb.checked);
-
-async function sendSwMsg(){
-  const recipients=[...document.querySelectorAll('.sw-rcpt:checked')].map(i=>i.value);
-  const title=$('swMsgTitle').value.trim();
-  const body=$('swMsgBody').value.trim();
-  const type=$('swMsgType').value;
-  if(!recipients.length){toast('Kies ontvangers','err');return;}
-  if(!title||!body){toast('Vul titel en bericht in','err');return;}
-  if(type==='notif'||type==='both'){
-    await sendNotifMulti(recipients,title,body);
-  }
-  if(type==='email'||type==='both'){
-    for(const uid of recipients){
-      const u=allUsers.find(x=>x.uid===uid);
-      if(u?.email){
-        try{await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,
-          {to_email:u.email,to_name:u.name,title,body});}
-        catch(e){console.warn('Email failed:',e);}
-      }
-    }
-  }
-  $('swMsgTitle').value='';$('swMsgBody').value='';
-  document.querySelectorAll('.sw-rcpt').forEach(r=>r.checked=false);
-  $('swMsgAll').checked=false;
-  toast('Verstuurd naar '+recipients.length+' gebruiker(s)!','ok');
-}
-
-async function swDeleteUser(uid,name){
-  const ok=await confirm2('Account verwijderen',name+' verwijderen uit MHVwork? De gebruiker kan dan niet meer inloggen.','Verwijderen','btn-red');
-  if(!ok)return;
-  const{db,doc,deleteDoc}=window._f;
-  await deleteDoc(doc(db,'users',uid));
-  toast(name+' verwijderd','ok');
-}
-
 </script>
 </body>
 </html>
