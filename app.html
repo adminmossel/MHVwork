@@ -637,27 +637,9 @@ window.addEventListener('mhv:ready', async ()=>{
   if (U.role==='admin' || U.role==='software') {
     try { subChat(); } catch(e){ console.warn('subChat fout:', e); }
   }
-  // Check for pending forgot-pw requests
-  if(U.role==='admin'){
-    const req = localStorage.getItem('pw_forgot_request');
-    if(req){
-      try{
-        const d = JSON.parse(req);
-        localStorage.removeItem('pw_forgot_request');
-        setTimeout(()=>{
-          modal(`<div class="modal-handle"></div>
-            <div class="modal-title">🔑 Wachtwoord vergeten verzoek</div>
-            <div style="background:var(--orange-dim);border:1px solid rgba(255,159,10,0.2);border-radius:10px;padding:16px;margin-bottom:18px">
-              <div style="font-size:15px;font-weight:700;margin-bottom:4px">\${d.name}</div>
-              <div style="font-size:13px;color:var(--text3)">\${d.email}</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:4px">\${new Date(d.time).toLocaleString('nl-NL')}</div>
-            </div>
-            <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Ga naar Beheer → Medewerkers om een herstellink te sturen.</p>
-            <button class="btn btn-yellow btn-full" onclick="closeModal();nav('admin',document.getElementById('tab-admin'))">Ga naar Medewerkers</button>`);
-        }, 1500);
-      }catch(e){}
-    }
-  }
+
+  // (wachtwoord vergeten verzoeken verlopen via EmailJS)
+
   try { await loadUsers(); } catch(e){ console.warn('loadUsers fout:', e); allUsers=[]; }
   try { subShifts(); } catch(e){ console.warn('subShifts:', e); }
   try { subNotifs(); } catch(e){ console.warn('subNotifs:', e); }
