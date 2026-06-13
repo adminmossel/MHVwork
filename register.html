@@ -231,7 +231,7 @@ async function doRegister() {
       name: inv.name,
       email: inv.email,
       wage: inv.wage || 0,
-      role: 'employee',
+      role: inv.role || 'employee',
       createdAt: serverTimestamp()
     });
 
