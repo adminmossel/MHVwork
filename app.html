@@ -57,12 +57,20 @@ onAuthStateChanged(auth, async (user) => {
     if (snap && snap.exists()) break;
     await new Promise(r => setTimeout(r, 800));
   }
-  // Hardcoded admin bypass: als doc ontbreekt maar email klopt, laad app altijd
+  // Hardcoded admin bypass
   if ((!snap || !snap.exists()) && user.email === 'h.mhvwork@gmail.com') {
     window._user = { uid: user.uid, email: user.email, name: 'Beheerder', role: 'admin', wage: 0 };
     _authHandled = true;
     window.dispatchEvent(new Event("mhv:ready"));
     setDoc(doc(db,'users',user.uid),{ name:'Beheerder', email:'h.mhvwork@gmail.com', role:'admin', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
+    return;
+  }
+  // Hardcoded dev bypass
+  if ((!snap || !snap.exists()) && user.email === 'tyg01132@gmail.com') {
+    window._user = { uid: user.uid, email: user.email, name: 'Tygo (Dev)', role: 'software', wage: 0 };
+    _authHandled = true;
+    window.dispatchEvent(new Event("mhv:ready"));
+    setDoc(doc(db,'users',user.uid),{ name:'Tygo (Dev)', email:'tyg01132@gmail.com', role:'software', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
     return;
   }
   if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
@@ -227,6 +235,18 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 
 /* ── SHIFT CARD ─── */
 
+
+/* ─── Extra animaties ──────────────────── */
+.card        { transition: transform .12s ease, box-shadow .12s ease; }
+.card:active { transform: scale(.985); }
+.btn         { transition: opacity .12s ease, transform .1s ease; }
+.btn:active  { transform: scale(.95); opacity:.85; }
+.tab         { transition: color .15s ease; }
+.shift-card  { transition: transform .15s ease, box-shadow .15s ease; }
+.shift-card:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.18); }
+.stat-tile   { transition: transform .15s ease; }
+.stat-tile:active { transform: scale(.97); }
+
 /* ─── Animaties ─────────────────────────────── */
 @keyframes slideUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
@@ -261,7 +281,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .tag-admin    { background:rgba(245,200,0,.15);color:var(--mhv-yellow) }
 .tag-sw       { background:rgba(100,210,255,.15);color:#64d2ff }
 /* Input */
-.chat-input-wrap { padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--separator);background:var(--bg2);flex-shrink:0 }
+.chat-input-wrap { padding:10px 12px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--separator);background:var(--bg2);flex-shrink:0 }
 .chat-input-row  { display:flex;align-items:flex-end;gap:6px }
 .chat-input-row textarea { flex:1;background:var(--bg3);border:1.5px solid var(--separator);border-radius:20px;padding:9px 13px;font-size:14px;color:var(--text);font-family:inherit;resize:none;max-height:100px;outline:none;transition:border-color .2s }
 .chat-input-row textarea:focus { border-color:var(--mhv-yellow) }
@@ -750,7 +770,17 @@ async function sendNotifMulti(uids,title,body){
 function nav(v,btn){
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  $('view-'+v).classList.add('active');
+  const _el=$('view-'+v);
+  if(_el){
+    _el.classList.add('active');
+    _el.style.opacity='0';
+    _el.style.transform='translateY(8px)';
+    requestAnimationFrame(()=>{
+      _el.style.transition='opacity .2s ease,transform .2s cubic-bezier(.22,.68,0,1.1)';
+      _el.style.opacity='1';
+      _el.style.transform='translateY(0)';
+    });
+  }
   if(btn)btn.classList.add('active');
   $('notif-panel').classList.remove('open');
   render(v);
@@ -1917,7 +1947,8 @@ function renderChat(){
     +'<div class="chat-input-wrap">'
     +'<div class="mention-list" id="mentionList"></div>'
     +'<div class="chat-input-row">'
-    +'<textarea id="chatTa" placeholder="Bericht... typ @ om te taggen" rows="1"'
+    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);flex-shrink:0;font-size:16px" onclick="insertAtSign()">@</button>'
+    +'<textarea id="chatTa" placeholder="Typ een bericht..." rows="1"'
     +' oninput="chatInputHandler(this)"'
     +' onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>'
     +'<button class="chat-send" onclick="sendChat()">'
@@ -2003,6 +2034,16 @@ function insertMention(name){
   ta.value=before+'@'+name+' '+ta.value.slice(pos);
   ta.focus(); hideMentionList();
 }
+function insertAtSign(){
+  const ta=document.getElementById('chatTa'); if(!ta)return;
+  const pos=ta.selectionStart;
+  ta.value=ta.value.slice(0,pos)+'@'+ta.value.slice(pos);
+  ta.focus();
+  ta.setSelectionRange(pos+1,pos+1);
+  // Toon mention lijst meteen
+  showMentionList('');
+}
+
 
 async function sendChat(){
   const ta=document.getElementById('chatTa');
@@ -2283,6 +2324,81 @@ window.handleModalClick=function(e){if(e.target.id==='mBg')closeModal();};
 if(typeof openAddShift==='function') window.openAddShift=openAddShift;
 if(typeof deleteShift==='function') window.deleteShift=deleteShift;
 if(typeof approveShift==='function') window.approveShift=approveShift;
+
+// ═══════════════════════════════════════════════════════════════
+// WINDOW EXPORTS — verplicht in module script zodat ze beschikbaar
+// zijn voor HTML onclick handlers na module load
+// ═══════════════════════════════════════════════════════════════
+window.nav=nav;
+window.toast=toast;
+window.closeModal=closeModal;
+window.modal=modal;
+window.confirm2=confirm2;
+window.doLogout=doLogout;
+window.openAvailModal=openAvailModal;
+window.saveAvail=saveAvail;
+window.deleteAvail=deleteAvail;
+window.deleteAvailAdmin=typeof deleteAvailAdmin!=='undefined'?deleteAvailAdmin:function(){};
+window.openEmployeeMsg=openEmployeeMsg;
+window.openSendToAdmin=openSendToAdmin;
+window.sendToAdmin=sendToAdmin;
+window.switchEmpTab=switchEmpTab;
+window.markRead=markRead;
+window.markAllRead=markAllRead;
+window.confirmShiftOk=confirmShiftOk;
+window.openCorrectShift=openCorrectShift;
+window.openInviteModal=openInviteModal;
+window.createInvite=createInvite;
+window.sendInviteEmail=sendInviteEmail;
+window.openEditEmployee=openEditEmployee;
+window.deleteEmployee=deleteEmployee;
+window.resetPwAdmin=resetPwAdmin;
+window.openPayModal=typeof openPayModal!=='undefined'?openPayModal:function(){};
+window.markPaid=typeof markPaid!=='undefined'?markPaid:function(){};
+window.sendMsg=sendMsg;
+window.openInstallGuide=openInstallGuide;
+window.handleModalClick=function(e){if(e.target.id==='mBg')closeModal();};
+// Roster
+window.setAdminRTab=setAdminRTab;
+window.setRTab=setRTab;
+window.calNav=calNav;
+window.selCalDay=selCalDay;
+window.openAddShift=openAddShift;
+window.saveShift=saveShift;
+window.deleteShift=deleteShift;
+window.approveShift=approveShift;
+window.openEditShift=openEditShift;
+window.saveEditShift=saveEditShift;
+window.adminCorrect=adminCorrect;
+window.saveAdminCorrect=saveAdminCorrect;
+window.submitCorrection=submitCorrection;
+window.showPayDetail=showPayDetail;
+// Admin beheer
+window.setAdminTab=setAdminTab;
+window.makeAdmin=typeof makeAdmin!=='undefined'?makeAdmin:function(){};
+window.openAddEmployee=openAddEmployee;
+window.saveEmployee=saveEmployee;
+// Chat
+window.sendChat=sendChat;
+window.delChatMsg=delChatMsg;
+window.chatInputHandler=chatInputHandler;
+window.insertMention=insertMention;
+window.insertAtSign=insertAtSign;
+window.openSwapModal=openSwapModal;
+window.submitSwap=submitSwap;
+window.acceptSwap=acceptSwap;
+window.approveSwap=approveSwap;
+window.rejectSwap=rejectSwap;
+window.sendPaymentAnnouncement=sendPaymentAnnouncement;
+// Agenda + dev
+window.exportShiftToCalendar=exportShiftToCalendar;
+window.renderDev=renderDev;
+window.toggleDevAll=toggleDevAll;
+window.sendDevMsg=sendDevMsg;
+window.changePw=changePw;
+// Profiel berichten
+window.renderEmpInbox=typeof renderEmpInbox!=='undefined'?renderEmpInbox:function(){};
+window.renderEmpStuur=typeof renderEmpStuur!=='undefined'?renderEmpStuur:function(){};
 </script>
 
 <script>
@@ -2296,29 +2412,6 @@ window.requestPushPermission=async function(){
   await Notification.requestPermission();
 };
 </script>
-<script>
 
-// ── Volledige window exports (alle onclick handlers) ──────────────────────
-window.acceptSwap=acceptSwap; window.approveSwap=approveSwap;
-window.rejectSwap=rejectSwap; window.submitSwap=submitSwap;
-window.openSwapModal=openSwapModal; window.sendChat=sendChat;
-window.delChatMsg=delChatMsg; window.chatInputHandler=chatInputHandler;
-window.insertMention=insertMention; window.sendPaymentAnnouncement=sendPaymentAnnouncement;
-window.exportShiftToCalendar=exportShiftToCalendar;
-window.renderChat=renderChat; window.renderDev=renderDev;
-window.openAddEmployee=typeof openAddEmployee!=='undefined'?openAddEmployee:function(){};
-window.openEditShift=typeof openEditShift!=='undefined'?openEditShift:function(){};
-window.saveEditShift=typeof saveEditShift!=='undefined'?saveEditShift:function(){};
-window.saveEmployee=typeof saveEmployee!=='undefined'?saveEmployee:function(){};
-window.makeAdmin=typeof makeAdmin!=='undefined'?makeAdmin:function(){};
-window.adminCorrect=typeof adminCorrect!=='undefined'?adminCorrect:function(){};
-window.saveAdminCorrect=typeof saveAdminCorrect!=='undefined'?saveAdminCorrect:function(){};
-window.showPayDetail=typeof showPayDetail!=='undefined'?showPayDetail:function(){};
-window.saveShift=typeof saveShift!=='undefined'?saveShift:function(){};
-window.submitCorrection=typeof submitCorrection!=='undefined'?submitCorrection:function(){};
-window.changePw=typeof changePw!=='undefined'?changePw:function(){};
-window.deleteAvailAdmin=typeof deleteAvailAdmin!=='undefined'?deleteAvailAdmin:function(){};
-
-</script>
 </body>
 </html>

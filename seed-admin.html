@@ -121,15 +121,38 @@ window.setup = async function() {
     return;
   }
 
-  // Klaar!
+  // Stap 3: dev account aanmaken
+  const DEV_EMAIL = 'tyg01132@gmail.com';
+  const DEV_PW    = 'TygoDaan11';
+  let devUid = null;
+  try {
+    // Log uit als admin eerst
+    await auth.signOut();
+    let devCred;
+    try {
+      devCred = await createUserWithEmailAndPassword(auth, DEV_EMAIL, DEV_PW);
+    } catch(e2) {
+      if(e2.code === 'auth/email-already-in-use') {
+        devCred = await signInWithEmailAndPassword(auth, DEV_EMAIL, DEV_PW);
+      } else throw e2;
+    }
+    devUid = devCred.user.uid;
+    await setDoc(doc(db, 'users', devUid), {
+      name: 'Tygo (Dev)', email: DEV_EMAIL,
+      role: 'software', wage: 0, createdAt: serverTimestamp()
+    });
+  } catch(devErr) {
+    console.warn('Dev account aanmaken mislukt:', devErr);
+  }
+
   btn.textContent = '✓ Klaar!';
   msg.style.display = 'block';
   msg.className = 'msg ok';
-  msg.innerHTML = '✅ Beheerderaccount aangemaakt!<br><br>'
-    + '<strong>Email:</strong> ' + ADMIN_EMAIL + '<br>'
-    + '<strong>Wachtwoord:</strong> ' + ADMIN_PW + '<br><br>'
-    + '⚠️ Verwijder dit bestand na gebruik uit GitHub!<br><br>'
-    + '<a href="index.html" style="color:#30D158;font-weight:700;">→ Nu inloggen</a>';
+  msg.innerHTML = '✅ Accounts aangemaakt!<br><br>'
+    + '<strong>Beheerder:</strong> ' + ADMIN_EMAIL + ' / ' + ADMIN_PW + '<br>'
+    + '<strong>Dev:</strong> tyg01132@gmail.com / TygoDaan11<br><br>'
+    + 'Even wachten, je wordt doorgestuurd…';
+  setTimeout(() => { window.location.href = 'index.html'; }, 2000);
 };
 
 function showMsg(txt, type) {
