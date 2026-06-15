@@ -255,7 +255,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .anim-up  { animation:slideUp .28s cubic-bezier(.22,.68,0,1.2) both }
 .anim-in  { animation:fadeIn .2s ease both }
 .anim-pop { animation:popIn .22s cubic-bezier(.22,.68,0,1.2) both }
-.view     { transition:opacity .18s ease }
+.view     { display:none; transition:opacity .18s ease }
 
 /* ─── Chat ───────────────────────────────────── */
 .chat-wrap    { display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--bg) }
@@ -555,7 +555,7 @@ select.form-input option { background:var(--bg3); }
     <!-- PROFIEL -->
     <div class="view" id="view-profile"></div>
     <!-- CHAT -->
-    <div class="view" id="view-chat" style="padding:0;display:flex;flex-direction:column;height:calc(100vh - 116px)"></div>
+    <div class="view" id="view-chat" style="padding:0;flex-direction:column;height:calc(100vh - 116px)"></div>
     <!-- DEV DASHBOARD -->
     <div class="view" id="view-dev"></div>
 
@@ -657,6 +657,13 @@ window.addEventListener('mhv:ready', async ()=>{
     const l=document.getElementById('loader'), a=document.getElementById('app');
     if(l) l.style.display='none';
     if(a) a.style.display='flex';
+    // Zorg dat de startview zichtbaar is (nav() zet display)
+    const startView=U&&U.role==='software'?'dev':'home';
+    const startEl=document.getElementById('view-'+startView);
+    if(startEl&&startEl.style.display==='none'){
+      startEl.style.display='block';
+      startEl.classList.add('active');
+    }
   }
 });;
 
@@ -770,10 +777,17 @@ async function sendNotifMulti(uids,title,body){
 
 // ── NAV ──────────────────────────────────────
 function nav(v,btn){
-  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  // Verberg alle views correct
+  document.querySelectorAll('.view').forEach(x=>{
+    x.classList.remove('active');
+    x.style.display='none';
+  });
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   const _el=$('view-'+v);
   if(_el){
+    // Chat en dev gebruiken flex layout, andere views block
+    const needsFlex=(v==='chat'||v==='dev');
+    _el.style.display=needsFlex?'flex':'block';
     _el.classList.add('active');
     _el.style.opacity='0';
     _el.style.transform='translateY(8px)';
@@ -784,7 +798,7 @@ function nav(v,btn){
     });
   }
   if(btn)btn.classList.add('active');
-  $('notif-panel').classList.remove('open');
+  try{$('notif-panel').classList.remove('open');}catch(e){}
   render(v);
 }
 function rerender(){
@@ -1728,7 +1742,7 @@ function renderBerichten(c){
           <label class="form-label">Bericht</label>
           <textarea class="form-input" id="msgBody" rows="3" placeholder="Typ je bericht…" style="resize:none"></textarea>
         </div>
-        <button class="btn btn-yellow btn-full" onclick="sendMsg()">Verstuur</button>
+        <button class="btn btn-yellow btn-full" onclick="sendMsg()">📧 Stuur mail</button>
       </div>
     </div>`;
 }
@@ -2310,7 +2324,7 @@ window.openEmployeeMsg=openEmployeeMsg; window.openSendToAdmin=openSendToAdmin;
 window.sendToAdmin=sendToAdmin; window.switchEmpTab=switchEmpTab;
 window.markRead=markRead; window.markAllRead=markAllRead;
 window.confirmShiftOk=confirmShiftOk; window.openCorrectShift=openCorrectShift;
-window.openInviteModal=openInviteModal; window.createInvite=createInvite;
+window.openInviteModal=openAddEmployee; window.createInvite=createInvite;
 window.sendInviteEmail=sendInviteEmail; window.openEditEmployee=openEditEmployee;
 window.deleteEmployee=deleteEmployee; window.resetPwAdmin=resetPwAdmin;
 window.openPayModal=openPayModal; window.markPaid=markPaid;
@@ -2367,35 +2381,30 @@ function openPayModal(uid,name,wage){
     +'<input type="text" class="form-input" id="payMonth" placeholder="Bijv. juni 2026"></div>'
     +'<button class="btn btn-green btn-full" onclick="markPaid(&quot;'+uid+'&quot;,&quot;'+name+'&quot;)">Uitbetaling bevestigen</button>');
 }
-// ═══════════════════════════════════════════════════════════════
-// WINDOW EXPORTS — aan einde van module zodat alles gedefinieerd is
-// ═══════════════════════════════════════════════════════════════
-// Navigatie & basis
+// WINDOW EXPORTS — veilig, alleen bestaande functies
 window.nav=nav;
 window.toast=toast;
 window.closeModal=closeModal;
 window.modal=modal;
 window.confirm2=confirm2;
 window.doLogout=doLogout;
-window.handleModalClick=function(e){if(e.target.id==='mBg')closeModal();};
-// Beschikbaarheid
+window.toggleNotif=toggleNotif;
+window.handleModalClick=handleModalClick;
 window.openAvailModal=openAvailModal;
 window.saveAvail=saveAvail;
 window.deleteAvail=deleteAvail;
-window.deleteAvailAdmin=typeof deleteAvailAdmin!=='undefined'?deleteAvailAdmin:function(){console.warn('deleteAvailAdmin niet beschikbaar')};
-// Berichten & profiel
+window.deleteAvailAdmin=deleteAvailAdmin;
 window.openSendToAdmin=openSendToAdmin;
 window.sendToAdmin=sendToAdmin;
-window.switchEmpTab=typeof switchEmpTab!=='undefined'?switchEmpTab:function(){console.warn('switchEmpTab niet beschikbaar')};
+window.switchEmpTab=switchEmpTab;
 window.markRead=markRead;
 window.markAllRead=markAllRead;
-window.openInstallGuide=openInstallGuide;
+window.openInstallGuide=function(){console.warn('openInstallGuide niet gedefinieerd');};
 window.changePw=changePw;
-// Roster
 window.setAdminRTab=setAdminRTab;
-window.setRTab=setRTab;
-window.calNav=calNav;
-window.selCalDay=selCalDay;
+window.setRTab=function(){console.warn('setRTab niet gedefinieerd');};
+window.calNav=function(){console.warn('calNav niet gedefinieerd');};
+window.selCalDay=function(){console.warn('selCalDay niet gedefinieerd');};
 window.openAddShift=openAddShift;
 window.saveShift=saveShift;
 window.deleteShift=deleteShift;
@@ -2408,22 +2417,19 @@ window.submitCorrection=submitCorrection;
 window.showPayDetail=showPayDetail;
 window.confirmShiftOk=confirmShiftOk;
 window.openCorrectShift=openCorrectShift;
-// Medewerkers beheer
-window.setAdminTab=setAdminTab;
+window.setAdminTab=function(){console.warn('setAdminTab niet gedefinieerd');};
 window.makeAdmin=makeAdmin;
 window.openAddEmployee=openAddEmployee;
 window.saveEmployee=saveEmployee;
 window.openEditEmployee=openEditEmployee;
 window.deleteEmployee=deleteEmployee;
 window.resetPwAdmin=resetPwAdmin;
-window.openInviteModal=openInviteModal;
+window.openInviteModal=openAddEmployee;};
 window.createInvite=createInvite;
 window.sendInviteEmail=sendInviteEmail;
-// Uitbetaling
 window.markPaid=markPaid;
-window.openPayModal=typeof openPayModal!=='undefined'?openPayModal:function(){console.warn('openPayModal niet beschikbaar')};
+window.openPayModal=openPayModal;
 window.sendMsg=sendMsg;
-// Chat
 window.sendChat=sendChat;
 window.delChatMsg=delChatMsg;
 window.chatInputHandler=chatInputHandler;
@@ -2435,18 +2441,19 @@ window.acceptSwap=acceptSwap;
 window.approveSwap=approveSwap;
 window.rejectSwap=rejectSwap;
 window.sendPaymentAnnouncement=sendPaymentAnnouncement;
-// Agenda
 window.exportShiftToCalendar=exportShiftToCalendar;
-// Dev
 window.renderDev=renderDev;
-window.toggleDevAll=toggleDevAll;
-window.sendDevMsg=sendDevMsg;
-// Medewerker berichten
-window.renderEmpInbox=typeof renderEmpInbox!=='undefined'?renderEmpInbox:function(){console.warn('renderEmpInbox niet beschikbaar')};window.renderEmpStuur=typeof renderEmpStuur!=='undefined'?renderEmpStuur:function(){console.warn('renderEmpStuur niet beschikbaar')};window.openPayModal=typeof openPayModal!=='undefined'?openPayModal:function(){console.warn('openPayModal niet beschikbaar')};
-// Profiel berichten
-window.openEmployeeMsg=typeof openEmployeeMsg!=='undefined'?openEmployeeMsg:function(){console.warn('openEmployeeMsg niet beschikbaar')};window.openSendToAdmin=typeof openSendToAdmin!=='undefined'?openSendToAdmin:function(){console.warn('openSendToAdmin niet beschikbaar')};
-window.openSendToAdmin=openSendToAdmin;
-window.openEmployeeMsg=typeof openEmployeeMsg!=='undefined'?openEmployeeMsg:openSendToAdmin;
+window.toggleDevAll=function(){console.warn('toggleDevAll niet gedefinieerd');};
+window.sendDevMsg=function(){console.warn('sendDevMsg niet gedefinieerd');};
+window.renderBerichten=renderBerichten;
+window.renderAdminTab=renderAdminTab;
+window.setRTab=setAdminRTab;
+window.calNav=function(d){renderCal(d);};
+window.selCalDay=function(d){window._selDay=d;renderCal();};
+window.setAdminTab=function(t,el){if(typeof renderAdminTab==='function')renderAdminTab(t,el);};
+window.openInviteModal=openAddEmployee;} ;
+window.toggleDevAll=function(cb){document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked);};
+window.sendDevMsg=sendMsg;
 </script>
 
 <script>

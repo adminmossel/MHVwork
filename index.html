@@ -35,8 +35,22 @@ const db   = getFirestore(app);
 if (!window.location.pathname.includes("app.html")) {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists()) window.location.href = "app.html";
+      // Probeer Firestore doc te lezen, maar redirect altijd
+      // (app.html heeft een hardcoded bypass voor admin/dev)
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          window.location.href = "app.html";
+        } else if (user.email === 'h.mhvwork@gmail.com' || user.email === 'tyg01132@gmail.com') {
+          // Hardcoded accounts: redirect altijd
+          window.location.href = "app.html";
+        }
+      } catch(e) {
+        // Bij Firestore fout: redirect toch als hardcoded account
+        if (user.email === 'h.mhvwork@gmail.com' || user.email === 'tyg01132@gmail.com') {
+          window.location.href = "app.html";
+        }
+      }
     }
   });
 }
