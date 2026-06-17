@@ -242,6 +242,16 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .btn         { transition: opacity .12s ease, transform .1s ease; }
 .btn:active  { transform: scale(.95); opacity:.85; }
 .tab         { transition: color .15s ease; }
+
+/* ─── Help knop & modal ─── */
+.help-btn{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);color:var(--text2);font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;transition:background .15s ease,transform .1s ease;}
+.help-btn:active{transform:scale(.9);background:var(--mhv-yellow);color:#000;}
+#helpOverlay{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column;padding-top:env(safe-area-inset-top);}
+#helpOverlay.open{display:flex;}
+.help-topbar{flex-shrink:0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;background:#000;border-bottom:1px solid rgba(255,255,255,.08);min-height:48px;}
+.help-topbar-title{font-size:15px;font-weight:700;color:#fff;}
+.help-close-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+#helpFrame{flex:1;width:100%;border:none;}
 .shift-card  { transition: transform .15s ease, box-shadow .15s ease; }
 .shift-card:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.18); }
 .stat-tile   { transition: transform .15s ease; }
@@ -522,6 +532,8 @@ select.form-input option { background:var(--bg3); }
   <div id="topbar">
     <img id="topLogo" src="" alt="MHV">
     <div class="app-name">MHV<span>work</span></div>
+    <div style="flex:1"></div>
+    <button class="help-btn" onclick="openHelpModal()" title="Hulp & uitleg">?</button>
     <button class="notif-pill" onclick="toggleNotif()" id="notifBtn">
       🔔
       <div class="notif-dot" id="notifDot"></div>
@@ -599,6 +611,15 @@ select.form-input option { background:var(--bg3); }
 </div>
 
 <div id="modal-root"></div>
+
+<!-- Help overlay: toont promo.html als fullscreen uitleg -->
+<div id="helpOverlay">
+  <div class="help-topbar">
+    <div class="help-topbar-title">ℹ️ Hoe werkt MHVwork</div>
+    <button class="help-close-btn" onclick="closeHelpModal()">✕</button>
+  </div>
+  <iframe id="helpFrame" src="" title="MHVwork uitleg"></iframe>
+</div>
 <div id="confirm-bg"><div class="confirm-box">
   <div class="confirm-title" id="confirm-title"></div>
   <div class="confirm-msg" id="confirm-msg"></div>
@@ -657,13 +678,19 @@ window.addEventListener('mhv:ready', async ()=>{
     const l=document.getElementById('loader'), a=document.getElementById('app');
     if(l) l.style.display='none';
     if(a) a.style.display='flex';
-    // Zorg dat de startview zichtbaar is (nav() zet display)
+    // Toon de startview — forceer display
     const startView=U&&U.role==='software'?'dev':'home';
+    document.querySelectorAll('.view').forEach(x=>{
+      x.style.display='none';
+      x.classList.remove('active');
+    });
     const startEl=document.getElementById('view-'+startView);
-    if(startEl&&startEl.style.display==='none'){
-      startEl.style.display='block';
+    if(startEl){
+      startEl.style.display=startView==='dev'?'flex':'block';
       startEl.classList.add('active');
     }
+    // Toon hulp-uitleg bij eerste keer inloggen
+    try{ maybeShowFirstTimeHelp(); }catch(e){}
   }
 });;
 
@@ -2316,6 +2343,8 @@ window.sendDevMsg=async function(){
 
 
 // Expose functions globally voor HTML onclick handlers
+window.openHelpModal=openHelpModal;
+window.closeHelpModal=closeHelpModal;
 window.nav=nav; window.toast=toast; window.closeModal=closeModal;
 window.modal=modal; window.confirm2=confirm2; window.doLogout=doLogout;
 window.openAvailModal=openAvailModal; window.saveAvail=saveAvail;
@@ -2324,7 +2353,8 @@ window.openEmployeeMsg=openEmployeeMsg; window.openSendToAdmin=openSendToAdmin;
 window.sendToAdmin=sendToAdmin; window.switchEmpTab=switchEmpTab;
 window.markRead=markRead; window.markAllRead=markAllRead;
 window.confirmShiftOk=confirmShiftOk; window.openCorrectShift=openCorrectShift;
-window.openInviteModal=openAddEmployee; window.createInvite=createInvite;
+window.openInviteModal=openAddEmployee;
+window.createInvite=createInvite;
 window.sendInviteEmail=sendInviteEmail; window.openEditEmployee=openEditEmployee;
 window.deleteEmployee=deleteEmployee; window.resetPwAdmin=resetPwAdmin;
 window.openPayModal=openPayModal; window.markPaid=markPaid;
@@ -2381,7 +2411,32 @@ function openPayModal(uid,name,wage){
     +'<input type="text" class="form-input" id="payMonth" placeholder="Bijv. juni 2026"></div>'
     +'<button class="btn btn-green btn-full" onclick="markPaid(&quot;'+uid+'&quot;,&quot;'+name+'&quot;)">Uitbetaling bevestigen</button>');
 }
+
+// ═══════════════════════════════════════════════════════════════
+// HELP MODAL — toont promo.html als uitleg, eerste keer automatisch
+// ═══════════════════════════════════════════════════════════════
+function openHelpModal(){
+  const frame = document.getElementById('helpFrame');
+  const overlay = document.getElementById('helpOverlay');
+  if(frame && !frame.src) frame.src = './promo.html';
+  if(overlay) overlay.classList.add('open');
+}
+function closeHelpModal(){
+  const overlay = document.getElementById('helpOverlay');
+  if(overlay) overlay.classList.remove('open');
+  try{ localStorage.setItem('mhv_help_seen','1'); }catch(e){}
+}
+function maybeShowFirstTimeHelp(){
+  try{
+    if(!localStorage.getItem('mhv_help_seen')){
+      setTimeout(()=>{ openHelpModal(); }, 600);
+    }
+  }catch(e){}
+}
+
 // WINDOW EXPORTS — veilig, alleen bestaande functies
+window.openHelpModal=openHelpModal;
+window.closeHelpModal=closeHelpModal;
 window.nav=nav;
 window.toast=toast;
 window.closeModal=closeModal;
@@ -2424,7 +2479,7 @@ window.saveEmployee=saveEmployee;
 window.openEditEmployee=openEditEmployee;
 window.deleteEmployee=deleteEmployee;
 window.resetPwAdmin=resetPwAdmin;
-window.openInviteModal=openAddEmployee;};
+window.openInviteModal=openAddEmployee;
 window.createInvite=createInvite;
 window.sendInviteEmail=sendInviteEmail;
 window.markPaid=markPaid;
@@ -2451,7 +2506,7 @@ window.setRTab=setAdminRTab;
 window.calNav=function(d){renderCal(d);};
 window.selCalDay=function(d){window._selDay=d;renderCal();};
 window.setAdminTab=function(t,el){if(typeof renderAdminTab==='function')renderAdminTab(t,el);};
-window.openInviteModal=openAddEmployee;} ;
+window.openInviteModal=openAddEmployee;
 window.toggleDevAll=function(cb){document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked);};
 window.sendDevMsg=sendMsg;
 </script>

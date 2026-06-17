@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MHVwork — Promo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:#000;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;overflow:hidden;width:100%;height:100%;color:#fff;}
+body{position:relative;}
+.frame{position:absolute;inset:0;width:1280px;height:720px;max-width:100vw;max-height:100vh;margin:auto;}
+@media (max-aspect-ratio: 16/9){.frame{width:100vw;height:56.25vw;top:50%;transform:translateY(-50%);}}
+@media (min-aspect-ratio: 16/9){.frame{height:100vh;width:177.78vh;left:50%;transform:translateX(-50%);}}
+
+.scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .8s ease;display:flex;align-items:center;justify-content:center;}
+.scene.active{opacity:1;pointer-events:all;}
+
+/* ── S1 ── */
+#s1{background:radial-gradient(ellipse at 50% 45%,#0d2070 0%,#000 70%);}
+.s1-wrap{text-align:center;}
+.logo-ring{width:170px;height:170px;border-radius:40px;background:#1A3BB5;margin:0 auto 26px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 1px rgba(245,200,0,.25),0 0 60px rgba(29,63,187,.5);
+  transform:scale(0) rotate(-8deg);transition:transform 1.1s cubic-bezier(.22,.68,0,1.35) .15s;}
+.scene.active .logo-ring{transform:scale(1) rotate(0deg);}
+.s1-title{font-size:54px;font-weight:800;letter-spacing:-2px;opacity:0;transform:translateY(24px);transition:all .8s ease .7s;}
+.scene.active .s1-title{opacity:1;transform:translateY(0);}
+.s1-title span{color:#F5C800;}
+.s1-sub{margin-top:10px;font-size:19px;color:rgba(255,255,255,.4);opacity:0;transition:all .7s ease 1.05s;}
+.scene.active .s1-sub{opacity:1;}
+
+/* ── S2: Features ── */
+#s2{background:#080808;flex-direction:column;gap:34px;}
+.s2-head{font-size:44px;font-weight:800;letter-spacing:-1.5px;text-align:center;opacity:0;transform:translateY(-16px);transition:all .7s ease .1s;}
+.scene.active .s2-head{opacity:1;transform:translateY(0);}
+.s2-head span{color:#F5C800;}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;width:980px;}
+.feat{background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;
+  opacity:0;transform:translateY(26px) scale(.96);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,0,1.1),border-color .3s ease;}
+.scene.active .feat{opacity:1;transform:translateY(0) scale(1);}
+.scene.active .feat:nth-child(1){transition-delay:.2s;}
+.scene.active .feat:nth-child(2){transition-delay:.35s;}
+.scene.active .feat:nth-child(3){transition-delay:.5s;}
+.scene.active .feat:nth-child(4){transition-delay:.65s;}
+.scene.active .feat:nth-child(5){transition-delay:.8s;}
+.scene.active .feat:nth-child(6){transition-delay:.95s;}
+.feat.open{border-color:rgba(245,200,0,.35);}
+.feat-top{padding:20px 20px 16px;display:flex;align-items:center;gap:13px;}
+.feat-icon-wrap{width:42px;height:42px;border-radius:12px;background:rgba(245,200,0,.1);display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;transition:background .3s ease;}
+.feat.open .feat-icon-wrap{background:rgba(245,200,0,.22);}
+.feat-title{font-size:15px;font-weight:700;}
+.feat-expand{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .45s ease,padding-bottom .45s ease;}
+.feat.open .feat-expand{max-height:130px;padding-bottom:20px;}
+.feat-desc{font-size:12.5px;color:rgba(255,255,255,.5);line-height:1.6;}
+.feat-visual{margin-top:10px;background:rgba(245,200,0,.07);border:1px solid rgba(245,200,0,.15);border-radius:9px;padding:8px 12px;font-size:11px;color:#F5C800;font-weight:600;}
+
+/* ── S3: Medewerker ── */
+#s3{background:#080808;flex-direction:row;padding:0 70px;gap:50px;}
+.s3-left{width:430px;flex-shrink:0;}
+.s3-tag{display:inline-block;background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.25);color:#30D158;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+  opacity:0;transform:translateX(-20px);transition:all .6s ease .15s;}
+.scene.active .s3-tag{opacity:1;transform:translateX(0);}
+.s3-title{font-size:48px;font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px;
+  opacity:0;transform:translateX(-24px);transition:all .7s ease .3s;}
+.scene.active .s3-title{opacity:1;transform:translateX(0);}
+.s3-title span{color:#F5C800;}
+.s3-point{display:flex;align-items:flex-start;gap:13px;margin-bottom:17px;opacity:0;}
+.scene.active .s3-point:nth-child(1){animation:si .6s ease .5s both;}
+.scene.active .s3-point:nth-child(2){animation:si .6s ease .7s both;}
+.scene.active .s3-point:nth-child(3){animation:si .6s ease .9s both;}
+.scene.active .s3-point:nth-child(4){animation:si .6s ease 1.1s both;}
+.scene.active .s3-point:nth-child(5){animation:si .6s ease 1.3s both;}
+@keyframes si{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+.sp-dot{width:7px;height:7px;border-radius:50%;background:#F5C800;margin-top:7px;flex-shrink:0;}
+.sp-text{font-size:14px;color:rgba(255,255,255,.7);line-height:1.5;}
+.sp-text strong{color:#fff;}
+.s3-right{flex-shrink:0;}
+.mock-phone{width:250px;height:480px;background:#1C1C1E;border-radius:34px;border:2.5px solid rgba(255,255,255,.1);overflow:hidden;
+  box-shadow:0 40px 80px rgba(0,0,0,.7);
+  opacity:0;transform:translateX(30px) rotate(3deg);transition:all .9s cubic-bezier(.22,.68,0,1.2) .4s;}
+.scene.active .mock-phone{opacity:1;transform:translateX(0) rotate(3deg);}
+.mock-header{background:#000;padding:15px 16px 9px;border-bottom:1px solid rgba(255,255,255,.06);}
+.mock-logo{font-size:13px;font-weight:800;}
+.mock-logo span{color:#F5C800;}
+.mock-body{padding:14px;display:flex;flex-direction:column;gap:9px;}
+.mock-title{font-size:14px;font-weight:800;margin-bottom:3px;}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stat-box{background:#2C2C2E;border-radius:11px;padding:11px;text-align:center;}
+.stat-num{font-size:20px;font-weight:800;color:#F5C800;}
+.stat-lbl{font-size:9.5px;color:rgba(255,255,255,.4);margin-top:2px;}
+.shift-item{background:#2C2C2E;border-radius:11px;padding:10px 12px;border-left:3px solid #F5C800;}
+.shift-time{font-size:12.5px;font-weight:700;}
+.shift-date{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:2px;}
+.mock-btns{display:flex;gap:6px;}
+.mock-btn{flex:1;padding:7px 6px;border-radius:8px;font-size:10.5px;font-weight:700;text-align:center;border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);}
+
+/* ── S4: Chat ── */
+#s4{background:#080808;flex-direction:row;padding:0 70px;gap:50px;}
+.s4-left{width:370px;flex-shrink:0;}
+.s4-tag{display:inline-block;background:rgba(29,63,187,.2);border:1px solid rgba(29,63,187,.4);color:#7b9bff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+  opacity:0;transition:all .6s ease .15s;}
+.scene.active .s4-tag{opacity:1;}
+.s4-title{font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px;
+  opacity:0;transition:all .7s ease .3s;}
+.scene.active .s4-title{opacity:1;}
+.s4-title span{color:#F5C800;}
+.s4-feat{display:flex;align-items:center;gap:13px;margin-bottom:16px;opacity:0;}
+.scene.active .s4-feat:nth-child(1){animation:si .6s ease .45s both;}
+.scene.active .s4-feat:nth-child(2){animation:si .6s ease .65s both;}
+.scene.active .s4-feat:nth-child(3){animation:si .6s ease .85s both;}
+.scene.active .s4-feat:nth-child(4){animation:si .6s ease 1.05s both;}
+.sf-icon{width:40px;height:40px;border-radius:11px;background:rgba(245,200,0,.1);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.sf-text{font-size:13.5px;color:rgba(255,255,255,.65);line-height:1.45;}
+.sf-text strong{color:#fff;}
+.chat-phone{width:270px;height:500px;background:#1C1C1E;border-radius:36px;border:2.5px solid rgba(255,255,255,.1);overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 40px 80px rgba(0,0,0,.7);
+  opacity:0;transform:scale(.88);transition:all .9s cubic-bezier(.22,.68,0,1.2) .35s;}
+.scene.active .chat-phone{opacity:1;transform:scale(1);}
+.cp-header{background:#000;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.cp-title{font-size:13.5px;font-weight:800;}
+.cp-sub{font-size:9.5px;color:rgba(255,255,255,.3);margin-top:1px;}
+.cp-msgs{padding:12px;display:flex;flex-direction:column;gap:9px;flex:1;overflow:hidden;}
+.cm-row{display:flex;gap:7px;align-items:flex-end;opacity:0;transform:translateY(10px);}
+.cm-row.me{flex-direction:row-reverse;}
+.cm-av{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.cm-bubblewrap{display:flex;flex-direction:column;max-width:170px;}
+.cm-row.me .cm-bubblewrap{align-items:flex-end;}
+.cm-name{font-size:9px;color:rgba(255,255,255,.32);margin-bottom:3px;padding:0 3px;}
+.cm-bubble{padding:7px 11px;font-size:11.5px;line-height:1.45;border-radius:15px 15px 15px 4px;color:#fff;background:#2C2C2E;}
+.cm-row.me .cm-bubble{background:#1A3BB5;border-radius:15px 15px 4px 15px;}
+.cm-mention{color:#F5C800;font-weight:700;}
+.cm-swap{background:rgba(245,200,0,.08);border:1px solid rgba(245,200,0,.2);border-radius:8px;padding:7px 9px;margin-top:6px;font-size:10.5px;color:rgba(255,255,255,.6);}
+.cm-swap strong{color:#F5C800;display:block;margin-bottom:2px;}
+.cp-input{padding:10px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;align-items:center;background:#000;flex-shrink:0;}
+.cp-ta{flex:1;background:#2C2C2E;border-radius:16px;padding:7px 12px;font-size:10.5px;color:rgba(255,255,255,.4);}
+.cp-send{width:28px;height:28px;border-radius:50%;background:#F5C800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ── S5: Einde ── */
+#s5{background:radial-gradient(circle at 30% 50%,#102a8a 0%,#040712 55%,#000 100%);justify-content:center;gap:90px;}
+.s5-left{opacity:0;transform:translateX(-30px);transition:all .9s cubic-bezier(.22,.68,0,1.2) .15s;text-align:right;}
+.scene.active .s5-left{opacity:1;transform:translateX(0);}
+.s5-big{font-size:84px;font-weight:800;letter-spacing:-3px;line-height:1;}
+.s5-big span{color:#F5C800;}
+.s5-url{margin-top:16px;font-size:17px;color:rgba(255,255,255,.4);}
+.s5-url strong{color:rgba(255,255,255,.75);}
+.s5-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(245,200,0,.12) 0%,transparent 70%);
+  opacity:0;transition:opacity 1.2s ease .3s;pointer-events:none;}
+.scene.active .s5-glow{opacity:1;}
+.s5-phone-wrap{opacity:0;transform:translateX(40px) rotate(0deg);transition:all 1s cubic-bezier(.22,.68,0,1.3) .35s;flex-shrink:0;position:relative;z-index:2;}
+.scene.active .s5-phone-wrap{opacity:1;transform:translateX(0) rotate(11deg);}
+.s5-phone{width:210px;height:430px;background:#1C1C1E;border-radius:34px;border:2.5px solid rgba(255,255,255,.14);
+  box-shadow:-25px 35px 90px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.05),inset 0 1px 0 rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.s5-phone-icon{width:76px;height:76px;border-radius:18px;background:#1A3BB5;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 36px rgba(29,63,187,.6);}
+.s5-phone-name{font-size:17px;font-weight:800;}
+.s5-phone-name span{color:#F5C800;}
+
+.progress{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;transition:all .3s ease;}
+.dot.active{background:#F5C800;width:22px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="frame">
+
+<div class="scene" id="s1">
+  <div class="s1-wrap">
+    <div class="logo-ring">
+      <svg width="115" height="115" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
+        <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
+        <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
+        <circle cx="340" cy="195" r="72" fill="#1A3BB5" stroke="#F5C800" stroke-width="20"/>
+        <line x1="340" y1="195" x2="340" y2="164" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+        <line x1="340" y1="195" x2="366" y2="195" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+        <circle cx="340" cy="195" r="18" fill="#1A3BB5"/><circle cx="340" cy="195" r="9" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="s1-title">MHV<span>work</span></div>
+    <div class="s1-sub">Roosterbeheer voor de barhulp van MHV 1931</div>
+  </div>
+</div>
+
+<div class="scene" id="s2">
+  <div class="s2-head">Alles in <span>één app</span></div>
+  <div class="feat-grid" id="featGrid">
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">📅</div><div class="feat-title">Roosters</div></div>
+      <div class="feat-expand"><div class="feat-desc">Diensten aanmaken en toewijzen. Bevestigen, tijden aanpassen, overzicht per week.</div>
+      <div class="feat-visual">Kalenderweergave · Bevestigen · Tijden aanpassen</div></div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">💬</div><div class="feat-title">Groepschat</div></div>
+      <div class="feat-expand"><div class="feat-desc">Live berichten voor iedereen. Tag collega's, deel foto's, ruil diensten direct in de chat.</div>
+      <div class="feat-visual">@tags · Afbeeldingen · Dienst ruilen</div></div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">🔄</div><div class="feat-title">Dienst ruilen</div></div>
+      <div class="feat-expand"><div class="feat-desc">Verzoek plaatsen, collega reageert, beheerder keurt goed. Automatisch overgezet.</div>
+      <div class="feat-visual">Aanvraag → Reactie → Goedkeuring</div></div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">💶</div><div class="feat-title">Uitbetalingen</div></div>
+      <div class="feat-expand"><div class="feat-desc">Overzicht per maand. Bij uitbetaling krijgt de medewerker automatisch een e-mail.</div>
+      <div class="feat-visual">Salaris overzicht · Automatische mail</div></div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">🔔</div><div class="feat-title">Push meldingen</div></div>
+      <div class="feat-expand"><div class="feat-desc">In-app, e-mail én browser push. Bij berichten, tags en uitbetalingen.</div>
+      <div class="feat-visual">In-app · E-mail · Browser push</div></div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">📆</div><div class="feat-title">Agenda export</div></div>
+      <div class="feat-expand"><div class="feat-desc">Exporteer elke dienst met één tik naar je telefoonagenda.</div>
+      <div class="feat-visual">iPhone · Android · Outlook · Google</div></div></div>
+  </div>
+</div>
+
+<div class="scene" id="s3">
+  <div class="s3-left">
+    <div class="s3-tag">Medewerker</div>
+    <div class="s3-title">Jouw diensten,<br><span>jouw dashboard</span></div>
+    <div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Komende diensten</strong> in één oogopslag — datum, tijd en collega's</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Verwacht salaris</strong> op basis van geplande uren</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Beschikbaarheid</strong> opgeven — meerdere dagen in één keer</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Dienst bevestigen</strong> of tijden aanpassen na afloop</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Dienst ruilen</strong> via de chat — admin keurt goed</div></div>
+    </div>
+  </div>
+  <div class="s3-right">
+    <div class="mock-phone">
+      <div class="mock-header"><div class="mock-logo">MHV<span>work</span></div></div>
+      <div class="mock-body">
+        <div class="mock-title">Welkom, Tygo</div>
+        <div class="stat-row">
+          <div class="stat-box"><div class="stat-num">3</div><div class="stat-lbl">Komende diensten</div></div>
+          <div class="stat-box"><div class="stat-num" style="color:#30D158">€84</div><div class="stat-lbl">Verwacht</div></div>
+        </div>
+        <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:2px 0 2px">Volgende dienst</div>
+        <div class="shift-item"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Zaterdag 21 juni</div></div>
+        <div class="mock-btns"><div class="mock-btn">📆 Agenda</div><div class="mock-btn">🔄 Ruilen</div></div>
+        <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:2px 0 2px">Uitbetaald</div>
+        <div style="background:#2C2C2E;border-radius:11px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11.5px;color:rgba(255,255,255,.5)">Mei 2026</span>
+          <span style="font-size:13.5px;font-weight:700;color:#30D158">€120,00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scene" id="s4">
+  <div class="s4-left">
+    <div class="s4-tag">Groepschat</div>
+    <div class="s4-title">Alles in<br><span>één gesprek</span></div>
+    <div>
+      <div class="s4-feat"><div class="sf-icon">@</div><div class="sf-text"><strong>Tag iedereen of één persoon</strong><br>direct een pushmelding</div></div>
+      <div class="s4-feat"><div class="sf-icon">🔄</div><div class="sf-text"><strong>Dienst ruilen in de chat</strong><br>verzoek, reactie, goedkeuring</div></div>
+      <div class="s4-feat"><div class="sf-icon">💶</div><div class="sf-text"><strong>Uitbetaling aankondigen</strong><br>iedereen krijgt mail én melding</div></div>
+      <div class="s4-feat"><div class="sf-icon">📸</div><div class="sf-text"><strong>Afbeeldingen delen</strong><br>automatisch gecomprimeerd</div></div>
+    </div>
+  </div>
+  <div class="chat-phone">
+    <div class="cp-header"><div class="cp-title">Groepschat</div><div class="cp-sub">Iedereen ziet mee</div></div>
+    <div class="cp-msgs" id="cpMsgs"></div>
+    <div class="cp-input">
+      <div class="cp-ta">Bericht... @ om te taggen</div>
+      <div class="cp-send"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<div class="scene" id="s5">
+  <div class="s5-glow"></div>
+  <div class="s5-left">
+    <div class="s5-big">MHV<span>work</span></div>
+    <div class="s5-url">adminmossel.github.io/<strong>MHVwork</strong></div>
+  </div>
+  <div class="s5-phone-wrap">
+    <div class="s5-phone">
+      <div class="s5-phone-icon">
+        <svg width="48" height="48" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
+          <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
+          <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
+          <circle cx="340" cy="195" r="72" fill="#1A3BB5" stroke="#F5C800" stroke-width="20"/>
+          <line x1="340" y1="195" x2="340" y2="164" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+          <line x1="340" y1="195" x2="366" y2="195" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+          <circle cx="340" cy="195" r="18" fill="#1A3BB5"/><circle cx="340" cy="195" r="9" fill="#fff"/>
+        </svg>
+      </div>
+      <div class="s5-phone-name">MHV<span>work</span></div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.3)">MHV 1931</div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="progress" id="progress"></div>
+
+<script>
+const SCENES = ['s1','s2','s3','s4','s5'];
+const DURATIONS = [4200, 9000, 8500, 8500, 5000];
+let cur = 0, timer, featTimer, featIdx = 0;
+
+const prog = document.getElementById('progress');
+SCENES.forEach((_,i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' active':'');
+  d.onclick = () => goTo(i);
+  prog.appendChild(d);
+});
+
+function goTo(idx) {
+  document.getElementById(SCENES[cur]).classList.remove('active');
+  prog.children[cur].classList.remove('active');
+  cur = idx;
+  document.getElementById(SCENES[cur]).classList.add('active');
+  prog.children[cur].classList.add('active');
+  clearTimeout(featTimer);
+  document.querySelectorAll('.feat').forEach(f=>f.classList.remove('open'));
+  if (cur === 1) { featIdx = 0; setTimeout(autoExpand, 900); }
+  if (cur === 3) startChatAnim();
+  clearTimeout(timer);
+  timer = setTimeout(() => goTo(cur < SCENES.length-1 ? cur+1 : 0), DURATIONS[cur]);
+}
+
+function autoExpand() {
+  const feats = document.querySelectorAll('.feat');
+  feats.forEach(f => f.classList.remove('open'));
+  if (featIdx < feats.length) {
+    feats[featIdx].classList.add('open');
+    featIdx++;
+    featTimer = setTimeout(autoExpand, 1300);
+  }
+}
+
+const chatMsgs = [
+  {name:'Beheerder', av:'B', bg:'#F5C800', clr:'#000', me:true,  text:'<span class="cm-mention">@iedereen</span> zaterdag 14:00 — wie kan?', delay:500},
+  {name:'Tygo',     av:'T', bg:'#1A3BB5', clr:'#fff', me:false, text:'Ik kan helaas niet', delay:1700},
+  {name:'Sara',     av:'S', bg:'#30D158', clr:'#fff', me:false, text:'Ik wil zijn dienst overnemen!<div class="cm-swap"><strong>Dienst ruilen</strong>Zat 21 jun · 14:00-18:00</div>', delay:2900},
+  {name:'Beheerder',av:'B', bg:'#F5C800', clr:'#000', me:true,  text:'Goedgekeurd — dienst is aan Sara gegeven', delay:4600},
+];
+
+function startChatAnim() {
+  const el = document.getElementById('cpMsgs');
+  el.innerHTML = '';
+  chatMsgs.forEach(m => {
+    setTimeout(() => {
+      const row = document.createElement('div');
+      row.className = 'cm-row' + (m.me ? ' me' : '');
+      const wrap = document.createElement('div');
+      wrap.className = 'cm-bubblewrap';
+      wrap.innerHTML = `<div class="cm-name">${m.name}</div><div class="cm-bubble">${m.text}</div>`;
+      const av = document.createElement('div');
+      av.className = 'cm-av';
+      av.style.background = m.bg; av.style.color = m.clr;
+      av.textContent = m.av;
+      if (m.me) { row.appendChild(wrap); row.appendChild(av); }
+      else { row.appendChild(av); row.appendChild(wrap); }
+      el.appendChild(row);
+      requestAnimationFrame(() => {
+        row.style.transition = 'all .45s ease';
+        row.style.opacity = '1';
+        row.style.transform = 'translateY(0)';
+      });
+    }, m.delay);
+  });
+}
+
+goTo(0);
+</script>
+</body>
+</html>
