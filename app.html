@@ -610,16 +610,6 @@ select.form-input option { background:var(--bg3); }
   </nav>
 </div>
 
-<div id="modal-root"></div>
-
-<!-- Help overlay: toont promo.html als fullscreen uitleg -->
-<div id="helpOverlay">
-  <div class="help-topbar">
-    <div class="help-topbar-title">ℹ️ Hoe werkt MHVwork</div>
-    <button class="help-close-btn" onclick="closeHelpModal()">✕</button>
-  </div>
-  <iframe id="helpFrame" src="" title="MHVwork uitleg"></iframe>
-</div>
 <div id="confirm-bg"><div class="confirm-box">
   <div class="confirm-title" id="confirm-title"></div>
   <div class="confirm-msg" id="confirm-msg"></div>
@@ -2283,40 +2273,45 @@ function renderDev(){
     return '<label class="worker-check" style="margin-bottom:4px">'
       +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'">'
       +'<div class="avatar" style="width:24px;height:24px;font-size:9px">'+getInitials(u.name)+'</div>'
-      +'<div style="font-size:13px">'+u.name+' <span style="color:var(--text3);font-size:11px">('+u.role+')</span></div>'
+      +'<div style="font-size:13px">'+u.name+'<span style="color:var(--text3);font-size:11px;margin-left:4px">('+u.role+')</span></div>'
       +'</label>';
   }).join('');
-  v.innerHTML='<div class="page-title">🛠 Dev Panel</div>'
+
+  const accountsHtml=allUsers.map(function(u){
+    return '<div class="card-row" style="padding:12px 16px">'
+      +'<div class="avatar">'+getInitials(u.name)+'</div>'
+      +'<div style="flex:1"><div style="font-size:14px;font-weight:600">'+u.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+u.email+'</div></div>'
+      +'<span class="badge '+(u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray')+'">'+u.role+'</span>'
+      +'</div>';
+  }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
+
+  v.innerHTML=
+    '<div class="page-title">Dev Panel</div>'
     +'<div class="dev-grid">'
     +'<div class="dev-tile"><div class="dev-num">'+allUsers.length+'</div><div class="dev-lbl">Gebruikers</div></div>'
     +'<div class="dev-tile"><div class="dev-num">'+allShifts.length+'</div><div class="dev-lbl">Diensten</div></div>'
     +'</div>'
     +'<div class="section-label">Melding versturen</div>'
-    +'<div class="card" style="margin-bottom:12px"><div style="padding:16px;display:flex;flex-direction:column;gap:10px">'
-    +'<div><label class="form-label">Ontvangers</label>'
-    +'<label class="worker-check" style="margin-bottom:6px"><input type="checkbox" id="devAll" onchange="toggleDevAll(this)"><div style="font-size:14px;font-weight:600">Iedereen</div></label>'
-    +rcptHtml+'</div>'
-    +'<div><label class="form-label">Type</label>'
+    +'<div class="card" style="margin-bottom:12px">'
+    +'<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'
+    +'<div><div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
+    +'<label class="worker-check" style="margin-bottom:6px">'
+    +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)">'
+    +'<div style="font-size:14px;font-weight:600">Iedereen ('+allUsers.length+')</div>'
+    +'</label>'+rcptHtml+'</div>'
+    +'<div><div class="form-label">Type</div>'
     +'<select class="form-input" id="devMsgType" style="padding:10px 12px">'
-    +'<option value="notif">📱 In-app + Browser push</option>'
-    +'<option value="email">📧 Email</option>'
-    +'<option value="both">📱 + 📧 Allebei</option>'
+    +'<option value="notif">In-app + push</option>'
+    +'<option value="email">Email</option>'
+    +'<option value="both">In-app + Email</option>'
     +'</select></div>'
-    +'<div><label class="form-label">Titel</label><input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.0"></div>'
-    +'<div><label class="form-label">Bericht</label><textarea class="form-input" id="devBody" rows="3" style="resize:none"></textarea></div>'
+    +'<div><div class="form-label">Titel</div><input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.0"></div>'
+    +'<div><div class="form-label">Bericht</div><textarea class="form-input" id="devBody" rows="3" style="resize:none" placeholder="Typ je bericht..."></textarea></div>'
     +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
     +'</div></div>'
     +'<div class="section-label">Accounts</div>'
-    +'<div class="card">'
-    +allUsers.map(function(u){
-      return '<div class="card-row" style="padding:12px 16px">'
-        +'<div class="avatar">'+getInitials(u.name)+'</div>'
-        +'<div style="flex:1"><div style="font-size:14px;font-weight:600">'+u.name+'</div>'
-        +'<div style="font-size:12px;color:var(--text3)">'+u.email+'</div></div>'
-        +'<span class="badge '+(u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray')+'">'+u.role+'</span>'
-        +'</div>';
-    }).join('')
-    +'</div>';
+    +'<div class="card">'+accountsHtml+'</div>';
 }
 
 window.toggleDevAll=function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
@@ -2523,5 +2518,15 @@ window.requestPushPermission=async function(){
 };
 </script>
 
+<div id="modal-root"></div>
+
+<!-- Help overlay: toont promo.html -->
+<div id="helpOverlay">
+  <div class="help-topbar">
+    <div class="help-topbar-title">Hoe werkt MHVwork</div>
+    <button class="help-close-btn" onclick="closeHelpModal()">✕</button>
+  </div>
+  <iframe id="helpFrame" src="" title="MHVwork uitleg"></iframe>
+</div>
 </body>
 </html>
