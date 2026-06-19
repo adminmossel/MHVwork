@@ -2429,81 +2429,42 @@ function maybeShowFirstTimeHelp(){
   }catch(e){}
 }
 
-// WINDOW EXPORTS — veilig, alleen bestaande functies
-window.openHelpModal=openHelpModal;
-window.closeHelpModal=closeHelpModal;
-window.nav=nav;
-window.toast=toast;
-window.closeModal=closeModal;
-window.modal=modal;
-window.confirm2=confirm2;
-window.doLogout=doLogout;
-window.toggleNotif=toggleNotif;
-window.handleModalClick=handleModalClick;
-window.openAvailModal=openAvailModal;
-window.saveAvail=saveAvail;
-window.deleteAvail=deleteAvail;
-window.deleteAvailAdmin=deleteAvailAdmin;
-window.openSendToAdmin=openSendToAdmin;
-window.sendToAdmin=sendToAdmin;
-window.switchEmpTab=switchEmpTab;
-window.markRead=markRead;
-window.markAllRead=markAllRead;
-window.openInstallGuide=function(){console.warn('openInstallGuide niet gedefinieerd');};
-window.changePw=changePw;
-window.setAdminRTab=setAdminRTab;
-window.setRTab=function(){console.warn('setRTab niet gedefinieerd');};
-window.calNav=function(){console.warn('calNav niet gedefinieerd');};
-window.selCalDay=function(){console.warn('selCalDay niet gedefinieerd');};
-window.openAddShift=openAddShift;
-window.saveShift=saveShift;
-window.deleteShift=deleteShift;
-window.approveShift=approveShift;
-window.openEditShift=openEditShift;
-window.saveEditShift=saveEditShift;
-window.adminCorrect=adminCorrect;
-window.saveAdminCorrect=saveAdminCorrect;
-window.submitCorrection=submitCorrection;
-window.showPayDetail=showPayDetail;
-window.confirmShiftOk=confirmShiftOk;
-window.openCorrectShift=openCorrectShift;
-window.setAdminTab=function(){console.warn('setAdminTab niet gedefinieerd');};
-window.makeAdmin=makeAdmin;
-window.openAddEmployee=openAddEmployee;
-window.saveEmployee=saveEmployee;
-window.openEditEmployee=openEditEmployee;
-window.deleteEmployee=deleteEmployee;
-window.resetPwAdmin=resetPwAdmin;
-window.openInviteModal=openAddEmployee;
-window.createInvite=createInvite;
-window.sendInviteEmail=sendInviteEmail;
-window.markPaid=markPaid;
-window.openPayModal=openPayModal;
-window.sendMsg=sendMsg;
-window.sendChat=sendChat;
-window.delChatMsg=delChatMsg;
-window.chatInputHandler=chatInputHandler;
-window.insertMention=insertMention;
-window.insertAtSign=insertAtSign;
-window.openSwapModal=openSwapModal;
-window.submitSwap=submitSwap;
-window.acceptSwap=acceptSwap;
-window.approveSwap=approveSwap;
-window.rejectSwap=rejectSwap;
-window.sendPaymentAnnouncement=sendPaymentAnnouncement;
-window.exportShiftToCalendar=exportShiftToCalendar;
-window.renderDev=renderDev;
-window.toggleDevAll=function(){console.warn('toggleDevAll niet gedefinieerd');};
-window.sendDevMsg=function(){console.warn('sendDevMsg niet gedefinieerd');};
-window.renderBerichten=renderBerichten;
-window.renderAdminTab=renderAdminTab;
-window.setRTab=setAdminRTab;
-window.calNav=function(d){renderCal(d);};
-window.selCalDay=function(d){window._selDay=d;renderCal();};
-window.setAdminTab=function(t,el){if(typeof renderAdminTab==='function')renderAdminTab(t,el);};
-window.openInviteModal=openAddEmployee;
-window.toggleDevAll=function(cb){document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked);};
-window.sendDevMsg=sendMsg;
+// DEFINITIEVE FIX: click delegation + window fallback
+// Beide methodes tegelijk voor maximale browser-compatibiliteit
+const _FN = {
+  nav, toast, closeModal, modal, confirm2, doLogout,
+  openHelpModal, closeHelpModal,
+  toggleNotif, handleModalClick, openInstallGuide, changePw,
+  openAvailModal, saveAvail, deleteAvail, deleteAvailAdmin,
+  openSendToAdmin, sendToAdmin, switchEmpTab, markRead, markAllRead,
+  setAdminRTab, setRTab, calNav, selCalDay,
+  openAddShift, saveShift, deleteShift, approveShift,
+  openEditShift, saveEditShift, adminCorrect, saveAdminCorrect,
+  submitCorrection, showPayDetail, confirmShiftOk, openCorrectShift,
+  setAdminTab, makeAdmin, openAddEmployee, saveEmployee,
+  openEditEmployee, deleteEmployee, resetPwAdmin,
+  openInviteModal: openAddEmployee, createInvite, sendInviteEmail,
+  markPaid, openPayModal, sendMsg,
+  sendChat, delChatMsg, chatInputHandler, insertMention, insertAtSign,
+  openSwapModal, submitSwap, acceptSwap, approveSwap, rejectSwap,
+  sendPaymentAnnouncement, exportShiftToCalendar,
+  renderDev, toggleDevAll, sendDevMsg, maybeShowFirstTimeHelp,
+};
+// Methode 1: window exports (voor onclick="" in HTML attributen)
+Object.keys(_FN).forEach(k => { if(_FN[k]) window[k] = _FN[k]; });
+// Methode 2: click delegation (vangnet voor als window. lookup faalt)
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-fn]');
+  if(!el) return;
+  const fn = el.getAttribute('data-fn');
+  const argsRaw = el.getAttribute('data-args');
+  let args = [];
+  try{ if(argsRaw) args = JSON.parse(argsRaw); }catch(_){}
+  if(_FN[fn]){ e.stopPropagation(); _FN[fn](...args); }
+  else if(window[fn]){ e.stopPropagation(); window[fn](...args); }
+  else console.error('Functie niet gevonden:', fn);
+}, true);
+console.log('[MHVwork] '+Object.keys(_FN).length+' functies gebonden aan window + delegation.');
 </script>
 
 <script>
