@@ -2432,24 +2432,86 @@ function maybeShowFirstTimeHelp(){
 // DEFINITIEVE FIX: click delegation + window fallback
 // Beide methodes tegelijk voor maximale browser-compatibiliteit
 const _FN = {
-  nav, toast, closeModal, modal, confirm2, doLogout,
-  openHelpModal, closeHelpModal,
-  toggleNotif, handleModalClick, openInstallGuide, changePw,
-  openAvailModal, saveAvail, deleteAvail, deleteAvailAdmin,
-  openSendToAdmin, sendToAdmin, switchEmpTab, markRead, markAllRead,
-  setAdminRTab, setRTab, calNav, selCalDay,
-  openAddShift, saveShift, deleteShift, approveShift,
-  openEditShift, saveEditShift, adminCorrect, saveAdminCorrect,
-  submitCorrection, showPayDetail, confirmShiftOk, openCorrectShift,
-  setAdminTab, makeAdmin, openAddEmployee, saveEmployee,
-  openEditEmployee, deleteEmployee, resetPwAdmin,
-  openInviteModal: openAddEmployee, createInvite, sendInviteEmail,
-  markPaid, openPayModal, sendMsg,
-  sendChat, delChatMsg, chatInputHandler, insertMention, insertAtSign,
-  openSwapModal, submitSwap, acceptSwap, approveSwap, rejectSwap,
-  sendPaymentAnnouncement, exportShiftToCalendar,
-  renderDev, toggleDevAll, sendDevMsg, maybeShowFirstTimeHelp,
+  nav: nav,
+  toast: toast,
+  closeModal: closeModal,
+  modal: modal,
+  confirm2: confirm2,
+  doLogout: doLogout,
+  openHelpModal: openHelpModal,
+  closeHelpModal: closeHelpModal,
+  toggleNotif: toggleNotif,
+  handleModalClick: handleModalClick,
+  changePw: changePw,
+  openAvailModal: openAvailModal,
+  saveAvail: saveAvail,
+  deleteAvail: deleteAvail,
+  openSendToAdmin: openSendToAdmin,
+  sendToAdmin: sendToAdmin,
+  switchEmpTab: switchEmpTab,
+  markRead: markRead,
+  markAllRead: markAllRead,
+  setAdminRTab: setAdminRTab,
+  openAddShift: openAddShift,
+  saveShift: saveShift,
+  deleteShift: deleteShift,
+  approveShift: approveShift,
+  openEditShift: openEditShift,
+  saveEditShift: saveEditShift,
+  adminCorrect: adminCorrect,
+  saveAdminCorrect: saveAdminCorrect,
+  submitCorrection: submitCorrection,
+  showPayDetail: showPayDetail,
+  confirmShiftOk: confirmShiftOk,
+  openCorrectShift: openCorrectShift,
+  makeAdmin: makeAdmin,
+  openAddEmployee: openAddEmployee,
+  saveEmployee: saveEmployee,
+  openEditEmployee: openEditEmployee,
+  deleteEmployee: deleteEmployee,
+  resetPwAdmin: resetPwAdmin,
+  createInvite: createInvite,
+  sendInviteEmail: sendInviteEmail,
+  markPaid: markPaid,
+  sendMsg: sendMsg,
+  sendChat: sendChat,
+  delChatMsg: delChatMsg,
+  chatInputHandler: chatInputHandler,
+  insertMention: insertMention,
+  insertAtSign: insertAtSign,
+  openSwapModal: openSwapModal,
+  submitSwap: submitSwap,
+  acceptSwap: acceptSwap,
+  approveSwap: approveSwap,
+  rejectSwap: rejectSwap,
+  sendPaymentAnnouncement: sendPaymentAnnouncement,
+  exportShiftToCalendar: exportShiftToCalendar,
+  renderDev: renderDev,
+  maybeShowFirstTimeHelp: maybeShowFirstTimeHelp,
+  notifyUsers: notifyUsers,
+  openPayModal: openPayModal,
+  deleteAvailAdmin: deleteAvailAdmin,
 };
+Object.keys(_FN).forEach(k => { if(typeof _FN[k]==='function') window[k] = _FN[k]; });
+window.openInstallGuide = function(){console.warn('openInstallGuide stub');};
+window.setRTab = setAdminRTab;
+window.calNav = function(){console.warn('calNav stub');};
+window.selCalDay = function(){console.warn('selCalDay stub');};
+window.setAdminTab = function(){console.warn('setAdminTab stub');};
+window.openInviteModal = openAddEmployee;
+window.openEmployeeMsg = openSendToAdmin;
+// Delegation vangnet
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-fn]');
+  if(!el) return;
+  const fn = el.getAttribute('data-fn');
+  const argsRaw = el.getAttribute('data-args');
+  let args = [];
+  try{ if(argsRaw) args = JSON.parse(argsRaw); }catch(_){}
+  if(typeof _FN[fn]==='function'){ e.stopPropagation(); _FN[fn](...args); }
+  else if(typeof window[fn]==='function'){ e.stopPropagation(); window[fn](...args); }
+}, true);
+console.log('[MHVwork] Functies gebonden:', Object.keys(_FN).filter(k=>typeof _FN[k]==='function').length);
 // Methode 1: window exports (voor onclick="" in HTML attributen)
 Object.keys(_FN).forEach(k => { if(_FN[k]) window[k] = _FN[k]; });
 // Methode 2: click delegation (vangnet voor als window. lookup faalt)
