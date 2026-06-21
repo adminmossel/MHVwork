@@ -622,6 +622,7 @@ select.form-input option { background:var(--bg3); }
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
+
 // ════════════════════════════════════════════
 // MHVwork App Logic v2 — Apple Style
 // ════════════════════════════════════════════
@@ -2337,100 +2338,45 @@ window.sendDevMsg=async function(){
 };
 
 
-// Expose functions globally voor HTML onclick handlers
-window.openHelpModal=openHelpModal;
-window.closeHelpModal=closeHelpModal;
-window.nav=nav; window.toast=toast; window.closeModal=closeModal;
-window.modal=modal; window.confirm2=confirm2; window.doLogout=doLogout;
-window.openAvailModal=openAvailModal; window.saveAvail=saveAvail;
-window.deleteAvail=deleteAvail; window.deleteAvailAdmin=deleteAvailAdmin;
-window.openEmployeeMsg=openEmployeeMsg; window.openSendToAdmin=openSendToAdmin;
-window.sendToAdmin=sendToAdmin; window.switchEmpTab=switchEmpTab;
-window.markRead=markRead; window.markAllRead=markAllRead;
-window.confirmShiftOk=confirmShiftOk; window.openCorrectShift=openCorrectShift;
-window.openInviteModal=openAddEmployee;
-window.createInvite=createInvite;
-window.sendInviteEmail=sendInviteEmail; window.openEditEmployee=openEditEmployee;
-window.deleteEmployee=deleteEmployee; window.resetPwAdmin=resetPwAdmin;
-window.openPayModal=openPayModal; window.markPaid=markPaid;
-window.sendMsg=sendMsg; window.openInstallGuide=openInstallGuide;
-// Admin beheer extras
-window.setAdminTab=window.setAdminTab||function(){};
-window.renderAdmin=renderAdmin;
-window.renderBerichten=renderBerichten;
-window.sendSwMsg=function(){}; window.swDeleteUser=function(){};
-window.toggleSwAll=function(){}; window.sendSwMsg=function(){};
-window.handleModalClick=function(e){if(e.target.id==='mBg')closeModal();};
-// Fix: alle admin employee acties
-if(typeof openAddShift==='function') window.openAddShift=openAddShift;
-if(typeof deleteShift==='function') window.deleteShift=deleteShift;
-if(typeof approveShift==='function') window.approveShift=approveShift;
-
-// switchEmpTab stub (voor medewerker berichten)
-function switchEmpTab(tab){
-  const inbox = document.getElementById('empTabInbox');
-  const stuur = document.getElementById('empTabStuur');
-  const content = document.getElementById('empMsgContent');
-  if(inbox) inbox.classList.toggle('active', tab==='inbox');
-  if(stuur) stuur.classList.toggle('active', tab==='stuur');
-  if(content){
-    if(tab==='inbox'){
-      content.innerHTML = allNotifs.length
-        ? allNotifs.slice(0,10).map(n=>'<div style="padding:10px;border-bottom:1px solid var(--separator)">'
-            +'<div style="font-size:14px;font-weight:'+(n.readBy&&n.readBy.includes(U.uid)?'500':'700')+'">'+n.title+'</div>'
-            +'<div style="font-size:13px;color:var(--text3)">'+n.body+'</div>'
-            +'</div>').join('')
-        : '<div class="empty"><p>Geen berichten</p></div>';
-    } else {
-      content.innerHTML = '<div class="form-section"><label class="form-label">Bericht</label>'
-        +'<textarea class="form-input" id="empMsg" rows="3" style="resize:none" placeholder="Typ je bericht..."></textarea></div>'
-        +'<button class="btn btn-yellow btn-full" onclick="sendToAdmin()">Verstuur aan beheerder</button>';
-    }
-  }
-}
-
-function deleteAvailAdmin(id){
-  if(!id)return;
-  confirm2('Verwijderen','Beschikbaarheid verwijderen?','Verwijderen','btn-red').then(ok=>{
-    if(!ok)return;
-    const{db,doc,deleteDoc}=window._f;
-    deleteDoc(doc(db,'availability',id)).then(()=>toast('Verwijderd','ok')).catch(e=>toast('Fout: '+e.message,'err'));
-  });
-}
-function openPayModal(uid,name,wage){
-  modal('<div class="modal-handle"></div>'
-    +'<div class="modal-title">Uitbetaling voor '+name+'</div>'
-    +'<div class="form-section"><label class="form-label">Bedrag (€)</label>'
-    +'<input type="number" class="form-input" id="payAmount" placeholder="0.00" step="0.01" min="0"></div>'
-    +'<div class="form-section"><label class="form-label">Maand</label>'
-    +'<input type="text" class="form-input" id="payMonth" placeholder="Bijv. juni 2026"></div>'
-    +'<button class="btn btn-green btn-full" onclick="markPaid(&quot;'+uid+'&quot;,&quot;'+name+'&quot;)">Uitbetaling bevestigen</button>');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// HELP MODAL — toont promo.html als uitleg, eerste keer automatisch
-// ═══════════════════════════════════════════════════════════════
+// ═══ Ontbrekende functies ═══
 function openHelpModal(){
-  const frame = document.getElementById('helpFrame');
-  const overlay = document.getElementById('helpOverlay');
-  if(frame && !frame.src) frame.src = './promo.html';
+  const frame=document.getElementById('helpFrame');
+  const overlay=document.getElementById('helpOverlay');
+  if(frame&&!frame.src) frame.src='./promo.html';
   if(overlay) overlay.classList.add('open');
 }
 function closeHelpModal(){
-  const overlay = document.getElementById('helpOverlay');
+  const overlay=document.getElementById('helpOverlay');
   if(overlay) overlay.classList.remove('open');
-  try{ localStorage.setItem('mhv_help_seen','1'); }catch(e){}
+  try{localStorage.setItem('mhv_help_seen','1');}catch(e){}
 }
 function maybeShowFirstTimeHelp(){
-  try{
-    if(!localStorage.getItem('mhv_help_seen')){
-      setTimeout(()=>{ openHelpModal(); }, 600);
-    }
-  }catch(e){}
+  try{if(!localStorage.getItem('mhv_help_seen')){setTimeout(()=>openHelpModal(),800);}}catch(e){}
+}
+function deleteAvailAdmin(id){
+  confirm2('Verwijderen','Verwijderen?','Verwijderen','btn-red').then(ok=>{
+    if(!ok)return;
+    const{db,doc,deleteDoc}=window._f;
+    deleteDoc(doc(db,'availability',id)).then(()=>toast('Verwijderd','ok')).catch(()=>toast('Fout','err'));
+  });
+}
+function openPayModal(uid,name){
+  modal('<div class="modal-handle"></div>'
+    +'<div class="modal-title">Uitbetaling voor '+name+'</div>'
+    +'<div class="form-section"><label class="form-label">Bedrag</label>'
+    +'<input type="number" class="form-input" id="payAmountIn" placeholder="0.00" step="0.01"></div>'
+    +'<div class="form-section"><label class="form-label">Periode</label>'
+    +'<input type="text" class="form-input" id="payPeriodIn" placeholder="Bijv. juni 2026"></div>'
+    +'<button class="btn btn-green btn-full" onclick="markPaid(&quot;'+uid+'&quot;,&quot;'+name+'&quot;)">Bevestigen</button>');
 }
 
-// DEFINITIEVE FIX: click delegation + window fallback
-// Beide methodes tegelijk voor maximale browser-compatibiliteit
+function switchEmpTab(tab){
+  document.querySelectorAll('.emp-tab-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('empTab_'+tab);
+  if(btn) btn.classList.add('active');
+}
+
+// ═══ WINDOW EXPORTS ═══
 const _FN = {
   nav: nav,
   toast: toast,
@@ -2446,9 +2392,9 @@ const _FN = {
   openAvailModal: openAvailModal,
   saveAvail: saveAvail,
   deleteAvail: deleteAvail,
+  deleteAvailAdmin: deleteAvailAdmin,
   openSendToAdmin: openSendToAdmin,
   sendToAdmin: sendToAdmin,
-  switchEmpTab: switchEmpTab,
   markRead: markRead,
   markAllRead: markAllRead,
   setAdminRTab: setAdminRTab,
@@ -2473,6 +2419,7 @@ const _FN = {
   createInvite: createInvite,
   sendInviteEmail: sendInviteEmail,
   markPaid: markPaid,
+  openPayModal: openPayModal,
   sendMsg: sendMsg,
   sendChat: sendChat,
   delChatMsg: delChatMsg,
@@ -2487,46 +2434,31 @@ const _FN = {
   sendPaymentAnnouncement: sendPaymentAnnouncement,
   exportShiftToCalendar: exportShiftToCalendar,
   renderDev: renderDev,
-  maybeShowFirstTimeHelp: maybeShowFirstTimeHelp,
   notifyUsers: notifyUsers,
-  openPayModal: openPayModal,
-  deleteAvailAdmin: deleteAvailAdmin,
+  switchEmpTab: switchEmpTab,
+  maybeShowFirstTimeHelp: maybeShowFirstTimeHelp,
 };
-Object.keys(_FN).forEach(k => { if(typeof _FN[k]==='function') window[k] = _FN[k]; });
-window.openInstallGuide = function(){console.warn('openInstallGuide stub');};
-window.setRTab = setAdminRTab;
-window.calNav = function(){console.warn('calNav stub');};
-window.selCalDay = function(){console.warn('selCalDay stub');};
-window.setAdminTab = function(){console.warn('setAdminTab stub');};
+Object.keys(_FN).forEach(k => { if(typeof _FN[k]==='function') window[k]=_FN[k]; });
 window.openInviteModal = openAddEmployee;
 window.openEmployeeMsg = openSendToAdmin;
-// Delegation vangnet
+window.setRTab = setAdminRTab;
+window.openInstallGuide = function(){ toast('Installeer via browser menu','ok'); };
+window.calNav = function(d){ if(window._calNav) window._calNav(d); };
+window.selCalDay = function(d){ if(window._selCalDay) window._selCalDay(d); };
+window.setAdminTab = function(t,el){ if(typeof renderAdminTab==='function') renderAdminTab(t,el); };
+window.toggleDevAll = function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
+window.sendDevMsg = sendMsg;
 document.addEventListener('click', function(e){
-  const el = e.target.closest('[data-fn]');
+  const el=e.target.closest('[data-fn]');
   if(!el) return;
-  const fn = el.getAttribute('data-fn');
-  const argsRaw = el.getAttribute('data-args');
-  let args = [];
-  try{ if(argsRaw) args = JSON.parse(argsRaw); }catch(_){}
-  if(typeof _FN[fn]==='function'){ e.stopPropagation(); _FN[fn](...args); }
-  else if(typeof window[fn]==='function'){ e.stopPropagation(); window[fn](...args); }
-}, true);
-console.log('[MHVwork] Functies gebonden:', Object.keys(_FN).filter(k=>typeof _FN[k]==='function').length);
-// Methode 1: window exports (voor onclick="" in HTML attributen)
-Object.keys(_FN).forEach(k => { if(_FN[k]) window[k] = _FN[k]; });
-// Methode 2: click delegation (vangnet voor als window. lookup faalt)
-document.addEventListener('click', function(e){
-  const el = e.target.closest('[data-fn]');
-  if(!el) return;
-  const fn = el.getAttribute('data-fn');
-  const argsRaw = el.getAttribute('data-args');
-  let args = [];
-  try{ if(argsRaw) args = JSON.parse(argsRaw); }catch(_){}
-  if(_FN[fn]){ e.stopPropagation(); _FN[fn](...args); }
-  else if(window[fn]){ e.stopPropagation(); window[fn](...args); }
-  else console.error('Functie niet gevonden:', fn);
-}, true);
-console.log('[MHVwork] '+Object.keys(_FN).length+' functies gebonden aan window + delegation.');
+  const fn=el.getAttribute('data-fn');
+  const a=el.getAttribute('data-args');
+  let args=[];
+  try{if(a)args=JSON.parse(a);}catch(_){}
+  if(typeof window[fn]==='function'){e.stopPropagation();window[fn](...args);}
+},true);
+console.log('[MHVwork] OK - '+Object.keys(_FN).filter(k=>typeof _FN[k]==='function').length+' functies gebonden');
+
 </script>
 
 <script>
