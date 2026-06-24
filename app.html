@@ -307,7 +307,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .swap-card p  { font-size:12px;color:var(--text2);line-height:1.5 }
 .swap-actions { display:flex;gap:6px;margin-top:8px }
 /* Dev */
-.dev-grid     { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px }
+.dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;max-width:100%}
 .dev-tile     { background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center }
 .dev-num      { font-size:28px;font-weight:800;color:#64d2ff;letter-spacing:-1px }
 .dev-lbl      { font-size:12px;color:var(--text3);margin-top:4px }
@@ -569,7 +569,7 @@ select.form-input option { background:var(--bg3); }
     <!-- CHAT -->
     <div class="view" id="view-chat" style="padding:0;flex-direction:column;height:calc(100vh - 116px)"></div>
     <!-- DEV DASHBOARD -->
-    <div class="view" id="view-dev"></div>
+    <div class="view" id="view-dev" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
 
   </div>
 
@@ -680,8 +680,7 @@ window.addEventListener('mhv:ready', async ()=>{
       startEl.style.display=startView==='dev'?'flex':'block';
       startEl.classList.add('active');
     }
-    // Toon hulp-uitleg bij eerste keer inloggen
-    try{ maybeShowFirstTimeHelp(); }catch(e){}
+    // (hulp-uitleg nu alleen op de loginpagina)
   }
 });;
 
@@ -870,6 +869,7 @@ function renderAdminHome(c){
       <span class="hi">Goedemorgen,</span>
       ${U.name?.split(' ')[0]||'Admin'} 👋
     </div>
+    <button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)">📢 Aankondiging plaatsen voor medewerkers</button>
 
     <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
       <div class="stat-tile yellow">
@@ -937,8 +937,9 @@ function renderAdminShiftCard(s){
 }
 
 // EMPLOYEE HOME
-function renderEmployeeHome(c){
+async function renderEmployeeHome(c){
   const now=new Date();
+  const announcements=await loadAnnouncements();
   const myShifts=allShifts.filter(s=>s.workers?.includes(U.uid));
   // Komende = niet uitbetaald, niet goedgekeurd, in de toekomst of vandaag nog niet voorbij
   const upcoming=myShifts.filter(s=>{
@@ -960,6 +961,7 @@ function renderEmployeeHome(c){
   c.innerHTML=`
     <div class="page-title">
       <span class="hi">Welkom terug,</span>
+    <div id="announceArea" style="margin-bottom:4px"></div>
       ${U.name?.split(' ')[0]||'—'}
     </div>
 
@@ -1021,6 +1023,28 @@ function renderEmployeeHome(c){
         </div>
       </div>` : `<div class="empty"><div class="empty-icon">🎉</div><p>Geen komende diensten</p></div>`}
   `;
+
+  // Laad en toon aankondigingen
+  const area = document.getElementById('announceArea');
+  if(area){
+    if(announcements.length){
+      area.innerHTML = '<div class="section-label" style="margin-top:0;margin-bottom:8px">📢 Aankondigingen</div>'
+        + announcements.map(function(ann){
+            const canDel = U.role==='admin'||U.role==='software';
+            return '<div class="card" style="margin-bottom:10px;border-left:3px solid var(--mhv-yellow);padding:14px 16px">'
+              +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+              +'<div style="font-size:15px;font-weight:700;line-height:1.3">'+ann.title+'</div>'
+              +(canDel?'<button onclick="deleteAnnouncement(&quot;'+ann.id+'&quot;)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;flex-shrink:0;line-height:1">✕</button>':'')
+              +'</div>'
+              +(ann.imageData?'<img src="'+ann.imageData+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin:10px 0">':'')
+              +(ann.text?'<div style="font-size:14px;color:var(--text2);line-height:1.55;margin-top:6px">'+ann.text+'</div>':'')
+              +'<div style="font-size:11px;color:var(--text3);margin-top:8px">— '+ann.authorName+'</div>'
+              +'</div>';
+          }).join('');
+    } else {
+      area.innerHTML = '';
+    }
+  }
 }
 
 // Confirm shift functions
@@ -1956,8 +1980,8 @@ function subChat(){
   const q=query(collection(db,'chat'),orderBy('createdAt','asc'),limit(200));
   unsubChat=onSnapshot(q,snap=>{
     allChat=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deleted);
-    const active=document.querySelector('#view-chat.active');
-    if(active) _renderChatMsgs();
+    // Render als chatMsgs element aanwezig is (view open of zojuist geopend)
+    if(document.getElementById('chatMsgs')) _renderChatMsgs();
     // Badge op chat tab
     const last=allChat[allChat.length-1];
     const dot=document.getElementById('chat-dot');
@@ -2271,48 +2295,62 @@ function exportShiftToCalendar(shift){
 function renderDev(){
   const v=document.getElementById('view-dev'); if(!v)return;
   const rcptHtml=allUsers.map(function(u){
-    return '<label class="worker-check" style="margin-bottom:4px">'
-      +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'">'
-      +'<div class="avatar" style="width:24px;height:24px;font-size:9px">'+getInitials(u.name)+'</div>'
-      +'<div style="font-size:13px">'+u.name+'<span style="color:var(--text3);font-size:11px;margin-left:4px">('+u.role+')</span></div>'
+    return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--separator)">'
+      +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
+      +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+getInitials(u.name)+'</div>'
+      +'<div><div style="font-size:14px;font-weight:600">'+u.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+u.role+'</div></div>'
       +'</label>';
   }).join('');
 
   const accountsHtml=allUsers.map(function(u){
-    return '<div class="card-row" style="padding:12px 16px">'
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--separator)">'
       +'<div class="avatar">'+getInitials(u.name)+'</div>'
-      +'<div style="flex:1"><div style="font-size:14px;font-weight:600">'+u.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">'+u.email+'</div></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div>'
+      +'</div>'
       +'<span class="badge '+(u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray')+'">'+u.role+'</span>'
       +'</div>';
   }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
 
-  v.innerHTML=
-    '<div class="page-title">Dev Panel</div>'
-    +'<div class="dev-grid">'
-    +'<div class="dev-tile"><div class="dev-num">'+allUsers.length+'</div><div class="dev-lbl">Gebruikers</div></div>'
-    +'<div class="dev-tile"><div class="dev-num">'+allShifts.length+'</div><div class="dev-lbl">Diensten</div></div>'
+  v.innerHTML=''
+    +'<div class="page-title" style="padding:16px 16px 0">Dev Panel</div>'
+    +'<div style="padding:0 16px"><button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;width:100%;border:1.5px dashed var(--separator);margin-bottom:4px">📢 Aankondiging plaatsen</button></div>'
+    +'<div style="padding:0 16px;display:flex;gap:10px;margin:12px 0">'
+    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
+    +'<div style="font-size:28px;font-weight:800;color:var(--mhv-yellow)">'+allUsers.length+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:4px">Gebruikers</div>'
     +'</div>'
-    +'<div class="section-label">Melding versturen</div>'
-    +'<div class="card" style="margin-bottom:12px">'
-    +'<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'
-    +'<div><div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
-    +'<label class="worker-check" style="margin-bottom:6px">'
-    +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)">'
-    +'<div style="font-size:14px;font-weight:600">Iedereen ('+allUsers.length+')</div>'
-    +'</label>'+rcptHtml+'</div>'
+    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
+    +'<div style="font-size:28px;font-weight:800;color:var(--mhv-yellow)">'+allShifts.length+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:4px">Diensten</div>'
+    +'</div>'
+    +'</div>'
+    +'<div class="section-label" style="padding:0 16px">Melding versturen</div>'
+    +'<div style="margin:0 16px 16px;background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px">'
+    +'<div>'
+    +'<div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
+    +'<label style="display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--separator);margin-bottom:4px">'
+    +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
+    +'<div style="font-size:14px;font-weight:700">Iedereen ('+allUsers.length+')</div>'
+    +'</label>'
+    +rcptHtml
+    +'</div>'
     +'<div><div class="form-label">Type</div>'
-    +'<select class="form-input" id="devMsgType" style="padding:10px 12px">'
-    +'<option value="notif">In-app + push</option>'
+    +'<select class="form-input" id="devMsgType" style="padding:10px 12px;margin-top:6px">'
+    +'<option value="notif">In-app melding</option>'
     +'<option value="email">Email</option>'
     +'<option value="both">In-app + Email</option>'
     +'</select></div>'
-    +'<div><div class="form-label">Titel</div><input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.0"></div>'
-    +'<div><div class="form-label">Bericht</div><textarea class="form-input" id="devBody" rows="3" style="resize:none" placeholder="Typ je bericht..."></textarea></div>'
+    +'<div><div class="form-label">Titel</div>'
+    +'<input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.1" style="margin-top:6px"></div>'
+    +'<div><div class="form-label">Bericht</div>'
+    +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
     +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
-    +'</div></div>'
-    +'<div class="section-label">Accounts</div>'
-    +'<div class="card">'+accountsHtml+'</div>';
+    +'</div>'
+    +'<div class="section-label" style="padding:0 16px">Accounts</div>'
+    +'<div style="margin:0 16px 32px;background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:0 16px">'+accountsHtml+'</div>';
 }
 
 window.toggleDevAll=function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
@@ -2376,6 +2414,82 @@ function switchEmpTab(tab){
   if(btn) btn.classList.add('active');
 }
 
+// ═══ AANKONDIGINGEN (admin/dev → medewerker homepage) ═══
+function openAnnouncementModal(){
+  modal('<div class="modal-handle"></div>'
+    +'<div class="modal-title">Aankondiging plaatsen</div>'
+    +'<p style="font-size:13px;color:var(--text3);margin-bottom:14px">Zichtbaar op de homepage van alle medewerkers</p>'
+    +'<div class="form-section"><label class="form-label">Titel</label>'
+    +'<input type="text" class="form-input" id="annTitle" placeholder="Bijv. Let op: buffet zaterdag eerder!"></div>'
+    +'<div class="form-section"><label class="form-label">Tekst</label>'
+    +'<textarea class="form-input" id="annText" rows="3" style="resize:none" placeholder="Meer details..."></textarea></div>'
+    +'<div class="form-section"><label class="form-label">Afbeelding (optioneel)</label>'
+    +'<input type="file" id="annImg" accept="image/*" class="form-input" style="padding:8px">'
+    +'<div id="annImgPreview" style="margin-top:8px"></div></div>'
+    +'<button class="btn btn-yellow btn-full" onclick="saveAnnouncement()">Plaatsen</button>');
+
+  const imgInput = document.getElementById('annImg');
+  if(imgInput) imgInput.onchange = function(){
+    const file = this.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const max = 800;
+        let w=img.width, h=img.height;
+        if(w>max){h=Math.round(h*max/w);w=max;}
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        window._annImgData = canvas.toDataURL('image/jpeg', 0.75);
+        const prev = document.getElementById('annImgPreview');
+        if(prev) prev.innerHTML = '<img src="'+window._annImgData+'" style="max-width:100%;border-radius:10px;max-height:120px">';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+}
+
+async function saveAnnouncement(){
+  const title = (document.getElementById('annTitle')||{}).value||''
+  const text  = (document.getElementById('annText')||{}).value||'';
+  if(!title.trim()){toast('Vul een titel in','err');return;}
+  const{db,collection,addDoc,serverTimestamp}=window._f;
+  const payload = {
+    title: title.trim(),
+    text: text.trim(),
+    authorUid: U.uid,
+    authorName: U.name,
+    createdAt: serverTimestamp(),
+    imageData: window._annImgData||null,
+  };
+  window._annImgData = null;
+  await addDoc(collection(db,'announcements'), payload);
+  closeModal();
+  toast('Aankondiging geplaatst!','ok');
+  render('home');
+}
+
+async function deleteAnnouncement(id){
+  const ok = await confirm2('Verwijderen','Aankondiging verwijderen?','Verwijderen','btn-red');
+  if(!ok) return;
+  const{db,doc,deleteDoc}=window._f;
+  await deleteDoc(doc(db,'announcements',id));
+  toast('Verwijderd','ok');
+  render('home');
+}
+
+async function loadAnnouncements(){
+  try{
+    const{db,collection,getDocs,orderBy,query,limit}=window._f;
+    const q=query(collection(db,'announcements'),orderBy('createdAt','desc'),limit(10));
+    const snap=await getDocs(q);
+    return snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){ return []; }
+}
+
+
 // ═══ WINDOW EXPORTS ═══
 const _FN = {
   nav: nav,
@@ -2437,6 +2551,9 @@ const _FN = {
   notifyUsers: notifyUsers,
   switchEmpTab: switchEmpTab,
   maybeShowFirstTimeHelp: maybeShowFirstTimeHelp,
+  openAnnouncementModal: openAnnouncementModal,
+  saveAnnouncement: saveAnnouncement,
+  deleteAnnouncement: deleteAnnouncement,
 };
 Object.keys(_FN).forEach(k => { if(typeof _FN[k]==='function') window[k]=_FN[k]; });
 window.openInviteModal = openAddEmployee;
@@ -2447,7 +2564,28 @@ window.calNav = function(d){ if(window._calNav) window._calNav(d); };
 window.selCalDay = function(d){ if(window._selCalDay) window._selCalDay(d); };
 window.setAdminTab = function(t,el){ if(typeof renderAdminTab==='function') renderAdminTab(t,el); };
 window.toggleDevAll = function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
-window.sendDevMsg = sendMsg;
+window.sendDevMsg = async function(){
+  const rcpts=[...document.querySelectorAll('.dev-rcpt:checked')].map(i=>i.value);
+  const title=(document.getElementById('devTitle')||{value:''}).value.trim();
+  const body=(document.getElementById('devBody')||{value:''}).value.trim();
+  const type=(document.getElementById('devMsgType')||{value:'notif'}).value;
+  if(!rcpts.length){toast('Kies ontvangers','err');return;}
+  if(!title||!body){toast('Vul titel en bericht in','err');return;}
+  if(type==='notif'||type==='both') await notifyUsers(rcpts,title,body,body);
+  if(type==='email'||type==='both'){
+    for(const uid of rcpts){
+      const u=allUsers.find(x=>x.uid===uid);
+      if(u&&u.email){
+        try{await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{to_email:u.email,to_name:u.name,title,body});}catch(e){}
+      }
+    }
+  }
+  document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=false);
+  const da=document.getElementById('devAll'); if(da) da.checked=false;
+  const dt=document.getElementById('devTitle'); if(dt) dt.value='';
+  const db2=document.getElementById('devBody'); if(db2) db2.value='';
+  toast('Verstuurd naar '+rcpts.length+' gebruiker(s)!','ok');
+};
 document.addEventListener('click', function(e){
   const el=e.target.closest('[data-fn]');
   if(!el) return;

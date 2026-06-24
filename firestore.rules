@@ -2,86 +2,85 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuth() {
-      return request.auth != null;
-    }
-    function isAdmin() {
-      return isAuth() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
+    function isAuth()    { return request.auth != null; }
+    function getRole()   { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    function isAdmin()   { return isAuth() && getRole() == 'admin'; }
+    function isSoftware(){ return isAuth() && getRole() == 'software'; }
+    function isStaff()   { return isAdmin() || isSoftware(); }
 
-    // ── Users ───────────────────────────────────
     match /users/{uid} {
       allow read: if isAuth();
-      // Eigen profiel lezen/aanpassen (behalve role/wage)
-      allow update: if (isAuth() && request.auth.uid == uid &&
-        !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['role','wage'])) || isAdmin();
-      allow create: if isAdmin() ||
-        // Seed-admin: mag alleen aanmaken als er nog geen admin bestaat
-        // én het een admin-document is voor h.mhvwork@gmail.com
-        (isAuth() && request.resource.data.email == 'h.mhvwork@gmail.com'
-          && request.resource.data.role == 'admin'
-          && request.auth.uid == uid);
-      allow delete: if isAdmin();
+      allow create: if isAdmin()
+        || (isAuth() && request.auth.uid == uid
+            && request.resource.data.email == 'h.mhvwork@gmail.com'
+            && request.resource.data.role == 'admin');
+      allow update: if isAdmin()
+        || (isAuth() && request.auth.uid == uid
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage']));
+      allow delete: if isStaff();
     }
 
-    // ── Shifts ──────────────────────────────────
-    match /shifts/{shiftId} {
+    match /shifts/{id} {
       allow read: if isAuth();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() ||
-        (isAuth() &&
-          request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['workerConfirmations','finalTimes']));
+      allow update: if isAdmin()
+        || (isAuth() && request.resource.data.diff(resource.data)
+              .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers']));
     }
 
-    // ── Beschikbaarheid ─────────────────────────
-    match /availability/{docId} {
+    match /availability/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() &&
-        request.resource.data.uid == request.auth.uid;
-      allow delete: if isAuth() && resource.data.uid == request.auth.uid || isAdmin();
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow delete: if (isAuth() && resource.data.uid == request.auth.uid) || isAdmin();
       allow update: if isAdmin();
     }
 
-    // ── Notificaties ────────────────────────────
-    match /notifications/{docId} {
-      allow read: if isAuth() &&
-        (resource.data.to.hasAny([request.auth.uid]) || isAdmin());
+    match /notifications/{id} {
+      allow read: if isAuth()
+        && (resource.data.to.hasAny([request.auth.uid]) || isStaff());
       allow create: if isAuth() && request.resource.data.from == request.auth.uid;
-      allow update: if isAuth() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
-      allow delete: if isAdmin();
+      allow update: if isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
+      allow delete: if isStaff();
     }
 
-    // ── Uitnodigingen ───────────────────────────
-    match /invites/{inviteId} {
-      allow read: if true;
-      allow create: if isAdmin();
-      allow update: if true;
-      allow delete: if isAdmin();
-    }
-
-    // ── Uitbetalingen ───────────────────────────
-    match /payments/{docId} {
-      allow read: if isAuth() &&
-        (resource.data.uid == request.auth.uid || isAdmin());
-      allow create, update, delete: if isAdmin();
-    }
-
-    // ── Wachtwoord reset tokens ─────────────────
-    match /pwresets/{docId} {
-      allow read: if true;
-      allow create: if isAdmin();
-      allow update: if true;
-      allow delete: if isAdmin();
-    }
-
-    // ── App instellingen ────────────────────────
-    match /settings/{docId} {
+    match /chat/{id} {
       allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid','name','text','createdAt']);
+      allow update: if isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','swapStatus','acceptedByName','interestedName']);
+      allow delete: if isStaff();
+    }
+
+    match /swapRequests/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.requesterId == request.auth.uid;
+      allow update: if isAdmin()
+        || (isAuth() && request.resource.data.diff(resource.data)
+              .affectedKeys().hasOnly(['interestedUid','interestedName']));
+      allow delete: if isAdmin();
+    }
+
+    match /invites/{id} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{id} {
+      allow read: if isAuth()
+        && (resource.data.uid == request.auth.uid || isAdmin());
       allow write: if isAdmin();
+    }
+
+    match /pwresets/{id} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if true;
+      allow delete: if isStaff();
     }
   }
 }
