@@ -1976,10 +1976,16 @@ async function notifyUsers(uids, title, body, emailBody){
 // GROEPSCHAT
 // ═══════════════════════════════════════════════════════════════
 function subChat(){
-  const{db,collection,onSnapshot,orderBy,query,limit}=window._f;
-  const q=query(collection(db,'chat'),orderBy('createdAt','asc'),limit(200));
+  const{db,collection,onSnapshot,query,limit}=window._f;
+  // Geen orderBy = geen composite index vereist, sorteer client-side
+  const q=query(collection(db,'chat'),limit(200));
   unsubChat=onSnapshot(q,snap=>{
-    allChat=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deleted);
+    allChat=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deleted)
+      .sort((a,b)=>{
+        const ta=a.createdAt?.toDate?.()?.getTime()||0;
+        const tb=b.createdAt?.toDate?.()?.getTime()||0;
+        return ta-tb;
+      });
     // Render als chatMsgs element aanwezig is (view open of zojuist geopend)
     if(document.getElementById('chatMsgs')) _renderChatMsgs();
     // Badge op chat tab
@@ -2380,14 +2386,10 @@ window.sendDevMsg=async function(){
 function openHelpModal(){
   const frame=document.getElementById('helpFrame');
   const overlay=document.getElementById('helpOverlay');
-  if(frame&&!frame.src) frame.src='./promo.html';
-  if(overlay) overlay.classList.add('open');
+  // GitHub Pages blokkeert iframes — open in nieuw venster
+  window.open('./promo.html','_blank','width=1280,height=720,scrollbars=no');
 }
-function closeHelpModal(){
-  const overlay=document.getElementById('helpOverlay');
-  if(overlay) overlay.classList.remove('open');
-  try{localStorage.setItem('mhv_help_seen','1');}catch(e){}
-}
+function closeHelpModal(){ try{localStorage.setItem('mhv_help_seen','1');}catch(e){} }
 function maybeShowFirstTimeHelp(){
   try{if(!localStorage.getItem('mhv_help_seen')){setTimeout(()=>openHelpModal(),800);}}catch(e){}
 }
@@ -2482,12 +2484,14 @@ async function deleteAnnouncement(id){
 
 async function loadAnnouncements(){
   try{
-    const{db,collection,getDocs,orderBy,query,limit}=window._f;
-    const q=query(collection(db,'announcements'),orderBy('createdAt','desc'),limit(10));
+    const{db,collection,getDocs,query,limit}=window._f;
+    const q=query(collection(db,'announcements'),limit(10));
     const snap=await getDocs(q);
-    return snap.docs.map(d=>({id:d.id,...d.data()}));
+    return snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(b.createdAt?.toDate?.()?.getTime()||0)-(a.createdAt?.toDate?.()?.getTime()||0));
   }catch(e){ return []; }
 }
+
 
 
 // ═══ WINDOW EXPORTS ═══
@@ -2562,7 +2566,7 @@ window.setRTab = setAdminRTab;
 window.openInstallGuide = function(){ toast('Installeer via browser menu','ok'); };
 window.calNav = function(d){ if(window._calNav) window._calNav(d); };
 window.selCalDay = function(d){ if(window._selCalDay) window._selCalDay(d); };
-window.setAdminTab = function(t,el){ if(typeof renderAdminTab==='function') renderAdminTab(t,el); };
+// setAdminTab al gedefinieerd in renderAdmin()
 window.toggleDevAll = function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
 window.sendDevMsg = async function(){
   const rcpts=[...document.querySelectorAll('.dev-rcpt:checked')].map(i=>i.value);
@@ -2614,12 +2618,5 @@ window.requestPushPermission=async function(){
 <div id="modal-root"></div>
 
 <!-- Help overlay: toont promo.html -->
-<div id="helpOverlay">
-  <div class="help-topbar">
-    <div class="help-topbar-title">Hoe werkt MHVwork</div>
-    <button class="help-close-btn" onclick="closeHelpModal()">✕</button>
-  </div>
-  <iframe id="helpFrame" src="" title="MHVwork uitleg"></iframe>
-</div>
 </body>
 </html>
