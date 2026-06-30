@@ -20,7 +20,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
-  updateDoc, deleteDoc, onSnapshot, orderBy, Timestamp, serverTimestamp, writeBatch, arrayUnion }
+  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -43,7 +43,7 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 
 window._f = { auth, db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
-  updateDoc, deleteDoc, onSnapshot, orderBy, Timestamp, serverTimestamp, writeBatch, arrayUnion,
+  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion,
   signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
   EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TPL_INVITE, EMAILJS_TPL_NOTIF, EMAILJS_TPL_PAYMENT };
 
@@ -1986,8 +1986,9 @@ function subChat(){
         const tb=b.createdAt?.toDate?.()?.getTime()||0;
         return ta-tb;
       });
-    // Render als chatMsgs element aanwezig is (view open of zojuist geopend)
-    if(document.getElementById('chatMsgs')) _renderChatMsgs();
+    // Render altijd als chatMsgs bestaat
+    const msgs=document.getElementById('chatMsgs');
+    if(msgs){ _renderChatMsgs(); msgs.scrollTop=msgs.scrollHeight; }
     // Badge op chat tab
     const last=allChat[allChat.length-1];
     const dot=document.getElementById('chat-dot');
@@ -1995,6 +1996,9 @@ function subChat(){
       const active2=document.querySelector('#view-chat.active');
       if(!active2) dot.style.display='block';
     }
+  }, function(err){
+    console.error('Chat Firestore error:', err.code, err.message);
+    toast('Chat fout: '+err.message,'err');
   });
 }
 
@@ -2300,63 +2304,105 @@ function exportShiftToCalendar(shift){
 // ═══════════════════════════════════════════════════════════════
 function renderDev(){
   const v=document.getElementById('view-dev'); if(!v)return;
-  const rcptHtml=allUsers.map(function(u){
-    return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--separator)">'
-      +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
-      +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+getInitials(u.name)+'</div>'
-      +'<div><div style="font-size:14px;font-weight:600">'+u.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">'+u.role+'</div></div>'
-      +'</label>';
-  }).join('');
+  let devSubTab=window._devSubTab||'msg';
 
-  const accountsHtml=allUsers.map(function(u){
-    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--separator)">'
-      +'<div class="avatar">'+getInitials(u.name)+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div>'
+  const tabsHtml=
+    '<div class="pill-tabs" style="margin:0 16px 14px">'
+    +'<button class="pill-tab '+(devSubTab==='msg'?'active':'')+'" onclick="setDevSubTab(\'msg\',this)">📨 Melding</button>'
+    +'<button class="pill-tab '+(devSubTab==='acc'?'active':'')+'" onclick="setDevSubTab(\'acc\',this)">👥 Accounts</button>'
+    +'<button class="pill-tab '+(devSubTab==='ann'?'active':'')+'" onclick="setDevSubTab(\'ann\',this)">📢 Aankondiging</button>'
+    +'</div>';
+
+  v.innerHTML=
+    '<div class="page-title" style="padding:16px 16px 0">🛠 Dev Panel</div>'
+    +'<div style="padding:0 16px;display:flex;gap:10px;margin:14px 0 18px">'
+    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
+    +'<div style="font-size:26px;font-weight:800;color:var(--mhv-yellow)">'+allUsers.length+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Gebruikers</div>'
+    +'</div>'
+    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
+    +'<div style="font-size:26px;font-weight:800;color:var(--mhv-yellow)">'+allShifts.length+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Diensten</div>'
+    +'</div>'
+    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
+    +'<div style="font-size:26px;font-weight:800;color:#64d2ff">'+allChat.length+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Berichten</div>'
+    +'</div>'
+    +'</div>'
+    +tabsHtml
+    +'<div id="devSubContent" style="padding:0 16px 32px"></div>';
+
+  renderDevSubTab();
+}
+
+window.setDevSubTab=function(tab,el){
+  window._devSubTab=tab;
+  document.querySelectorAll('#view-dev .pill-tab').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderDevSubTab();
+};
+
+function renderDevSubTab(){
+  const tab=window._devSubTab||'msg';
+  const cont=document.getElementById('devSubContent'); if(!cont)return;
+
+  if(tab==='msg'){
+    const rcptHtml=allUsers.map(function(u){
+      return '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--separator)">'
+        +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'" style="width:18px;height:18px;accent-color:var(--mhv-yellow);flex-shrink:0">'
+        +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+getInitials(u.name)+'</div>'
+        +'<div style="min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
+        +'<div style="font-size:11px;color:var(--text3)">'+u.role+'</div></div>'
+        +'</label>';
+    }).join('');
+
+    cont.innerHTML=
+      '<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px">'
+      +'<div>'
+      +'<div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
+      +'<label style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1.5px solid var(--mhv-yellow);margin-bottom:2px">'
+      +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
+      +'<div style="font-size:14px;font-weight:700">Iedereen ('+allUsers.length+')</div>'
+      +'</label>'
+      +'<div style="max-height:180px;overflow-y:auto">'+rcptHtml+'</div>'
       +'</div>'
-      +'<span class="badge '+(u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray')+'">'+u.role+'</span>'
+      +'<div><div class="form-label">Type</div>'
+      +'<select class="form-input" id="devMsgType" style="padding:10px 12px;margin-top:6px">'
+      +'<option value="notif">📱 In-app melding</option>'
+      +'<option value="email">📧 Email</option>'
+      +'<option value="both">📱 + 📧 Allebei</option>'
+      +'</select></div>'
+      +'<div><div class="form-label">Titel</div>'
+      +'<input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.1" style="margin-top:6px"></div>'
+      +'<div><div class="form-label">Bericht</div>'
+      +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
+      +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
       +'</div>';
-  }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
+  }
 
-  v.innerHTML=''
-    +'<div class="page-title" style="padding:16px 16px 0">Dev Panel</div>'
-    +'<div style="padding:0 16px"><button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;width:100%;border:1.5px dashed var(--separator);margin-bottom:4px">📢 Aankondiging plaatsen</button></div>'
-    +'<div style="padding:0 16px;display:flex;gap:10px;margin:12px 0">'
-    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
-    +'<div style="font-size:28px;font-weight:800;color:var(--mhv-yellow)">'+allUsers.length+'</div>'
-    +'<div style="font-size:12px;color:var(--text3);margin-top:4px">Gebruikers</div>'
-    +'</div>'
-    +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
-    +'<div style="font-size:28px;font-weight:800;color:var(--mhv-yellow)">'+allShifts.length+'</div>'
-    +'<div style="font-size:12px;color:var(--text3);margin-top:4px">Diensten</div>'
-    +'</div>'
-    +'</div>'
-    +'<div class="section-label" style="padding:0 16px">Melding versturen</div>'
-    +'<div style="margin:0 16px 16px;background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px">'
-    +'<div>'
-    +'<div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
-    +'<label style="display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--separator);margin-bottom:4px">'
-    +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
-    +'<div style="font-size:14px;font-weight:700">Iedereen ('+allUsers.length+')</div>'
-    +'</label>'
-    +rcptHtml
-    +'</div>'
-    +'<div><div class="form-label">Type</div>'
-    +'<select class="form-input" id="devMsgType" style="padding:10px 12px;margin-top:6px">'
-    +'<option value="notif">In-app melding</option>'
-    +'<option value="email">Email</option>'
-    +'<option value="both">In-app + Email</option>'
-    +'</select></div>'
-    +'<div><div class="form-label">Titel</div>'
-    +'<input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.1" style="margin-top:6px"></div>'
-    +'<div><div class="form-label">Bericht</div>'
-    +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
-    +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
-    +'</div>'
-    +'<div class="section-label" style="padding:0 16px">Accounts</div>'
-    +'<div style="margin:0 16px 32px;background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:0 16px">'+accountsHtml+'</div>';
+  if(tab==='acc'){
+    const rows=allUsers.map(function(u){
+      const badge=u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--separator)">'
+        +'<div class="avatar">'+getInitials(u.name)+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
+        +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div>'
+        +'</div>'
+        +'<span class="badge '+badge+'" style="flex-shrink:0">'+u.role+'</span>'
+        +'</div>';
+    }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
+    cont.innerHTML='<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden">'+rows+'</div>';
+  }
+
+  if(tab==='ann'){
+    cont.innerHTML=
+      '<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:24px;text-align:center">'
+      +'<div style="font-size:32px;margin-bottom:10px">📢</div>'
+      +'<div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5">Plaats een aankondiging met tekst en foto op de homepage van alle medewerkers.</div>'
+      +'<button class="btn btn-yellow btn-full" onclick="openAnnouncementModal()">Aankondiging plaatsen</button>'
+      +'</div>';
+  }
 }
 
 window.toggleDevAll=function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };

@@ -188,6 +188,9 @@ async function doRegister() {
   if (!pw1 || !pw2) { showMsg('Vul beide wachtwoordvelden in.','error'); return; }
   if (pw1 !== pw2)  { showMsg('Wachtwoorden komen niet overeen.','error'); return; }
   if (pw1.length < 6) { showMsg('Wachtwoord moet minimaal 6 tekens zijn.','error'); return; }
+  if (!/[A-Z]/.test(pw1) || !/[a-z]/.test(pw1) || !/[0-9]/.test(pw1)) {
+    showMsg('Wachtwoord moet een hoofdletter, kleine letter en een cijfer bevatten.','error'); return;
+  }
 
   btn.disabled = true; btn.textContent = 'Bezig...';
 
@@ -245,9 +248,14 @@ async function doRegister() {
     showMsg('Account aangemaakt! Je wordt doorgestuurd...','success');
     setTimeout(() => window.location.href = 'app.html', 1800);
   } catch(e) {
-    let errMsg = 'Er ging iets mis. Probeer het opnieuw.';
+    console.error('Registratie fout:', e.code, e.message, e);
+    let errMsg = 'Er ging iets mis: ' + (e.message || e.code || 'onbekende fout');
     if (e.code === 'auth/email-already-in-use') errMsg = 'Er bestaat al een account met dit e-mailadres.';
-    if (e.code === 'auth/weak-password') errMsg = 'Wachtwoord is te zwak. Kies iets sterkers.';
+    if (e.code === 'auth/weak-password') errMsg = 'Wachtwoord is te zwak. Gebruik minimaal 6 tekens, met een hoofdletter, een cijfer en bij voorkeur een symbool.';
+    if (e.code === 'auth/invalid-email') errMsg = 'Dit e-mailadres is ongeldig.';
+    if (e.code === 'auth/missing-password' || (e.message||'').includes('PASSWORD_DOES_NOT_MEET_REQUIREMENTS')) {
+      errMsg = 'Wachtwoord voldoet niet aan de eisen: gebruik minimaal 6 tekens met een hoofdletter, kleine letter en een cijfer.';
+    }
     showMsg(errMsg, 'error');
     document.getElementById('regBtn').disabled = false;
     document.getElementById('regBtn').textContent = 'Account aanmaken';
