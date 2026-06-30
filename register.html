@@ -58,116 +58,102 @@ const firebaseConfig = {
 
 <style>
 :root {
-  --bg:#0d0d1a; --surface:#13132a; --surface2:#1c1c3a;
-  --accent:#f5c800; --text:#f0f0f8; --muted:#8888aa;
-  --danger:#e05555; --success:#4caf7d; --border:rgba(255,255,255,0.07);
-  --radius:14px; --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif;
+  --mhv-yellow: #F5C800;
+  --mhv-blue:   #1D3FBB;
+  --bg:#000; --bg2:#1C1C1E; --bg3:#2C2C2E;
+  --text:#FFF; --text2:rgba(255,255,255,0.7); --text3:rgba(255,255,255,0.4);
+  --green:#30D158; --green-dim:rgba(48,209,88,0.12);
+  --red:#FF453A; --red-dim:rgba(255,69,58,0.12);
+  --separator:rgba(255,255,255,0.08);
+  --radius:14px; --radius-lg:20px;
+  --font:'Outfit',-apple-system,sans-serif;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);}
-body{display:flex;align-items:center;justify-content:center;padding:20px;
-  background:radial-gradient(ellipse at 20% 50%,#1a1a4a,#0d0d1a 60%),
-             radial-gradient(ellipse at 80% 20%,#1f1040,transparent 50%);}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);}
+body{display:flex;align-items:center;justify-content:center;padding:20px;min-height:100vh;-webkit-font-smoothing:antialiased;}
+.wrap{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:24px;}
 
-.bg-shape{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.12;pointer-events:none;}
-.bg-shape-1{width:400px;height:400px;background:#f5c800;top:-100px;left:-100px;animation:drift1 12s ease-in-out infinite;}
-.bg-shape-2{width:300px;height:300px;background:#3a5fcf;bottom:-80px;right:-80px;animation:drift2 10s ease-in-out infinite;}
-@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
-@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
+.logo-row{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.logo-row img{width:64px;height:64px;border-radius:16px;}
+.logo-row h1{font-size:26px;font-weight:800;letter-spacing:-1px;color:var(--text);}
+.logo-row h1 span{color:var(--mhv-yellow);}
 
-.wrap{position:relative;z-index:10;background:rgba(19,19,42,0.9);border:1px solid var(--border);
-  border-radius:24px;padding:44px 36px 36px;width:min(440px,95vw);
-  backdrop-filter:blur(20px);box-shadow:0 40px 80px rgba(0,0,0,0.6);
-  animation:slideUp 0.6s cubic-bezier(.16,1,.3,1);}
-@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.welcome-card{width:100%;background:var(--bg2);border:1px solid var(--separator);border-radius:var(--radius-lg);padding:20px 22px;}
+.welcome-card p{font-size:13px;color:var(--text3);margin-bottom:4px;}
+.welcome-card h2{font-size:24px;font-weight:800;color:var(--mhv-yellow);letter-spacing:-0.5px;text-transform:none;}
+.welcome-card .email{font-size:13px;color:var(--text3);margin-top:10px;}
+.welcome-card .email strong{color:var(--text2);font-weight:600;}
 
-.logo-row{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px;}
-.logo-row img{width:64px;height:64px;object-fit:contain;border-radius:50%;box-shadow:0 0 0 4px rgba(245,200,0,0.2);}
-.logo-row h1{font-family:var(--font-head);font-size:24px;font-weight:800;}
-.logo-row h1 span{color:var(--accent);}
+.form-card{width:100%;background:var(--bg2);border:1px solid var(--separator);border-radius:var(--radius-lg);padding:22px;}
+.field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:8px;display:block;}
+.field-input{width:100%;background:var(--bg3);border:1.5px solid var(--separator);border-radius:var(--radius);padding:14px 16px;color:var(--text);font-size:16px;font-family:inherit;outline:none;transition:border-color .15s ease;}
+.field-input:focus{border-color:var(--mhv-yellow);}
+.field-group{margin-bottom:18px;}
+.hint{font-size:12px;color:var(--text3);margin-top:10px;line-height:1.5;}
 
-.welcome-box{background:rgba(245,200,0,0.07);border:1px solid rgba(245,200,0,0.2);
-  border-radius:10px;padding:14px 16px;margin-bottom:24px;}
-.welcome-box .hey{font-size:13px;color:var(--muted);margin-bottom:4px;}
-.welcome-box .name{font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--accent);}
-.welcome-box .email{font-size:12px;color:var(--muted);margin-top:4px;}
+.btn-main{width:100%;padding:15px;border-radius:var(--radius);border:none;background:var(--mhv-yellow);color:#000;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;transition:transform .1s ease,opacity .15s ease;}
+.btn-main:active{transform:scale(0.98);opacity:0.9;}
+.btn-main:disabled{opacity:0.5;cursor:not-allowed;}
 
-.form-group{margin-bottom:16px;}
-.form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;}
-.form-input{width:100%;padding:13px 15px;border-radius:10px;background:rgba(255,255,255,0.05);
-  border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:15px;
-  outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
-.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,200,0,0.12);}
-.form-input::placeholder{color:var(--muted);}
+.msg-box{width:100%;padding:14px 18px;border-radius:var(--radius);font-size:14px;line-height:1.5;display:none;}
+.msg-box.error{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,69,58,0.25);}
+.msg-box.success{background:var(--green-dim);color:var(--green);border:1px solid rgba(48,209,88,0.25);}
 
-.btn-primary{width:100%;padding:15px;border-radius:10px;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--accent),#e6b800);
-  color:#1a1000;font-family:var(--font-head);font-size:15px;font-weight:700;
-  transition:transform 0.15s,box-shadow 0.15s;margin-top:4px;}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,200,0,0.3);}
-.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.err-card{width:100%;background:var(--bg2);border:1px solid var(--separator);border-radius:var(--radius-lg);padding:32px 24px;text-align:center;}
+.err-card .icon{font-size:40px;margin-bottom:14px;}
+.err-card h2{font-size:18px;font-weight:700;margin-bottom:8px;}
+.err-card p{font-size:14px;color:var(--text3);line-height:1.5;}
+.err-card a{display:inline-block;margin-top:18px;color:var(--mhv-yellow);text-decoration:none;font-weight:600;font-size:14px;}
 
-.pw-req{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;}
-
-.msg{border-radius:10px;padding:14px 16px;font-size:13px;margin-top:16px;display:none;}
-.msg.error{background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:#ff8888;}
-.msg.success{background:rgba(76,175,125,0.12);border:1px solid rgba(76,175,125,0.3);color:var(--success);}
-
-#loader{text-align:center;padding:20px;}
-#loader .spin{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--accent);
-  border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.err-page{text-align:center;padding:20px;}
-.err-page .icon{font-size:48px;margin-bottom:16px;}
-.err-page h2{font-family:var(--font-head);font-size:20px;font-weight:800;margin-bottom:8px;}
-.err-page p{color:var(--muted);font-size:14px;line-height:1.6;}
+.loader-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0;}
+.spinner{width:36px;height:36px;border:3px solid var(--separator);border-top-color:var(--mhv-yellow);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader-wrap p{font-size:13px;color:var(--text3);}
 </style>
 </head>
 <body>
-<div class="bg-shape bg-shape-1"></div>
-<div class="bg-shape bg-shape-2"></div>
-
 <div class="wrap">
   <div class="logo-row">
-    <img id="logoImg" src="icon.svg" alt="MHVwork" style="width:72px;height:72px;border-radius:18px;">
+    <img id="logoImg" src="icon.svg" alt="MHVwork">
     <h1>MHV<span>work</span></h1>
   </div>
 
   <!-- Loader -->
-  <div id="loader">
-    <div class="spin"></div>
-    <p style="font-size:13px;color:var(--muted)">Uitnodiging laden...</p>
+  <div id="loader" class="loader-wrap">
+    <div class="spinner"></div>
+    <p>Uitnodiging laden...</p>
   </div>
 
   <!-- Error page -->
-  <div id="errPage" style="display:none" class="err-page">
+  <div id="errPage" style="display:none" class="err-card">
     <div class="icon">🔒</div>
     <h2>Ongeldige link</h2>
     <p id="errText">Deze uitnodigingslink is niet geldig of al gebruikt.</p>
-    <p style="margin-top:12px"><a href="index.html" style="color:var(--accent);text-decoration:none;font-size:13px">← Terug naar inloggen</a></p>
+    <a href="index.html">← Terug naar inloggen</a>
   </div>
 
   <!-- Registration form -->
   <div id="formWrap" style="display:none">
-    <div class="welcome-box">
-      <div class="hey">Welkom bij MHVwork,</div>
-      <div class="name" id="welcomeName">—</div>
+    <div class="welcome-card" style="margin-bottom:18px">
+      <p>Welkom bij MHVwork,</p>
+      <h2 id="welcomeName">—</h2>
       <div class="email">Je account e-mail: <strong id="emailDisplay">—</strong></div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Kies een wachtwoord</label>
-      <input type="password" class="form-input" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Herhaal wachtwoord</label>
-      <input type="password" class="form-input" id="pw2" placeholder="Zelfde wachtwoord" autocomplete="new-password">
-      <div class="pw-req">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</div>
-    </div>
+    <div class="form-card">
+      <div class="field-group">
+        <label class="field-label">Kies een wachtwoord</label>
+        <input type="password" class="field-input" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password">
+      </div>
+      <div class="field-group" style="margin-bottom:8px">
+        <label class="field-label">Herhaal wachtwoord</label>
+        <input type="password" class="field-input" id="pw2" placeholder="Zelfde wachtwoord" autocomplete="new-password">
+      </div>
+      <p class="hint" style="margin-bottom:18px">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</p>
 
-    <button class="btn-primary" id="regBtn" onclick="doRegister()">Account aanmaken</button>
-    <div class="msg" id="regMsg"></div>
+      <button class="btn-main" id="regBtn" onclick="doRegister()">Account aanmaken</button>
+      <div class="msg-box" id="regMsg" style="margin-top:14px"></div>
+    </div>
   </div>
 </div>
 
@@ -264,7 +250,7 @@ async function doRegister() {
 
 function showMsg(text, type) {
   const m = document.getElementById('regMsg');
-  m.textContent = text; m.className = 'msg ' + type; m.style.display = 'block';
+  m.textContent = text; m.className = 'msg-box ' + type; m.style.display = 'block';
 }
 
 document.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });

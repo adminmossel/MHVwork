@@ -59,9 +59,9 @@ window._login = async (email, pass) => {
   return signInWithEmailAndPassword(auth, email, pass);
 };
 
-function openPromoModal(){
+window.openPromoModal = function(){
   window.open('./promo.html','_blank','width=1280,height=720,scrollbars=no,toolbar=no,location=no');
-}
+};
 </script>
 
 <style>

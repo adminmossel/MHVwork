@@ -1455,6 +1455,7 @@ async function sendInviteEmail(email,name,link){
 }
 function openEditEmployee(uid){
   const u=allUsers.find(x=>x.uid===uid); if(!u)return;
+  const isMe=u.uid===U.uid;
   modal(`
     <div class="modal-handle"></div>
     <div class="modal-title">${u.name} bewerken</div>
@@ -1462,15 +1463,32 @@ function openEditEmployee(uid){
       <input type="text" class="form-input" id="eeName" value="${u.name||''}"></div>
     <div class="form-section"><label class="form-label">Uurtarief (€)</label>
       <input type="number" class="form-input" id="eeWage" value="${u.wage||0}" step="0.01" min="0"></div>
+    <div class="form-section"><label class="form-label">Rol</label>
+      <select class="form-input" id="eeRole" style="padding:10px 12px" ${isMe?'disabled':''}>
+        <option value="employee" ${u.role==='employee'?'selected':''}>👤 Medewerker</option>
+        <option value="software" ${u.role==='software'?'selected':''}>🛠 Developer (dev)</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>👑 Beheerder</option>
+      </select>
+      ${isMe?'<p style="font-size:12px;color:var(--text3);margin-top:6px">Je kunt je eigen rol niet aanpassen.</p>':''}
+    </div>
     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
   `);
 }
 async function saveEmployee(uid){
   const name=$('eeName').value.trim(), wage=parseFloat($('eeWage').value)||0;
+  const roleEl=$('eeRole');
+  const role=roleEl&&!roleEl.disabled?roleEl.value:undefined;
   if(!name){toast('Naam verplicht','err');return;}
   const{db,doc,updateDoc}=window._f;
-  await updateDoc(doc(db,'users',uid),{name,wage});
-  await loadUsers(); closeModal(); toast('Opgeslagen!','ok');
+  const payload={name,wage};
+  if(role) payload.role=role;
+  try{
+    await updateDoc(doc(db,'users',uid),payload);
+    await loadUsers(); closeModal(); toast('Opgeslagen!','ok');
+  }catch(e){
+    toast('Opslaan mislukt: '+e.message,'err');
+    console.error('saveEmployee error:',e);
+  }
 }
 async function makeAdmin(uid,name){
   const ok=await confirm2('Admin maken',`${name} beheerderrechten geven?`,'Bevestigen','btn-yellow');
@@ -2155,8 +2173,13 @@ async function sendChat(){
 async function delChatMsg(id){
   const ok=await confirm2('Verwijderen','Dit bericht verwijderen?','Verwijderen','btn-red'); if(!ok)return;
   const{db,doc,updateDoc}=window._f;
-  await updateDoc(doc(db,'chat',id),{deleted:true,deletedBy:U.uid});
-  toast('Verwijderd','ok');
+  try{
+    await updateDoc(doc(db,'chat',id),{deleted:true,deletedBy:U.uid});
+    toast('Verwijderd','ok');
+  }catch(e){
+    toast('Verwijderen mislukt: '+e.message,'err');
+    console.error('delChatMsg error:',e);
+  }
 }
 
 async function sendPaymentAnnouncement(){
