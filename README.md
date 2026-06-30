@@ -1,4 +1,4 @@
-# 🍺 MHVwork
+# 🍺 MHVwork (v.0.9.5)
 
 > **Roosterbeheer voor MHV 1931 — gebouwd voor de barhulp**
 
