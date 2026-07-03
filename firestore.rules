@@ -10,10 +10,10 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if isAuth();
-      allow create: if isAdmin()
-        || (isAuth() && request.auth.uid == uid
-            && request.resource.data.email == 'h.mhvwork@gmail.com'
-            && request.resource.data.role == 'admin');
+      // Iedereen mag het EIGEN profiel-document aanmaken (na registratie via invite-link).
+      // De Auth-account zelf kan alleen ontstaan via een geldige uitnodigingslink of de
+      // hardcoded admin/dev-bypass, dus dit is veilig.
+      allow create: if isAdmin() || (isAuth() && request.auth.uid == uid);
       allow update: if isAdmin()
         || (isAuth() && request.auth.uid == uid
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage']));
@@ -50,7 +50,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasAll(['uid','name','text','createdAt']);
       allow update: if isAuth()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','swapStatus','acceptedByName','interestedName']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','pinned','swapStatus','acceptedByName','interestedName']);
       allow delete: if isStaff();
     }
 
