@@ -3,6 +3,80 @@
 
 ---
 
+## 🆕 UPDATE — stappenplan om deze nieuwe versie in te voeren
+
+Deze update bevat bugfixes en nieuwe features (zie CHANGELOG.md voor de volledige lijst).
+Volg deze stappen in volgorde — dit duurt ~10-15 minuten.
+
+### Stap 1 — Bestanden uploaden naar GitHub
+1. Ga naar je repo: **https://github.com/adminmossel/MHVwork**
+2. Upload/overschrijf alle meegeleverde bestanden (via "Add file" → "Upload files", sleep alle
+   bestanden erin, en commit direct op de `main`-branch — dat is precies wat GitHub Pages live zet).
+3. Wacht ~1 minuut tot GitHub Pages de nieuwe versie heeft gepubliceerd.
+
+### Stap 2 — Firestore Security Rules bijwerken (VERPLICHT)
+Zonder deze stap blijven aankondigingen, privéberichten en instellingen kapot.
+1. Ga naar **https://console.firebase.google.com** → jouw project → **Firestore Database** → tabblad **Regels**
+2. Vervang de volledige inhoud door de nieuwe `firestore.rules` uit deze levering
+3. Klik **Publiceren**
+
+### Stap 3 — Authorized domain checken (VERPLICHT voor wachtwoord-reset)
+1. Firebase Console → **Authentication** → **Settings** → tabblad **Authorized domains**
+2. Controleer of **`adminmossel.github.io`** in de lijst staat. Zo niet: klik **Add domain** en voeg 'm toe.
+   (Zonder dit blijft de "link ongeldig"-fout terugkomen bij wachtwoord resetten.)
+
+### Stap 4 — Eigen e-mailtemplates instellen (OPTIONEEL)
+De app werkt direct met de bestaande EmailJS-template voor alles. Wil je per soort mail
+(aankondiging/tag/ruil/wachtwoord) een ander uiterlijk?
+1. Ga naar **https://dashboard.emailjs.com** → **Email Templates** → **Create New Template** (4x, één per soort)
+2. Kopieer steeds het Template ID
+3. Open `app.html`, zoek naar `EMAILJS_TPL_ANNOUNCE` / `EMAILJS_TPL_TAG` / `EMAILJS_TPL_SWAP` / `EMAILJS_TPL_PW`
+   (rond regel 45) en vul je eigen ID's in
+4. Upload het aangepaste `app.html` opnieuw naar GitHub
+
+### Stap 5 — Gmail SMTP i.p.v. EmailJS (OPTIONEEL, technischer)
+Je vroeg om "de gratis Google SMTP service" i.p.v. EmailJS. Dit **kan alleen via Firebase Cloud
+Functions** — GitHub Pages is pure statische hosting en kan zelf geen mail versturen.
+De code staat klaar in de map `functions/`, maar deployen moet je zelf doen (ik heb geen
+toegang tot jouw Firebase-project):
+
+1. **Blaze-plan activeren**: Firebase Console → tandwiel (⚙️) → **Upgrade** → kies **Blaze**
+   (pay-as-you-go; je gratis quotum is ruim genoeg voor dit gebruik, dus in de praktijk €0)
+2. **Gmail app-wachtwoord aanmaken**: log in op het Gmail-account dat je wil gebruiken →
+   **myaccount.google.com/apppasswords** → maak een app-wachtwoord aan (16 tekens, geen spaties)
+   *(vereist dat 2-staps-verificatie aanstaat op dat Google-account)*
+3. Installeer op je eigen computer **Node.js** (nodejs.org) en de Firebase CLI:
+   ```
+   npm install -g firebase-tools
+   firebase login
+   ```
+4. Ga in een terminal naar de map van dit project (waar de map `functions/` in staat) en voer uit:
+   ```
+   firebase use --add        (kies je mhvwork-project)
+   firebase functions:secrets:set GMAIL_USER
+   firebase functions:secrets:set GMAIL_APP_PASSWORD
+   cd functions && npm install && cd ..
+   firebase deploy --only functions
+   ```
+5. Klaar — vanaf nu kun je in `app.html` de EmailJS-aanroepen vervangen door een aanroep naar
+   de `sendMail`-cloud function (voorbeeldcode staat als commentaar bovenin `functions/index.js`).
+   *Dit is bewust niet automatisch al aangesloten — zo blijft EmailJS altijd als werkende
+   fallback bestaan totdat jij bevestigt dat de Cloud Function goed werkt.*
+
+### Stap 6 — Testen (aanrader, ~5 minuten)
+- [ ] Log in als beheerder → plaats een aankondiging → verschijnt hij op de homepage?
+- [ ] Wachtwoord resetten via Beheer → Medewerkers → "Reset ww" → komt de mail aan en werkt de link?
+- [ ] Chat: verstuur een foto (of sleep er één in) → tag iemand met @naam → krijgt die persoon ALLEEN een pushmelding (geen mail)?
+- [ ] Pin een bericht → scroll door de chat → blijft de pin-balk bovenaan zichtbaar?
+- [ ] Rooster openen als beheerder → staat "Alles" standaard actief?
+- [ ] Nieuwe medewerker uitnodigen met rol "Developer" → krijgt die persoon na registreren echt de dev-rol?
+- [ ] Profiel → Meldingen-bel rechtsboven → opent dit een volledige pagina met Systeem + Berichten?
+- [ ] Dienst bewerken → notitie + foto toevoegen → ziet de medewerker dit in zijn rooster + krijgt hij een melding?
+
+Loopt iets nog niet goed? Meld het gewoon terug met wat je precies ziet — dan duik ik er weer in.
+
+---
+
 ## Wat ga je instellen?
 
 Je hebt straks:

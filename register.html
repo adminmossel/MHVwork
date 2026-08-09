@@ -232,7 +232,7 @@ async function doRegister() {
     });
 
     showMsg('Account aangemaakt! Je wordt doorgestuurd...','success');
-    setTimeout(() => window.location.href = 'app.html', 1800);
+    setTimeout(() => window.location.href = 'app.html?justRegistered=1', 1800);
   } catch(e) {
     console.error('Registratie fout:', e.code, e.message, e);
     let errMsg = 'Er ging iets mis: ' + (e.message || e.code || 'onbekende fout');

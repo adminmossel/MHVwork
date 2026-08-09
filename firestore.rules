@@ -25,7 +25,7 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       allow update: if isAdmin()
         || (isAuth() && request.resource.data.diff(resource.data)
-              .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers']));
+              .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked']));
     }
 
     match /availability/{id} {
@@ -66,7 +66,9 @@ service cloud.firestore {
     match /invites/{id} {
       allow read: if true;
       allow create: if isAdmin();
-      allow update: if true;
+      // Alleen het 'used' veld mag gezet worden (door de registratie-pagina, vóór login)
+      allow update: if !resource.data.used
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used','usedAt','uid']);
       allow delete: if isAdmin();
     }
 
@@ -76,11 +78,33 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Legacy collectie — niet meer gebruikt sinds wachtwoord-reset via Firebase Auth verloopt.
+    // Blijft op slot te staan (alleen staff mag iets doen) zodat oude gecachte pagina's geen gat vormen.
     match /pwresets/{id} {
-      allow read: if true;
-      allow create: if isAdmin();
-      allow update: if true;
+      allow read, write: if isStaff();
+    }
+
+    // Aankondigingen (homepage + dev "special" aankondigingen)
+    match /announcements/{id} {
+      allow read: if isAuth();
+      allow create: if isStaff();
+      allow update: if isStaff();
       allow delete: if isStaff();
+    }
+
+    // Privéberichten (medewerker <-> beheerder/dev), 1 doc per thread
+    match /dms/{threadId} {
+      allow read: if isAuth() && resource.data.participants.hasAny([request.auth.uid]);
+      allow create: if isAuth() && request.resource.data.participants.hasAny([request.auth.uid]);
+      allow update: if isAuth() && resource.data.participants.hasAny([request.auth.uid])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages','updatedAt','readBy','lastText','lastFrom']);
+      allow delete: if isStaff();
+    }
+
+    // Globale instellingen (bv. reminder-uren), alleen beheerder/dev mag schrijven
+    match /settings/{id} {
+      allow read: if isAuth();
+      allow write: if isStaff();
     }
   }
 }

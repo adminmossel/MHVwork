@@ -9,8 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
@@ -23,36 +22,30 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db   = getFirestore(app);
-window._rp = { auth, db, doc, getDoc, updateDoc, serverTimestamp, signInWithEmailAndPassword, updatePassword };
+window._rp = { auth, verifyPasswordResetCode, confirmPasswordReset };
 
 window.addEventListener('DOMContentLoaded', async () => {
-  const token = new URLSearchParams(window.location.search).get('token');
-  if (!token) { showErrPage('Geen geldige resetlink.'); return; }
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode');
+  const oobCode = params.get('oobCode');
+  if (mode !== 'resetPassword' || !oobCode) {
+    showErrPage('Deze link is ongeldig. Vraag een nieuwe herstellink aan bij de beheerder.');
+    return;
+  }
   try {
-    const snap = await getDoc(doc(db, 'pwresets', token));
-    if (!snap.exists()) { showErrPage('Link niet gevonden of verlopen.'); return; }
-    const d = snap.data();
-    if (d.used) { showErrPage('Deze link is al gebruikt. Vraag een nieuwe aan bij de beheerder.'); return; }
-    if (d.createdAt) {
-      const age = Date.now() - d.createdAt.toDate().getTime();
-      if (age > 48 * 60 * 60 * 1000) {
-        await updateDoc(doc(db, 'pwresets', token), { used: true });
-        showErrPage('Deze link is verlopen (48 uur). Vraag een nieuwe aan bij de beheerder.');
-        return;
-      }
-    }
-    if (!d.tempPw) { showErrPage('Ongeldige resetlink (geen tijdelijk wachtwoord). Vraag een nieuwe aan.'); return; }
-    window._resetToken = token;
-    window._resetEmail = d.email;
-    window._resetName  = d.name;
-    window._resetTempPw = d.tempPw;
-    document.getElementById('greeting').textContent = 'Hoi ' + d.name + ',';
+    const email = await verifyPasswordResetCode(auth, oobCode);
+    window._resetCode = oobCode;
+    window._resetEmail = email;
+    document.getElementById('greeting').textContent = 'Hoi,';
+    document.getElementById('greetingSub').textContent = 'Nieuw wachtwoord instellen voor ' + email;
     document.getElementById('loader').style.display = 'none';
     document.getElementById('formWrap').style.display = 'block';
-  } catch(e) {
+  } catch (e) {
     console.error(e);
-    showErrPage('Er ging iets mis bij het laden. Probeer opnieuw.');
+    let msg = 'Deze link is verlopen of al gebruikt. Vraag een nieuwe herstellink aan bij de beheerder.';
+    if (e.code === 'auth/invalid-action-code') msg = 'Deze link is ongeldig of al gebruikt. Vraag een nieuwe herstellink aan.';
+    if (e.code === 'auth/expired-action-code') msg = 'Deze link is verlopen. Vraag een nieuwe herstellink aan.';
+    showErrPage(msg);
   }
 });
 </script>
@@ -74,7 +67,7 @@ body{background:#F2F2F7;display:flex;align-items:center;justify-content:center;p
 h1{font-size:24px;font-weight:800;color:#000;letter-spacing:-0.5px;}
 .card{width:100%;background:#FFF;border-radius:18px;padding:24px 20px;box-shadow:0 2px 16px rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.06);}
 .greeting{font-size:22px;font-weight:800;letter-spacing:-0.4px;margin-bottom:6px;}
-.sub{font-size:14px;color:#8E8E93;line-height:1.6;margin-bottom:20px;}
+.sub{font-size:14px;color:#8E8E93;line-height:1.6;margin-bottom:20px;word-break:break-word;}
 .form-group{margin-bottom:14px;}
 .lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8E8E93;margin-bottom:6px;}
 input[type=password]{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E5E5EA;font-size:16px;font-family:'Outfit',sans-serif;outline:none;transition:border-color 0.2s;background:#fff;color:#000;}
@@ -107,7 +100,7 @@ input[type=password]:focus{border-color:#1D3FBB;}
     </div>
     <div id="formWrap" style="display:none">
       <div class="greeting" id="greeting"></div>
-      <p class="sub">Kies een nieuw wachtwoord voor je MHVwork account.</p>
+      <p class="sub" id="greetingSub"></p>
       <div class="form-group">
         <label class="lbl">Nieuw wachtwoord</label>
         <input type="password" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password">
@@ -141,21 +134,8 @@ async function doReset(){
   if(pw1.length<6){showMsg('Minimaal 6 tekens vereist.','err');return;}
   btn.disabled=true; btn.textContent='Bezig…';
   try{
-    const{auth,db,doc,updateDoc,serverTimestamp,signInWithEmailAndPassword,updatePassword}=window._rp;
-    // Log in met tijdelijk wachtwoord dat admin heeft aangemaakt
-    let cred;
-    try{
-      cred = await signInWithEmailAndPassword(auth, window._resetEmail, window._resetTempPw);
-    }catch(loginErr){
-      showMsg('Link is verlopen of al gebruikt. Vraag een nieuwe aan bij de beheerder.','err');
-      btn.disabled=false; btn.textContent='Wachtwoord opslaan';
-      return;
-    }
-    // Stel nieuw wachtwoord in
-    await updatePassword(cred.user, pw1);
-    // Markeer token als gebruikt
-    await updateDoc(doc(db,'pwresets',window._resetToken),{used:true,usedAt:serverTimestamp(),tempPw:null});
-    // Toon succes
+    const{auth,confirmPasswordReset}=window._rp;
+    await confirmPasswordReset(auth, window._resetCode, pw1);
     document.getElementById('formWrap').innerHTML=`
       <div style="text-align:center;padding:12px 0">
         <div style="font-size:48px;margin-bottom:16px">✅</div>
@@ -167,6 +147,7 @@ async function doReset(){
     console.error('Reset error:',e);
     let msg='Er ging iets mis. Probeer opnieuw.';
     if(e.code==='auth/weak-password') msg='Wachtwoord is te zwak. Kies minimaal 6 tekens.';
+    if(e.code==='auth/invalid-action-code') msg='Deze link is al gebruikt of verlopen. Vraag een nieuwe aan.';
     showMsg(msg,'err');
     btn.disabled=false; btn.textContent='Wachtwoord opslaan';
   }

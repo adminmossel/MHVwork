@@ -8,9 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{background:#000;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;overflow:hidden;width:100%;height:100%;color:#fff;}
 body{position:relative;}
-.frame{position:absolute;inset:0;width:1280px;height:720px;max-width:100vw;max-height:100vh;margin:auto;}
-@media (max-aspect-ratio: 16/9){.frame{width:100vw;height:56.25vw;top:50%;transform:translateY(-50%);}}
-@media (min-aspect-ratio: 16/9){.frame{height:100vh;width:177.78vh;left:50%;transform:translateX(-50%);}}
+.frame{position:absolute;top:50%;left:50%;width:1280px;height:720px;transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center center;}
 
 .scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .8s ease;display:flex;align-items:center;justify-content:center;}
 .scene.active{opacity:1;pointer-events:all;}
@@ -359,6 +357,16 @@ function startChatAnim() {
 }
 
 goTo(0);
+
+// Schaal het vaste 1280×720 canvas uniform naar elk scherm (ook portrait mobiel) —
+// zonder dit blijft alle content op vaste pixelmaten staan en past het simpelweg niet.
+function fitFrame(){
+  const s = Math.min(window.innerWidth/1280, window.innerHeight/720);
+  document.documentElement.style.setProperty('--s', s);
+}
+fitFrame();
+window.addEventListener('resize', fitFrame);
+window.addEventListener('orientationchange', fitFrame);
 </script>
 </body>
 </html>

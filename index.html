@@ -13,7 +13,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -57,6 +57,10 @@ if (!window.location.pathname.includes("app.html")) {
 
 window._login = async (email, pass) => {
   return signInWithEmailAndPassword(auth, email, pass);
+};
+window._sendReset = async (email) => {
+  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
+  return sendPasswordResetEmail(auth, email, {url:`${base}/reset-pw.html`, handleCodeInApp:true});
 };
 
 window.openPromoModal = function(){
@@ -229,15 +233,15 @@ async function sendForgot(){
   // We use a simple fetch to Firestore REST (no auth needed for this collection with open rules)
   document.querySelector('#forgotWrap button:last-of-type').disabled=true;
   try{
-    // Send via EmailJS if configured, otherwise just show confirmation
-    document.getElementById('forgotWrap').innerHTML='<div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:14px">✅</div><p style="font-size:16px;font-weight:700;color:#000;margin-bottom:8px">Verzoek verstuurd!</p><p style="font-size:14px;color:#8E8E93;line-height:1.6">Je beheerder ontvangt een melding en stuurt je een herstellink.</p></div>';
-    // The actual admin notification is handled server-side or via Firebase — 
-    // we save to localStorage as fallback so admin sees it next login
+    // Stuur direct een echte, werkende Firebase reset-mail naar de medewerker zelf...
+    try{ await window._sendReset(email); }catch(resetErr){ console.warn('reset mail:',resetErr); }
+    document.getElementById('forgotWrap').innerHTML='<div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:14px">✅</div><p style="font-size:16px;font-weight:700;color:#000;margin-bottom:8px">Verzoek verstuurd!</p><p style="font-size:14px;color:#8E8E93;line-height:1.6">Check je e-mail voor een herstellink. Je beheerder krijgt ook een melding voor het geval dat niet lukt.</p></div>';
+    // ...en informeer ALTIJD ook de beheerder, voor het geval het account niet bestaat of de mail niet aankomt
     emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
     emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TPL_NOTIF,{
       to_email:'h.mhvwork@gmail.com',to_name:'Beheerder',
       title:'Wachtwoord vergeten: '+name,
-      body:name+' ('+email+') heeft hun wachtwoord vergeten.\n\nGa naar Beheer → Medewerkers → Wachtwoord resetten.'
+      body:name+' ('+email+') heeft hun wachtwoord vergeten.\n\nEr is automatisch een herstelmail gestuurd. Lukt dat niet, ga dan naar Beheer → Medewerkers → Wachtwoord resetten.'
     }).catch(e=>console.warn('email:',e));
   }catch(e){err.textContent='Er ging iets mis.';err.style.display='block';}
 }
