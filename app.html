@@ -6,12 +6,14 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>MHVwork</title>
 <meta name="theme-color" content="#1c1c1e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MHVwork">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
@@ -82,8 +84,14 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
+  const userData = snap.data();
+  if (userData.suspended) {
+    await auth.signOut();
+    setTimeout(() => { window.location.href="index.html?suspended=1"; }, 200);
+    return;
+  }
   _authHandled = true;
-  window._user = { uid: user.uid, email: user.email, ...snap.data() };
+  window._user = { uid: user.uid, email: user.email, ...userData };
   window.dispatchEvent(new Event("mhv:ready"));
 });
 </script>
@@ -109,20 +117,27 @@ onAuthStateChanged(auth, async (user) => {
   --radius:14px; --radius-sm:10px; --radius-lg:20px;
   --font:'Outfit',-apple-system,sans-serif;
 }
-/* Light mode */
-@media(prefers-color-scheme:light){
-  :root {
-    --bg:#F2F2F7; --bg2:#FFFFFF; --bg3:#F2F2F7; --bg4:#E5E5EA;
-    --glass:rgba(0,0,0,0.03); --glass2:rgba(0,0,0,0.06);
-    --text:#000; --text2:rgba(0,0,0,0.6); --text3:rgba(0,0,0,0.4); --text4:rgba(0,0,0,0.2);
-    --separator:rgba(0,0,0,0.1);
-    --mhv-yellow-dim:rgba(245,200,0,0.15); --mhv-blue-dim:rgba(29,63,187,0.1);
-    --green-dim:rgba(48,209,88,0.1); --red-dim:rgba(255,69,58,0.1); --orange-dim:rgba(255,159,10,0.1);
-  }
-  #topbar { background:rgba(242,242,247,0.92); }
-  #tabbar { background:rgba(242,242,247,0.92); }
-  .notif-dot { border-color:var(--bg); }
+/* Light mode — expliciet via data-theme (JS-gestuurd, geen pure media-query meer),
+   zodat de gebruiker dit zelf kan overrulen los van het systeemthema.
+   Contrasten aangescherpt t.o.v. de vorige versie: donkerdere tekstkleuren op witte kaarten,
+   duidelijker scheidingslijnen, en badges/accentkleuren die op wit ook goed leesbaar zijn. */
+html[data-theme="light"] {
+  --bg:#F2F2F7; --bg2:#FFFFFF; --bg3:#F5F5F7; --bg4:#E5E5EA;
+  --glass:rgba(0,0,0,0.04); --glass2:rgba(0,0,0,0.07);
+  --text:#000; --text2:rgba(0,0,0,0.68); --text3:rgba(0,0,0,0.46); --text4:rgba(0,0,0,0.25);
+  --separator:rgba(0,0,0,0.12);
+  --mhv-yellow-dim:rgba(191,153,0,0.16); --mhv-blue-dim:rgba(29,63,187,0.1);
+  --green-dim:rgba(30,140,64,0.12); --red-dim:rgba(214,45,38,0.12); --orange-dim:rgba(191,110,0,0.12);
+  --green:#1E8C40; --red:#D62D26; --orange:#BF6E00;
 }
+html[data-theme="light"] #topbar { background:rgba(242,242,247,0.92); }
+html[data-theme="light"] #tabbar { background:rgba(242,242,247,0.92); }
+html[data-theme="light"] .notif-dot { border-color:var(--bg); }
+html[data-theme="light"] .badge-yellow { color:#8A6D00; }
+html[data-theme="light"] .stat-num.yellow { color:#8A6D00; }
+html[data-theme="light"] .card, html[data-theme="light"] .prof-card, html[data-theme="light"] .stat-tile { box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.theme-opt{border-radius:8px;padding:6px 9px;font-size:14px;background:none;transition:background .15s ease;}
+.theme-opt.active{background:var(--bg2);box-shadow:0 1px 3px rgba(0,0,0,0.15);}
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html { height:100%; }
@@ -130,6 +145,7 @@ body {
   height:100%; background:var(--bg); color:var(--text);
   font-family:var(--font); font-size:16px; line-height:1;
   -webkit-font-smoothing:antialiased; overflow:hidden;
+  overscroll-behavior:none;
 }
 button { cursor:pointer; font-family:var(--font); border:none; background:none; }
 input, select, textarea { font-family:var(--font); }
@@ -161,6 +177,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
   border-bottom:1px solid var(--separator);
   display:flex; align-items:center; padding:0 16px; gap:10px;
   position:relative; z-index:50;
+  padding-top:env(safe-area-inset-top); height:calc(var(--nav-h) + env(safe-area-inset-top));
 }
 #topbar img { width:28px; height:28px; border-radius:6px; object-fit:contain; }
 #topbar .app-name { font-size:17px; font-weight:700; flex:1; letter-spacing:-0.3px; }
@@ -317,7 +334,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 /* Input */
 .chat-input-wrap { padding:10px 12px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--separator);background:var(--bg2);flex-shrink:0 }
 .chat-input-row  { display:flex;align-items:flex-end;gap:6px }
-.chat-input-row textarea { flex:1;background:var(--bg3);border:1.5px solid var(--separator);border-radius:20px;padding:9px 13px;font-size:14px;color:var(--text);font-family:inherit;resize:none;max-height:100px;outline:none;transition:border-color .2s }
+.chat-input-row textarea { flex:1;background:var(--bg3);border:1.5px solid var(--separator);border-radius:20px;padding:9px 13px;font-size:16px;color:var(--text);font-family:inherit;resize:none;max-height:100px;outline:none;transition:border-color .2s }
 .chat-input-row textarea:focus { border-color:var(--mhv-yellow) }
 .chat-send { width:38px;height:38px;border-radius:50%;background:var(--mhv-yellow);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .1s,opacity .15s }
 .chat-send:active { transform:scale(.9) }
@@ -393,7 +410,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .form-input {
   width:100%; padding:13px 14px; border-radius:var(--radius-sm);
   background:var(--bg3); border:1px solid var(--separator);
-  color:var(--text); font-size:15px; font-family:var(--font);
+  color:var(--text); font-size:16px; font-family:var(--font);
   outline:none; transition:border-color 0.2s;
   -webkit-user-select:text; user-select:text;
 }
@@ -542,6 +559,16 @@ select.form-input option { background:var(--bg3); }
   #toast  { bottom:calc(var(--tab-h) + env(safe-area-inset-bottom) + 12px); }
 }
 </style>
+<script>
+// Thema zo vroeg mogelijk toepassen (vóór de eerste paint) om een flits van het verkeerde thema te voorkomen.
+(function(){
+  try{
+    var pref = localStorage.getItem('mhv_theme') || 'system';
+    var eff = (pref==='light'||pref==='dark') ? pref : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', eff);
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 
@@ -559,7 +586,7 @@ select.form-input option { background:var(--bg3); }
     <div style="flex:1"></div>
     <button class="help-btn" onclick="openHelpModal()" title="Hulp & uitleg">?</button>
     <button class="notif-pill" onclick="nav('meldingen')" id="notifBtn">
-      🔔
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       <div class="notif-dot" id="notifDot"></div>
     </button>
   </div>
@@ -678,6 +705,7 @@ window.addEventListener('mhv:ready', async ()=>{
     }
     try { await loadUsers(); } catch(e){ allUsers=[]; }
     try { await loadSettings(); } catch(e){}
+    try { logLoginEvent(); } catch(e){}
     try { subChat(); } catch(e){}
     if(U.role!=='software'){ try { subShifts(); } catch(e){} }
     try { subNotifs(); } catch(e){}
@@ -702,6 +730,7 @@ window.addEventListener('mhv:ready', async ()=>{
     }
     // (hulp-uitleg nu alleen op de loginpagina)
     maybeShowInstallPrompt();
+    maybeShowFirstTour();
   }
 });;
 
@@ -723,9 +752,27 @@ window.addEventListener('appinstalled',async()=>{
 function isRunningStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
 }
+function iosInstallGuideHtml(){
+  return `<div class="modal-handle"></div>
+    <div style="text-align:center;padding:6px 0 4px">
+      <div style="font-size:44px;margin-bottom:10px">📲</div>
+      <div class="modal-title" style="text-align:center">Installeer MHVwork</div>
+      <p style="font-size:13px;color:var(--text3);margin:8px 0 18px">Op iPhone/iPad gaat dit via Safari in 2 stappen:</p>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:12px;padding:12px 14px;text-align:left;margin-bottom:10px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--mhv-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">1</div>
+        <div style="flex:1;font-size:13px;color:var(--text2)">Tik onderin (of bovenin) Safari op het <b>deel-icoon</b></div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text2)"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:12px;padding:12px 14px;text-align:left;margin-bottom:18px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--mhv-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">2</div>
+        <div style="flex:1;font-size:13px;color:var(--text2)">Scrol naar beneden en kies <b>"Zet op beginscherm"</b></div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text2)"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 9v6M9 12h6"/></svg>
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Begrepen</button>
+    </div>`;
+}
 function maybeShowInstallPrompt(){
   if(isRunningStandalone()){
-    // Al geïnstalleerd/open als PWA — zorg dat het vinkje klopt, ook als 'appinstalled' gemist is
     if(U && !U.pwaInstalled){
       const{db,doc,updateDoc}=window._f;
       updateDoc(doc(db,'users',U.uid),{pwaInstalled:true}).catch(()=>{});
@@ -740,22 +787,31 @@ function maybeShowInstallPrompt(){
   history.replaceState({}, '', window.location.pathname);
   setTimeout(()=>{
     const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    if(isIOS){ modal(iosInstallGuideHtml()); return; }
     modal(`<div class="modal-handle"></div>
       <div style="text-align:center;padding:6px 0 4px">
         <div style="font-size:44px;margin-bottom:10px">📲</div>
         <div class="modal-title" style="text-align:center">Installeer MHVwork</div>
-        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 18px">
-          ${isIOS
-            ? 'Zet de app op je beginscherm voor pushmeldingen: tik op <b>Deel</b> onderin Safari, en kies daarna <b>"Zet op beginscherm"</b>.'
-            : 'Installeer de app op je telefoon — dat werkt sneller en pushmeldingen werken dan ook echt.'}
-        </p>
-        ${!isIOS?'<button class="btn btn-yellow btn-full" onclick="triggerInstall()">Nu installeren</button>':''}
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 18px">Installeer de app op je telefoon — dat werkt sneller en pushmeldingen werken dan ook echt.</p>
+        <button class="btn btn-yellow btn-full" onclick="triggerInstall()">Nu installeren</button>
         <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal()">Later</button>
       </div>`);
   },900);
 }
 window.triggerInstall=async function(){
-  if(!_deferredInstallPrompt){ toast('Installeren via het browsermenu (⋮ → App installeren)','ok'); closeModal(); return; }
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS){ modal(iosInstallGuideHtml()); return; }
+  if(!_deferredInstallPrompt){
+    // Android/desktop Chrome maar geen prompt beschikbaar (al gedismisst, of andere browser)
+    modal(`<div class="modal-handle"></div>
+      <div style="text-align:center;padding:6px 0 4px">
+        <div style="font-size:40px;margin-bottom:10px">📲</div>
+        <div class="modal-title" style="text-align:center">Installeren</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 18px">Open het menu van je browser (meestal rechtsboven, ⋮ of •••) en kies <b>"App installeren"</b> of <b>"Toevoegen aan startscherm"</b>.</p>
+        <button class="btn btn-ghost btn-full" onclick="closeModal()">Begrepen</button>
+      </div>`);
+    return;
+  }
   closeModal();
   _deferredInstallPrompt.prompt();
   await _deferredInstallPrompt.userChoice;
@@ -820,8 +876,28 @@ function roundTimeStr(s){if(!s)return s;const[h,m]=s.split(':').map(Number);cons
 function getInitials(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 function userName(uid){return allUsers.find(u=>u.uid===uid)?.name||'Onbekend';}
 function userWage(uid){return allUsers.find(u=>u.uid===uid)?.wage||0;}
+function getTheme(){ try{return localStorage.getItem('mhv_theme')||'system';}catch(e){return 'system';} }
+function computeEffectiveTheme(pref){
+  if(pref==='light'||pref==='dark') return pref;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+}
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', computeEffectiveTheme(getTheme()));
+}
+function setTheme(t){
+  try{localStorage.setItem('mhv_theme',t);}catch(e){}
+  applyTheme();
+  const v=document.getElementById('view-profile');
+  if(v&&v.classList.contains('active')) renderProfile();
+}
+try{
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getTheme()==='system') applyTheme(); });
+}catch(e){}
+applyTheme();
+
 function admins(){return allUsers.filter(u=>u.role==='admin');}
-function employees(){return allUsers.filter(u=>u.role!=='admin');}
+function employees(){return allUsers.filter(u=>u.role==='employee');}
+function devs(){return allUsers.filter(u=>u.role==='software');}
 function isPast(shift){const d=toDate(shift.date);const now=new Date();return d<new Date(now.getFullYear(),now.getMonth(),now.getDate());}
 function isToday(shift){return dKey(shift.date)===nowKey();}
 function shiftFinished(shift){
@@ -928,8 +1004,8 @@ async function sendNotif(uid,title,body){
 }
 async function sendNotifMulti(uids,title,body){
   if(!uids.length)return;
-  const{db,collection,addDoc,serverTimestamp}=window._f;
-  await addDoc(collection(db,'notifications'),{to:uids,title,body,from:U.uid,readBy:[],createdAt:serverTimestamp()});
+  // Gebruikt nu hetzelfde systeem als notifyUsers: in-app + pushmelding + e-mail
+  await notifyUsers(uids,title,body,body,{type:'general'});
 }
 
 // ── NAV ──────────────────────────────────────
@@ -955,7 +1031,6 @@ function nav(v,btn){
     });
   }
   if(btn)btn.classList.add('active');
-  try{$('notif-panel').classList.remove('open');}catch(e){}
   render(v);
 }
 function rerender(){
@@ -1505,6 +1580,7 @@ function renderEmployeeAvail(c){
           <div class="avail-date" style="font-size:15px;font-weight:600">${fmtDate(a.date)}</div>
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
+        <button class="btn btn-ghost btn-sm" onclick="editAvailNote('${a.id}','${(a.note||'').replace(/'/g,"\\'")}')">✏</button>
         <button class="btn btn-red btn-sm" onclick="deleteAvail('${a.id}')">Verwijder</button>
       </div>`).join('')}
     ${!myAvail.length?`<div class="empty"><div class="empty-icon">✅</div><p>Geen blokkades ingevoerd</p></div>`:''}
@@ -1520,13 +1596,21 @@ function renderEmployeeAvail(c){
   `;
 }
 function openAvailModal(){
+  const todayStr=new Date().toISOString().split('T')[0];
   modal(`
     <div class="modal-handle"></div>
     <div class="modal-title">Niet beschikbaar</div>
-    <div class="form-section">
-      <label class="form-label">Datum</label>
-      <input type="date" class="form-input" id="aDate" min="${new Date().toISOString().split('T')[0]}">
+    <div class="form-row">
+      <div class="form-section">
+        <label class="form-label">Van</label>
+        <input type="date" class="form-input" id="aDateStart" min="${todayStr}" value="${todayStr}" onchange="if(document.getElementById('aDateEnd').value<this.value)document.getElementById('aDateEnd').value=this.value;document.getElementById('aDateEnd').min=this.value;">
+      </div>
+      <div class="form-section">
+        <label class="form-label">T/m</label>
+        <input type="date" class="form-input" id="aDateEnd" min="${todayStr}" value="${todayStr}">
+      </div>
     </div>
+    <p style="font-size:12px;color:var(--text3);margin:-8px 0 12px">Kies dezelfde datum voor beide velden voor één losse dag, of een langere periode voor bijv. vakantie.</p>
     <div class="form-section">
       <label class="form-label">Reden (optioneel)</label>
       <input type="text" class="form-input" id="aNote" placeholder="Vakantie, verjaardag…">
@@ -1535,12 +1619,23 @@ function openAvailModal(){
   `);
 }
 async function saveAvail(){
-  const v=$('aDate').value, note=$('aNote').value;
-  if(!v){toast('Kies een datum','err');return;}
-  const[y,m,d]=v.split('-').map(Number);
+  const vs=$('aDateStart').value, ve=$('aDateEnd').value||vs, note=$('aNote').value;
+  if(!vs){toast('Kies een datum','err');return;}
+  const[ys,ms,ds]=vs.split('-').map(Number);
+  const[ye,me,de]=ve.split('-').map(Number);
+  const start=new Date(ys,ms-1,ds), end=new Date(ye,me-1,de);
+  if(end<start){toast('Einddatum ligt vóór begindatum','err');return;}
+  const dayCount=Math.round((end-start)/86400000)+1;
+  if(dayCount>90){toast('Maximaal 90 dagen in één keer','err');return;}
   const{db,collection,addDoc,Timestamp,serverTimestamp}=window._f;
-  await addDoc(collection(db,'availability'),{uid:U.uid,date:Timestamp.fromDate(new Date(y,m-1,d)),note,createdAt:serverTimestamp()});
-  closeModal();toast('Opgeslagen!','ok');
+  const promises=[];
+  for(let i=0;i<dayCount;i++){
+    const d=new Date(start); d.setDate(d.getDate()+i);
+    promises.push(addDoc(collection(db,'availability'),{uid:U.uid,date:Timestamp.fromDate(d),note,createdAt:serverTimestamp()}));
+  }
+  await Promise.all(promises);
+  closeModal();
+  toast(dayCount>1?`${dayCount} dagen opgeslagen!`:'Opgeslagen!','ok');
 }
 async function deleteAvail(id){
   const ok=await confirm2('Verwijderen','Blokkade verwijderen?','Verwijderen');
@@ -1548,6 +1643,18 @@ async function deleteAvail(id){
   const{db,doc,deleteDoc}=window._f;
   await deleteDoc(doc(db,'availability',id));
   toast('Verwijderd','ok');
+}
+async function editAvailNote(id,currentNote){
+  modal(`<div class="modal-handle"></div>
+    <div class="modal-title">Reden bewerken</div>
+    <div class="form-section"><input type="text" class="form-input" id="editAvailNoteInput" value="${currentNote.replace(/"/g,'&quot;')}" placeholder="Vakantie, verjaardag…"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveAvailNote('${id}')">Opslaan</button>`);
+}
+async function saveAvailNote(id){
+  const note=document.getElementById('editAvailNoteInput')?.value||'';
+  const{db,doc,updateDoc}=window._f;
+  await updateDoc(doc(db,'availability',id),{note});
+  closeModal(); toast('Opgeslagen!','ok');
 }
 
 // ═══════════════════════════════════════════
@@ -1624,7 +1731,7 @@ function openAddEmployee(){
     <div class="form-section"><label class="form-label">Rol</label>
       <select class="form-input" id="eRole" style="padding:10px 12px" onchange="document.getElementById('eWageWrap').style.display=this.value==='employee'?'block':'none'">
         <option value="employee">👤 Medewerker</option>
-        <option value="software">🛠 Developer (dev)</option>
+        ${U.role==='software'?'<option value="software">🛠 Developer (dev)</option>':''}
         <option value="admin">👑 Beheerder</option>
       </select></div>
     <div class="form-section" id="eWageWrap"><label class="form-label">Uurtarief (€)</label>
@@ -1673,10 +1780,11 @@ function openEditEmployee(uid){
     <div class="form-section"><label class="form-label">Rol</label>
       <select class="form-input" id="eeRole" style="padding:10px 12px" ${isMe?'disabled':''}>
         <option value="employee" ${u.role==='employee'?'selected':''}>👤 Medewerker</option>
-        <option value="software" ${u.role==='software'?'selected':''}>🛠 Developer (dev)</option>
+        ${(U.role==='software'||u.role==='software')?`<option value="software" ${u.role==='software'?'selected':''}>🛠 Developer (dev)</option>`:''}
         <option value="admin" ${u.role==='admin'?'selected':''}>👑 Beheerder</option>
       </select>
       ${isMe?'<p style="font-size:12px;color:var(--text3);margin-top:6px">Je kunt je eigen rol niet aanpassen.</p>':''}
+      ${U.role!=='software'?'<p style="font-size:12px;color:var(--text3);margin-top:6px">Alleen een dev-account kan de dev-rol toewijzen of intrekken.</p>':''}
     </div>
     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
   `);
@@ -1742,6 +1850,7 @@ async function deleteEmployee(uid,name){
 function openAddShift(){
   const tom=new Date(); tom.setDate(tom.getDate()+1);
   const tomKey=dKey(tom);
+  window._shiftNoteImg=null;
   modal(`
     <div class="modal-handle"></div>
     <div class="modal-title">Dienst toevoegen</div>
@@ -1755,8 +1864,10 @@ function openAddShift(){
     </div>
     <label class="form-label">Medewerkers</label>
     <div id="workerList">${buildWorkerList(tomKey)}</div>
+    ${noteFieldHtml('','')}
     <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveShift()">Opslaan</button>
   `);
+  bindNoteImgInput();
 }
 function buildWorkerList(dayKey){
   const bl=blockedOn(dayKey).map(a=>a.uid);
@@ -1776,6 +1887,7 @@ window.refreshWorkers=(v)=>{const wl=$('workerList');if(wl){const[y,m,d]=v.split
 async function saveShift(){
   const dateVal=$('sDate').value, start=$('sStart').value, end=$('sEnd').value;
   const workers=[...document.querySelectorAll('#workerList input:checked')].map(i=>i.value);
+  const note=($('esNote')?.value||'').trim();
   if(!dateVal||!start||!end){toast('Vul alles in','err');return;}
   if(!workers.length){toast('Kies minstens één medewerker','err');return;}
   const[y,m,d]=dateVal.split('-').map(Number);
@@ -1786,11 +1898,42 @@ async function saveShift(){
     date:Timestamp.fromDate(new Date(y,m-1,d)),
     startTime:startR,endTime:endR,workers,
     workerConfirmations:confs,finalTimes:{},
+    note:note||null, noteImage:window._shiftNoteImg||null,
     createdBy:U.uid,createdAt:serverTimestamp()
   });
+  window._shiftNoteImg=null;
   const dateStr=new Date(y,m-1,d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-  await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${endR}.`);
+  await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${endR}.`+(note?`\n\n📝 ${note}`:''));
   closeModal(); toast('Dienst aangemaakt!','ok');
+}
+function noteFieldHtml(note,noteImage){
+  return `<div class="form-section" style="margin-top:14px"><label class="form-label">📝 Notitie voor medewerker(s) (optioneel)</label>
+      <textarea class="form-input" id="esNote" rows="2" style="resize:none" placeholder="Bijv. Extra krukken klaarzetten, of speciale instructies...">${note||''}</textarea>
+      <input type="file" id="esNoteImg" accept="image/*" class="form-input" style="padding:8px;margin-top:8px">
+      <div id="esNoteImgPreview" style="margin-top:8px">${noteImage?`<img src="${noteImage}" style="max-width:100%;border-radius:10px;max-height:120px"><button type="button" onclick="window._shiftNoteImg=null;document.getElementById('esNoteImgPreview').innerHTML=''" style="display:block;margin-top:6px;background:none;border:none;color:var(--red);font-size:12px;cursor:pointer">Afbeelding verwijderen</button>`:''}</div>
+    </div>`;
+}
+function bindNoteImgInput(){
+  const imgInput=document.getElementById('esNoteImg');
+  if(imgInput) imgInput.onchange=function(){
+    const file=this.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        const max=900; let w=img.width,h=img.height;
+        if(w>max){h=Math.round(h*max/w);w=max;}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        window._shiftNoteImg=canvas.toDataURL('image/jpeg',0.75);
+        const prev=document.getElementById('esNoteImgPreview');
+        if(prev) prev.innerHTML='<img src="'+window._shiftNoteImg+'" style="max-width:100%;border-radius:10px;max-height:120px">';
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 }
 function openEditShift(shiftId){
   const s=allShifts.find(x=>x.id===shiftId); if(!s)return;
@@ -1819,33 +1962,10 @@ function openEditShift(shiftId){
           </div>
         </label>`).join('')}
     </div>
-    <div class="form-section" style="margin-top:14px"><label class="form-label">📝 Notitie voor medewerker(s) (optioneel)</label>
-      <textarea class="form-input" id="esNote" rows="2" style="resize:none" placeholder="Bijv. Extra krukken klaarzetten, of speciale instructies...">${s.note||''}</textarea>
-      <input type="file" id="esNoteImg" accept="image/*" class="form-input" style="padding:8px;margin-top:8px">
-      <div id="esNoteImgPreview" style="margin-top:8px">${s.noteImage?`<img src="${s.noteImage}" style="max-width:100%;border-radius:10px;max-height:120px"><button type="button" onclick="window._shiftNoteImg=null;document.getElementById('esNoteImgPreview').innerHTML=''" style="display:block;margin-top:6px;background:none;border:none;color:var(--red);font-size:12px;cursor:pointer">Afbeelding verwijderen</button>`:''}</div>
-    </div>
+    ${noteFieldHtml(s.note, s.noteImage)}
     <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveEditShift('${shiftId}')">Opslaan</button>
   `);
-  const imgInput=document.getElementById('esNoteImg');
-  if(imgInput) imgInput.onchange=function(){
-    const file=this.files[0]; if(!file)return;
-    const reader=new FileReader();
-    reader.onload=e=>{
-      const img=new Image();
-      img.onload=()=>{
-        const canvas=document.createElement('canvas');
-        const max=900; let w=img.width,h=img.height;
-        if(w>max){h=Math.round(h*max/w);w=max;}
-        canvas.width=w;canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        window._shiftNoteImg=canvas.toDataURL('image/jpeg',0.75);
-        const prev=document.getElementById('esNoteImgPreview');
-        if(prev) prev.innerHTML='<img src="'+window._shiftNoteImg+'" style="max-width:100%;border-radius:10px;max-height:120px">';
-      };
-      img.src=e.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
+  bindNoteImgInput();
 }
 async function saveEditShift(shiftId){
   const dateVal=$('esDate').value, start=$('esStart').value, end=$('esEnd').value;
@@ -1866,7 +1986,7 @@ async function saveEditShift(shiftId){
   });
   // Nieuwe/gewijzigde notitie -> medewerkers een melding sturen
   if(note && (!hadNote || note!==s.note)){
-    await notifyUsers(workers,'📝 Notitie bij je dienst',note,note,{type:'general'});
+    await notifyUsers(workers,'📝 Notitie bij je dienst',note,note,{type:'general',email:false});
   }
   window._shiftNoteImg=null;
   closeModal(); toast('Bijgewerkt!','ok');
@@ -2241,22 +2361,166 @@ function openSendToAdmin(){
 // ═══════════════════════════════════════════
 // PROFIEL
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// APP-TOUR — automatisch bij de allereerste login ooit, of handmatig via Profiel
+// ═══════════════════════════════════════════
+const TOUR_STEPS_BASE = [
+  {icon:'👋', title:'Welkom bij MHVwork!', body:'Even in een paar stappen laten zien wat je hier allemaal kan. Dit duurt maar een minuutje.'},
+  {icon:'🏠', title:'Home', body:'Je startpagina met je komende diensten, verdiensten en eventuele aankondigingen.'},
+  {icon:'📅', title:'Rooster', body:'Hier zie je al je diensten. Tik op een dag in de kalender voor de details, of exporteer een dienst naar je eigen agenda.'},
+  {icon:'🚫', title:'Beschikbaarheid', body:'Geef hier aan wanneer je niet kunt werken — ook voor een hele periode in één keer, bijvoorbeeld je vakantie.'},
+  {icon:'💬', title:'Groepschat', body:'Praat mee met iedereen. Gebruik @naam om iemand te taggen, of vraag om een dienst te ruilen.'},
+  {icon:'🔔', title:'Meldingen', body:'Systeemberichten én privéberichten, allemaal op één plek.'},
+  {icon:'👤', title:'Profiel', body:'Je eigen gegevens, wachtwoord wijzigen, licht/donker thema, en deze rondleiding nog eens terugkijken.'},
+];
+const TOUR_STEPS_ADMIN = [
+  {icon:'🛠', title:'Beheer', body:'Medewerkers uitnodigen, diensten inplannen, uitbetalingen bijhouden en instellingen aanpassen — allemaal hier.'},
+];
+function startAppTour(){
+  const steps = U && U.role==='employee' ? TOUR_STEPS_BASE : [...TOUR_STEPS_BASE, ...TOUR_STEPS_ADMIN];
+  let i=0;
+  function showStep(){
+    const s=steps[i];
+    const isLast=i===steps.length-1;
+    modal(`<div class="modal-handle"></div>
+      <div style="text-align:center;padding:8px 0 4px">
+        <div style="font-size:46px;margin-bottom:10px">${s.icon}</div>
+        <div class="modal-title" style="text-align:center">${s.title}</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:12px 0 20px">${s.body}</p>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:18px">
+          ${steps.map((_,idx)=>`<div style="width:6px;height:6px;border-radius:50%;background:${idx===i?'var(--mhv-yellow)':'var(--separator)'}"></div>`).join('')}
+        </div>
+        <button class="btn btn-yellow btn-full" onclick="tourNext()">${isLast?'Aan de slag!':'Volgende'}</button>
+        ${!isLast?'<button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal();markTourSeen()">Overslaan</button>':''}
+      </div>`);
+  }
+  window.tourNext=()=>{
+    i++;
+    if(i>=steps.length){ closeModal(); markTourSeen(); return; }
+    showStep();
+  };
+  showStep();
+}
+async function markTourSeen(){
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'users',U.uid),{tourSeen:true});
+    U.tourSeen=true;
+  }catch(e){}
+}
+function maybeShowFirstTour(){
+  if(U && !U.tourSeen){
+    const justRegistered=new URLSearchParams(window.location.search).get('justRegistered')==='1';
+    setTimeout(()=>startAppTour(), justRegistered?4000:1400);
+  }
+}
+
+// ═══════════════════════════════════════════
+// LOGIN/LOGOUT-LOGBOEK — alleen zichtbaar voor dev, en gebruikt voor eigen apparaat-info bij Profiel.
+// Nooit blokkerend voor de gebruiker.
+// ═══════════════════════════════════════════
+function simpleDeviceLabel(){
+  const ua=navigator.userAgent||'';
+  let os='Onbekend apparaat';
+  if(/iphone/i.test(ua))os='iPhone';
+  else if(/ipad/i.test(ua))os='iPad';
+  else if(/android/i.test(ua))os='Android';
+  else if(/macintosh/i.test(ua))os='Mac';
+  else if(/windows/i.test(ua))os='Windows';
+  else if(/linux/i.test(ua))os='Linux';
+  let browser='';
+  if(/edg\//i.test(ua))browser='Edge';
+  else if(/chrome\//i.test(ua)&&!/edg\//i.test(ua))browser='Chrome';
+  else if(/safari\//i.test(ua)&&!/chrome\//i.test(ua))browser='Safari';
+  else if(/firefox\//i.test(ua))browser='Firefox';
+  return browser?`${os} · ${browser}`:os;
+}
+async function logLoginEvent(){
+  try{
+    const{db,doc,updateDoc,collection,addDoc,serverTimestamp,arrayUnion}=window._f;
+    const device=simpleDeviceLabel();
+    const logRef=await addDoc(collection(db,'loginLogs'),{
+      uid:U.uid, type:'login', device, userAgent:navigator.userAgent, ip:null, createdAt:serverTimestamp()
+    });
+    const userRef=doc(db,'users',U.uid);
+    const updates={ lastLoginAt:serverTimestamp(), lastDevice:device, knownDevices:arrayUnion(device) };
+    if(!U.firstLoginAt) updates.firstLoginAt=serverTimestamp();
+    await updateDoc(userRef,updates);
+    // IP ophalen op de achtergrond — als dit faalt of traag is, merkt de gebruiker er niks van
+    fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{
+      if(d&&d.ip) updateDoc(logRef,{ip:d.ip}).catch(()=>{});
+    }).catch(()=>{});
+  }catch(e){ console.warn('logLoginEvent:',e); }
+}
+async function logLogoutEvent(){
+  try{
+    const{db,collection,addDoc,serverTimestamp}=window._f;
+    await addDoc(collection(db,'loginLogs'),{
+      uid:U.uid, type:'logout', device:simpleDeviceLabel(), userAgent:navigator.userAgent, ip:null, createdAt:serverTimestamp()
+    });
+  }catch(e){}
+}
+
 function renderProfile(){
   const c=$('view-profile'); if(!c)return;
+  const isDev=U.role==='software';
+  const memberSince=U.memberSince||U.createdAt;
+  const myShiftsAll=allShifts.filter(s=>s.workers?.includes(U.uid));
+  const totalEarned=myShiftsAll.reduce((sum,s)=>sum+getApprovedPay(s,U.uid),0);
+  const shiftCount=myShiftsAll.filter(s=>getShiftStatus(s,U.uid)==='approved'||getShiftStatus(s,U.uid)==='paid').length;
   c.innerHTML=`
     <div class="page-title" style="margin-bottom:16px">Profiel</div>
     <div class="prof-card">
-      <div class="prof-avatar">${getInitials(U.name)}</div>
-      <div class="prof-name">${U.name}</div>
+      <div class="prof-avatar" style="${isDev?'background:var(--mhv-blue)':''}">${isDev?`<img src="${LOGO}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:getInitials(U.name)}</div>
+      <div class="prof-name">${U.name}${isDev?' <span style="color:var(--mhv-blue)" title="Geverifieerd dev-account">✔️</span>':''}</div>
       <div class="prof-sub">${U.email}</div>
-      <div style="margin-top:8px"><span class="badge ${U.role==='admin'?'badge-yellow':'badge-blue'}">${U.role==='admin'?'👑 Beheerder':'Medewerker'}</span></div>
-      ${U.role!=='admin'?`<div class="prof-wage">${fmtMoney(U.wage||0)}<span style="font-size:14px;font-weight:400;color:var(--text3)"> / uur</span></div>`:''}
+      <div style="margin-top:8px"><span class="badge ${U.role==='admin'?'badge-yellow':U.role==='software'?'badge-blue':'badge-blue'}">${U.role==='admin'?'👑 Beheerder':U.role==='software'?'🛠 Developer':'Medewerker'}</span></div>
+      ${U.role==='employee'?`<div class="prof-wage">${fmtMoney(U.wage||0)}<span style="font-size:14px;font-weight:400;color:var(--text3)"> / uur</span></div>`:''}
+    </div>
+
+    ${U.role!=='software'?`
+    <div class="section-label">Statistieken</div>
+    <div class="stats-grid" style="margin-bottom:16px">
+      <div class="stat-tile yellow">
+        <div class="stat-num yellow" style="font-size:15px">${memberSince?.toDate?memberSince.toDate().toLocaleDateString('nl-NL',{month:'short',year:'numeric'}):'—'}</div>
+        <div class="stat-lbl">Lid sinds</div>
+      </div>
+      <div class="stat-tile green">
+        <div class="stat-num green">${shiftCount}</div>
+        <div class="stat-lbl">Diensten gedraaid</div>
+      </div>
+      <div class="stat-tile green" style="grid-column:span 2">
+        <div class="stat-num green" style="font-size:22px">${fmtMoney(totalEarned)}</div>
+        <div class="stat-lbl">Totaal verdiend (goedgekeurd + uitbetaald)</div>
+      </div>
+    </div>
+    <div class="section-label">Dit apparaat & inloggen</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row"><div class="card-row-label">Huidig apparaat</div><div style="color:var(--text3);font-size:13px">${simpleDeviceLabel()}</div></div>
+      <div class="card-row"><div class="card-row-label">Eerste keer ingelogd</div><div style="color:var(--text3);font-size:13px">${U.firstLoginAt?.toDate?U.firstLoginAt.toDate().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}):'Nu'}</div></div>
+      <div class="card-row"><div class="card-row-label">Bekende apparaten</div><div style="color:var(--text3);font-size:13px">${(U.knownDevices||[simpleDeviceLabel()]).length}</div></div>
+    </div>`:''}
+
+    <div class="section-label">Weergave</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row">
+        <div class="card-row-label">🌗 Thema</div>
+        <div style="display:flex;gap:4px;background:var(--bg3);border-radius:10px;padding:3px">
+          <button class="theme-opt ${getTheme()==='light'?'active':''}" onclick="setTheme('light')">☀️</button>
+          <button class="theme-opt ${getTheme()==='dark'?'active':''}" onclick="setTheme('dark')">🌙</button>
+          <button class="theme-opt ${getTheme()==='system'?'active':''}" onclick="setTheme('system')">⚙️</button>
+        </div>
+      </div>
     </div>
 
     <div class="section-label">App</div>
     <div class="card"><div class="card-row">
       <div class="card-row-label">${U.pwaInstalled||isRunningStandalone()?'✅ Geïnstalleerd als app':'📲 Nog niet geïnstalleerd'}</div>
       ${!(U.pwaInstalled||isRunningStandalone())?'<button class="btn btn-ghost btn-sm" onclick="triggerInstall()">Installeer</button>':''}
+    </div>
+    <div class="card-row" style="cursor:pointer" onclick="startAppTour()">
+      <div class="card-row-label">🧭 Rondleiding door de app</div>
+      <div style="color:var(--text3)">›</div>
     </div></div>
 
     ${U.role!=='admin'?`
@@ -2305,6 +2569,7 @@ async function changePw(){
 async function doLogout(){
   const ok=await confirm2('Uitloggen','Weet je zeker dat je wilt uitloggen?','Uitloggen');
   if(!ok)return;
+  try{ await logLogoutEvent(); }catch(e){}
   await window._f.signOut(window._f.auth);
   window.location.href='index.html';
 }
@@ -2317,13 +2582,9 @@ function modal(html){
 }
 function closeModal(){$('modal-root').innerHTML='';}
 function handleModalClick(e){if(e.target.id==='mBg')closeModal();}
-
-// Close notif panel on outside click
-document.addEventListener('click',e=>{
-  const p=$('notif-panel');
-  if(p.classList.contains('open')&&!p.contains(e.target)&&!$('notifBtn').contains(e.target))
-    p.classList.remove('open');
-});
+// (De oude "sluit notif-panel bij klik buiten" listener is verwijderd — dat paneel bestaat niet
+// meer sinds Meldingen een volledige pagina is geworden. Hij verwees naar een niet-bestaand
+// element en gooide daardoor bij ÉÉN keer klikken waar dan ook een fout.)
 
 // ═══════════════════════════════════════════════════════════════
 // PUSH NOTIFICATIES (browser + email)
@@ -2414,7 +2675,7 @@ function renderChat(){
     +'</div>'
     +'<div id="pinnedBar"></div>'
     +'<div class="chat-msgs" id="chatMsgs" style="flex:1;overflow-y:auto;padding:10px 12px"></div>'
-    +'<div id="chatImgPreviewWrap" style="display:none;padding:8px 12px 0"><div style="position:relative;display:inline-block"><img id="chatImgPreview" style="max-height:80px;border-radius:10px;display:block"><button onclick="clearChatImage()" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#000;color:#fff;border:2px solid var(--bg1);font-size:12px;cursor:pointer">✕</button></div></div>'
+    +'<div id="chatImgPreviewWrap" style="display:none;padding:8px 12px 0"><div style="position:relative;display:inline-block"><img id="chatImgPreview" style="max-height:80px;border-radius:10px;display:block"><button onclick="clearChatImage()" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#000;color:#fff;border:2px solid var(--bg);font-size:12px;cursor:pointer">✕</button></div></div>'
     +'<div class="chat-input-wrap" id="chatDropZone" style="margin-top:auto">'
     +'<div class="mention-list" id="mentionList"></div>'
     +'<div class="chat-input-row">'
@@ -2612,7 +2873,15 @@ async function sendChat(){
   clearChatImage();
   // Notificaties versturen
   let notifTargets=[];
-  if(mentionUids.includes('all')) notifTargets=allUsers.filter(u=>u.uid!==U.uid).map(u=>u.uid);
+  if(mentionUids.includes('all')){
+    // Als een BEHEERDER @iedereen tagt, telt dat niet als de dev — een dev moet zelf getagd worden.
+    // Als de DEV @iedereen tagt, dan wél echt iedereen (inclusief andere dev-accounts).
+    notifTargets=allUsers.filter(u=>{
+      if(u.uid===U.uid)return false;
+      if(U.role!=='software' && u.role==='software')return false;
+      return true;
+    }).map(u=>u.uid);
+  }
   else {
     mentionUids.forEach(function(m){
       if(m==='dev') allUsers.filter(u=>u.role==='software').forEach(u=>{ if(!notifTargets.includes(u.uid))notifTargets.push(u.uid); });
@@ -2620,8 +2889,8 @@ async function sendChat(){
       else if(!notifTargets.includes(m)) notifTargets.push(m);
     });
   }
-  // Altijd admins notificeren (tenzij al in lijst)
-  if(U.role!=='admin') allUsers.filter(u=>u.role==='admin').forEach(u=>{ if(!notifTargets.includes(u.uid))notifTargets.push(u.uid); });
+  // Alleen daadwerkelijk getagde mensen krijgen een pushmelding — niet meer automatisch de beheerder
+  // bij elk willekeurig bericht.
   // @tag in de chat -> ALLEEN een pushmelding, nooit een e-mail
   if(notifTargets.length) await notifyUsers(notifTargets,'💬 '+U.name+' in de chat',text||'📷 Foto',text||'📷 Foto',{type:'tag',email:false});
 }
@@ -2673,10 +2942,12 @@ function _renderSwapCard(msg){
   if(status==='accepted') return '<div class="swap-card"><h4>✅ Dienst overgenomen</h4><p>'+( msg.acceptedByName||'Iemand')+' heeft deze dienst overgenomen.</p></div>';
   if(status==='rejected') return '<div class="swap-card"><h4>❌ Afgewezen</h4><p>De beheerder heeft dit verzoek afgewezen.</p></div>';
   // Pending
-  const canAccept=U.uid!==msg.uid&&U.role==='employee';
-  const canApprove=U.role==='admin';
+  const hasInterest = !!msg.interestedName;
+  const canAccept=U.uid!==msg.uid&&U.role==='employee'&&!hasInterest;
+  const canApprove=U.role==='admin'&&hasInterest;
   return '<div class="swap-card"><h4>🔄 Dienst overnemen?</h4>'
     +'<p>'+msg.swapDate+' · '+msg.swapTime+'</p>'
+    +(hasInterest?'<p style="font-size:13px;color:var(--text2);margin-top:4px">👋 <b>'+msg.interestedName+'</b> heeft interesse getoond.</p>':'<p style="font-size:12px;color:var(--text3);margin-top:4px">Nog niemand heeft interesse getoond.</p>')
     +(canAccept?'<div class="swap-actions"><button class="btn btn-green btn-sm" onclick="acceptSwap(\''+msg.swapReqId+'\',\''+msg.id+'\')">Ik neem het over</button></div>':'')
     +(canApprove?'<div class="swap-actions"><button class="btn btn-green btn-sm" onclick="approveSwap(\''+msg.swapReqId+'\',\''+msg.id+'\')">✓ Goedkeuren</button><button class="btn btn-red btn-sm" onclick="rejectSwap(\''+msg.swapReqId+'\',\''+msg.id+'\')">✗ Afwijzen</button></div>':'')
     +'</div>';
@@ -2827,6 +3098,7 @@ function renderDev(){
     +'<button class="pill-tab '+(devSubTab==='msg'?'active':'')+'" onclick="setDevSubTab(\'msg\',this)">📨 Melding</button>'
     +'<button class="pill-tab '+(devSubTab==='acc'?'active':'')+'" onclick="setDevSubTab(\'acc\',this)">👥 Accounts</button>'
     +'<button class="pill-tab '+(devSubTab==='ann'?'active':'')+'" onclick="setDevSubTab(\'ann\',this)">📢 Aankondiging</button>'
+    +'<button class="pill-tab '+(devSubTab==='log'?'active':'')+'" onclick="setDevSubTab(\'log\',this)">📋 Logboek</button>'
     +'</div>';
 
   v.innerHTML=
@@ -2899,16 +3171,27 @@ function renderDevSubTab(){
   if(tab==='acc'){
     const rows=allUsers.map(function(u){
       const badge=u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray';
-      return '<div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--separator)">'
-        +'<div class="avatar">'+getInitials(u.name)+'</div>'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
+      const isSuspended=!!u.suspended;
+      const isMe=u.uid===U.uid;
+      return '<div style="padding:13px 16px;border-bottom:1px solid var(--separator)">'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+        +'<div class="avatar" style="'+(u.role==='software'?'background:var(--mhv-blue)':'')+(isSuspended?';opacity:.4':'')+'">'
+        +(u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':getInitials(u.name))+'</div>'
+        +'<div style="flex:1;min-width:0'+(isSuspended?';opacity:.5':'')+'">'
+        +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+(u.role==='software'?' ✔️':'')+(isSuspended?' <span style="color:var(--red);font-weight:700">(geschorst)</span>':'')+'</div>'
         +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div>'
         +'</div>'
         +'<span class="badge '+badge+'" style="flex-shrink:0">'+u.role+'</span>'
+        +'</div>'
+        +(isMe?'':'<div style="display:flex;gap:6px;margin-top:10px">'
+          +'<button class="btn btn-ghost btn-sm" style="flex:1" onclick="openEditEmployee(\''+u.uid+'\')">✏ Rol/gegevens</button>'
+          +'<button class="btn '+(isSuspended?'btn-green':'btn-ghost')+' btn-sm" style="flex:1" onclick="toggleSuspend(\''+u.uid+'\','+isSuspended+')">'+(isSuspended?'✓ Activeer':'⏸ Schors')+'</button>'
+          +'<button class="btn btn-red btn-sm" onclick="deleteEmployeeDev(\''+u.uid+'\',\''+u.name.replace(/'/g,"&#39;")+'\')">🗑</button>'
+          +'</div>')
         +'</div>';
     }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
-    cont.innerHTML='<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden">'+rows+'</div>';
+    cont.innerHTML='<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Gebruiker uitnodigen</button>'
+      +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden">'+rows+'</div>';
   }
 
   if(tab==='ann'){
@@ -2919,30 +3202,55 @@ function renderDevSubTab(){
       +'<button class="btn btn-yellow btn-full" onclick="openAnnouncementModal()">Aankondiging plaatsen</button>'
       +'</div>';
   }
+
+  if(tab==='log'){
+    cont.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--text3)">Logboek laden…</div>';
+    loadLoginLogs().then(logs=>{
+      if(!document.getElementById('devSubContent')||window._devSubTab!=='log')return;
+      if(!logs.length){ cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Nog geen inlog-activiteit</p></div>'; return; }
+      cont.innerHTML='<p style="font-size:12px;color:var(--text3);margin-bottom:12px">Laatste 100 in-/uitlogmomenten, met apparaat en (indien beschikbaar) IP-adres.</p>'
+        +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden">'
+        +logs.map(l=>{
+          const t=l.createdAt?.toDate?l.createdAt.toDate():null;
+          const name=userName(l.uid);
+          return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center;gap:8px">'
+            +'<div style="min-width:0">'
+            +'<div style="font-size:13px;font-weight:600">'+(l.type==='login'?'🟢':'🔴')+' '+name+' — '+(l.type==='login'?'ingelogd':'uitgelogd')+'</div>'
+            +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(l.device||'?')+(l.ip?' · '+l.ip:' · IP onbekend')+'</div>'
+            +'</div>'
+            +'<div style="font-size:11px;color:var(--text4);flex-shrink:0">'+(t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
+            +'</div>';
+        }).join('')
+        +'</div>';
+    });
+  }
+}
+async function loadLoginLogs(){
+  try{
+    const{db,collection,getDocs,query,orderBy,limit}=window._f;
+    const snap=await getDocs(query(collection(db,'loginLogs'),orderBy('createdAt','desc'),limit(100)));
+    return snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){ console.warn('loadLoginLogs:',e); return []; }
+}
+async function toggleSuspend(uid,current){
+  const{db,doc,updateDoc}=window._f;
+  await updateDoc(doc(db,'users',uid),{suspended:!current});
+  await loadUsers();
+  renderDevSubTab();
+  toast(current?'Account geactiveerd':'Account tijdelijk geschorst','ok');
+}
+async function deleteEmployeeDev(uid,name){
+  const ok=await confirm2('Verwijderen',`Weet je zeker dat je ${name} permanent wil verwijderen?`,'Verwijderen','btn-red');
+  if(!ok)return;
+  const{db,doc,deleteDoc}=window._f;
+  await deleteDoc(doc(db,'users',uid));
+  await loadUsers();
+  renderDevSubTab();
+  toast(`${name} verwijderd`,'ok');
 }
 
 window.toggleDevAll=function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
-window.sendDevMsg=async function(){
-  const rcpts=[...document.querySelectorAll('.dev-rcpt:checked')].map(i=>i.value);
-  const title=document.getElementById('devTitle').value.trim();
-  const body=document.getElementById('devBody').value.trim();
-  const type=document.getElementById('devMsgType').value;
-  if(!rcpts.length){toast('Kies ontvangers','err');return;}
-  if(!title||!body){toast('Vul titel en bericht in','err');return;}
-  if(type==='notif'||type==='both') await notifyUsers(rcpts,title,body,body);
-  if(type==='email'||type==='both'){
-    for(const uid of rcpts){
-      const u=allUsers.find(x=>x.uid===uid);
-      if(u&&u.email) try{ await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{to_email:u.email,to_name:u.name,title,body}); }catch(e){}
-    }
-  }
-  document.getElementById('devTitle').value='';
-  document.getElementById('devBody').value='';
-  document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=false);
-  document.getElementById('devAll').checked=false;
-  toast('Verstuurd naar '+rcpts.length+' gebruiker(s)!','ok');
-};
-
+// (sendDevMsg staat verderop nogmaals gedefinieerd, met extra null-checks — die telt, deze wordt overschreven)
 
 // ═══ HULP — per pagina uitleg i.p.v. de oude promo-video ═══
 const HELP_CONTENT = {
@@ -3204,14 +3512,19 @@ const _FN = {
   handleChatImageFile: handleChatImageFile,
   clearChatImage: clearChatImage,
   saveAppSettings: saveAppSettings,
+  startAppTour: startAppTour,
+  setTheme: setTheme,
+  toggleSuspend: toggleSuspend,
+  deleteEmployeeDev: deleteEmployeeDev,
+  editAvailNote: editAvailNote,
+  saveAvailNote: saveAvailNote,
 };
 Object.keys(_FN).forEach(k => { if(typeof _FN[k]==='function') window[k]=_FN[k]; });
 window.openInviteModal = openAddEmployee;
 window.openEmployeeMsg = openSendToAdmin;
-window.setRTab = setAdminRTab;
 window.openInstallGuide = function(){ toast('Installeer via browser menu','ok'); };
-window.calNav = function(d){ if(window._calNav) window._calNav(d); };
-window.selCalDay = function(d){ if(window._selCalDay) window._selCalDay(d); };
+// (calNav, selCalDay en setRTab worden al correct gedefinieerd bij de rooster-render-functies zelf —
+// hier stonden vroeger kapotte duplicaten die ze overschreven met niet-bestaande functies. Verwijderd.)
 // setAdminTab al gedefinieerd in renderAdmin()
 window.toggleDevAll = function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
 window.sendDevMsg = async function(){

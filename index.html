@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>MHVwork</title>
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -163,6 +163,8 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
 
   <button onclick="openForgot()" style="background:none;border:none;color:#007AFF;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Wachtwoord vergeten?</button>
 
+  <a href="voorwaarden.html" target="_blank" style="display:block;margin-top:14px;text-align:center;color:#8E8E93;font-size:12px;text-decoration:none">Gebruiksvoorwaarden & privacy</a>
+
   <!-- Forgot password form (hidden by default) -->
   <div id="forgotWrap" style="display:none;width:100%">
     <div class="card">
@@ -186,6 +188,15 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
 </div>
 
 <script>
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('suspended') === '1') {
+    const err = document.getElementById('errBox');
+    err.textContent = 'Dit account is tijdelijk geschorst. Neem contact op met de beheerder.';
+    err.style.display = 'block';
+    history.replaceState({}, '', window.location.pathname);
+  }
+});
 async function doLogin() {
   const email = document.getElementById('emailIn').value.trim();
   const pass  = document.getElementById('passIn').value;

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>MHVwork — Account aanmaken</title>
 <meta name="theme-color" content="#0d0d1a">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -143,19 +143,69 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
     <div class="form-card">
       <div class="field-group">
         <label class="field-label">Kies een wachtwoord</label>
-        <input type="password" class="field-input" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password">
+        <div style="position:relative">
+          <input type="password" class="field-input" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password" oninput="updatePwStrength()" style="padding-right:44px">
+          <button type="button" onclick="togglePwVisibility('pw1',this)" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:8px 10px;color:#8E8E93">👁️</button>
+        </div>
+        <div id="pwStrengthBar" style="height:4px;border-radius:2px;background:#E5E5EA;margin-top:8px;overflow:hidden">
+          <div id="pwStrengthFill" style="height:100%;width:0%;border-radius:2px;transition:width .25s ease,background .25s ease"></div>
+        </div>
+        <div id="pwStrengthLabel" style="font-size:12px;color:#8E8E93;margin-top:5px;min-height:16px"></div>
       </div>
       <div class="field-group" style="margin-bottom:8px">
         <label class="field-label">Herhaal wachtwoord</label>
-        <input type="password" class="field-input" id="pw2" placeholder="Zelfde wachtwoord" autocomplete="new-password">
+        <div style="position:relative">
+          <input type="password" class="field-input" id="pw2" placeholder="Zelfde wachtwoord" autocomplete="new-password" style="padding-right:44px">
+          <button type="button" onclick="togglePwVisibility('pw2',this)" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:8px 10px;color:#8E8E93">👁️</button>
+        </div>
       </div>
-      <p class="hint" style="margin-bottom:18px">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</p>
+      <p class="hint" style="margin-bottom:12px">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</p>
+
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:18px;cursor:pointer">
+        <input type="checkbox" id="acceptTerms" style="width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:#1D3FBB">
+        <span style="font-size:13px;color:#3C3C43;line-height:1.5">Ik ga akkoord met de <a href="voorwaarden.html" target="_blank" style="color:#1D3FBB;font-weight:600">gebruiksvoorwaarden en privacyverklaring</a> van MHVwork.</span>
+      </label>
 
       <button class="btn-main" id="regBtn" onclick="doRegister()">Account aanmaken</button>
       <div class="msg-box" id="regMsg" style="margin-top:14px"></div>
     </div>
   </div>
 </div>
+<script>
+function togglePwVisibility(id,btn){
+  const inp=document.getElementById(id);
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁️' : '🙈';
+}
+function pwScore(pw){
+  let score=0;
+  if(!pw) return 0;
+  if(pw.length>=6) score++;
+  if(pw.length>=10) score++;
+  if(/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  return score;
+}
+function updatePwStrength(){
+  const pw=document.getElementById('pw1').value;
+  const score=pwScore(pw);
+  const fill=document.getElementById('pwStrengthFill');
+  const label=document.getElementById('pwStrengthLabel');
+  const levels=[
+    {w:'0%',  c:'#E5E5EA', t:''},
+    {w:'20%', c:'#FF453A', t:'Zeer zwak'},
+    {w:'40%', c:'#FF9500', t:'Zwak'},
+    {w:'60%', c:'#FFD60A', t:'Redelijk'},
+    {w:'80%', c:'#34C759', t:'Sterk'},
+    {w:'100%',c:'#30D158', t:'Zeer sterk'},
+  ];
+  const lvl=levels[score];
+  fill.style.width=lvl.w; fill.style.background=lvl.c;
+  label.textContent=lvl.t;
+  label.style.color=lvl.c;
+}
+</script>
 
 <script>
 function showError(msg) {
@@ -176,6 +226,9 @@ async function doRegister() {
   if (pw1.length < 6) { showMsg('Wachtwoord moet minimaal 6 tekens zijn.','error'); return; }
   if (!/[A-Z]/.test(pw1) || !/[a-z]/.test(pw1) || !/[0-9]/.test(pw1)) {
     showMsg('Wachtwoord moet een hoofdletter, kleine letter en een cijfer bevatten.','error'); return;
+  }
+  if (!document.getElementById('acceptTerms').checked) {
+    showMsg('Je moet akkoord gaan met de gebruiksvoorwaarden om verder te gaan.','error'); return;
   }
 
   btn.disabled = true; btn.textContent = 'Bezig...';
@@ -221,7 +274,10 @@ async function doRegister() {
       email: inv.email,
       wage: inv.wage || 0,
       role: inv.role || 'employee',
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      memberSince: serverTimestamp(),
+      termsAcceptedAt: serverTimestamp(),
+      termsVersion: 'v1-2026'
     });
 
     // Mark invite as used

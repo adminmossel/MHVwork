@@ -11,7 +11,8 @@ Volg deze stappen in volgorde — dit duurt ~10-15 minuten.
 ### Stap 1 — Bestanden uploaden naar GitHub
 1. Ga naar je repo: **https://github.com/adminmossel/MHVwork**
 2. Upload/overschrijf alle meegeleverde bestanden (via "Add file" → "Upload files", sleep alle
-   bestanden erin, en commit direct op de `main`-branch — dat is precies wat GitHub Pages live zet).
+   bestanden erin — inclusief de nieuwe `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`
+   en `voorwaarden.html` — en commit direct op de `main`-branch — dat is precies wat GitHub Pages live zet).
 3. Wacht ~1 minuut tot GitHub Pages de nieuwe versie heeft gepubliceerd.
 
 ### Stap 2 — Firestore Security Rules bijwerken (VERPLICHT)

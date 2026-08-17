@@ -13,8 +13,12 @@ service cloud.firestore {
       // Iedereen mag het EIGEN profiel-document aanmaken (na registratie via invite-link).
       // De Auth-account zelf kan alleen ontstaan via een geldige uitnodigingslink of de
       // hardcoded admin/dev-bypass, dus dit is veilig.
-      allow create: if isAdmin() || (isAuth() && request.auth.uid == uid);
-      allow update: if isAdmin()
+      // Zelf-registratie (na invite-link) blijft toegestaan, zoals voorheen.
+      allow create: if isSoftware()
+        || (isAdmin() && request.resource.data.role != 'software')
+        || (isAuth() && request.auth.uid == uid);
+      allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])))
+        || isSoftware()
         || (isAuth() && request.auth.uid == uid
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage']));
       allow delete: if isStaff();
@@ -32,7 +36,8 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
       allow delete: if (isAuth() && resource.data.uid == request.auth.uid) || isAdmin();
-      allow update: if isAdmin();
+      allow update: if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note']));
     }
 
     match /notifications/{id} {
@@ -105,6 +110,15 @@ service cloud.firestore {
     match /settings/{id} {
       allow read: if isAuth();
       allow write: if isStaff();
+    }
+
+    // Alleen zichtbaar voor de dev-rol
+    match /loginLogs/{id} {
+      allow read: if isSoftware();
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuth() && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ip']);
+      allow delete: if isSoftware();
     }
   }
 }
