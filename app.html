@@ -185,7 +185,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .notif-pill {
   position:relative; width:34px; height:34px; border-radius:50%;
   background:var(--glass2); display:flex; align-items:center; justify-content:center;
-  font-size:16px; transition:background 0.15s;
+  font-size:16px; transition:background 0.15s; color:var(--mhv-yellow);
 }
 .notif-pill:active { background:var(--glass); }
 .notif-dot {
@@ -610,8 +610,10 @@ select.form-input option { background:var(--bg3); }
     <div class="view" id="view-profile"></div>
     <!-- CHAT -->
     <div class="view" id="view-chat" style="padding:0;flex-direction:column;height:calc(100vh - 116px)"></div>
-    <!-- DEV DASHBOARD -->
-    <div class="view" id="view-dev" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
+    <!-- DEV DASHBOARD — eigen pagina's, geen Home; een dev is geen medewerker -->
+    <div class="view" id="view-devacc" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
+    <div class="view" id="view-devann" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
+    <div class="view" id="view-devlog" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
     <!-- MELDINGEN (volledige pagina: systeemberichten + privéberichten) -->
     <div class="view" id="view-meldingen"></div>
 
@@ -646,10 +648,18 @@ select.form-input option { background:var(--bg3); }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       <span class="tab-label">Profiel</span>
     </button>
-    <!-- Dev-only tabs (verborgen voor anderen) -->
-    <button class="tab dev-only" style="display:none" onclick="nav('dev',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      <span class="tab-label">Dev</span>
+    <!-- Dev-only tabs: eigen navigatiestructuur, GEEN Home zoals een medewerker — een dev is geen medewerker -->
+    <button class="tab dev-only" style="display:none" onclick="nav('devacc',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="tab-label">Beheer</span>
+    </button>
+    <button class="tab dev-only" style="display:none" onclick="nav('devann',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
+      <span class="tab-label">Aankondig.</span>
+    </button>
+    <button class="tab dev-only" style="display:none" onclick="nav('devlog',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11H1l3-3m0 6l-3-3"/><path d="M14 3h7v18h-7"/><line x1="10" y1="8" x2="10" y2="8"/></svg>
+      <span class="tab-label">Logboek</span>
     </button>
   </nav>
 </div>
@@ -665,6 +675,7 @@ select.form-input option { background:var(--bg3); }
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 
 // ════════════════════════════════════════════
@@ -696,10 +707,11 @@ window.addEventListener('mhv:ready', async ()=>{
       const tl=safeEl('tab-avail-label'); if(tl) tl.textContent='Beschikbaar';
     }
     if(U.role==='software'){
-      // Dev: verberg roster/beschikbaar/beheer, toon dev tab
+      // Dev: verberg roster/beschikbaar/beheer/home — een dev is geen medewerker en heeft z'n
+      // eigen navigatie (Beheer/Aankondiging/Logboek + Chat/Profiel/Meldingen die iedereen deelt).
       document.querySelectorAll('.tab').forEach(t=>{
         const lbl=t.querySelector('.tab-label');
-        if(lbl&&['Rooster','Beschikbaar','Beheer'].includes(lbl.textContent)) t.style.display='none';
+        if(lbl&&['Home','Rooster','Beschikbaar','Beheer'].includes(lbl.textContent)) t.style.display='none';
       });
       document.querySelectorAll('.dev-only').forEach(t=>t.style.display='flex');
     }
@@ -711,21 +723,21 @@ window.addEventListener('mhv:ready', async ()=>{
     try { subNotifs(); } catch(e){}
     try { subDMs(); } catch(e){}
     if(U.role!=='software'){ try { subAvail(); } catch(e){} }
-    try { render(U.role==='software'?'dev':'home'); } catch(e){ console.warn('render:',e); }
+    try { render(U.role==='software'?'devacc':'home'); } catch(e){ console.warn('render:',e); }
   } catch(err){ console.error('mhv:ready fout:', err); }
   finally {
     const l=document.getElementById('loader'), a=document.getElementById('app');
     if(l) l.style.display='none';
     if(a) a.style.display='flex';
     // Toon de startview — forceer display
-    const startView=U&&U.role==='software'?'dev':'home';
+    const startView=U&&U.role==='software'?'devacc':'home';
     document.querySelectorAll('.view').forEach(x=>{
       x.style.display='none';
       x.classList.remove('active');
     });
     const startEl=document.getElementById('view-'+startView);
     if(startEl){
-      startEl.style.display=startView==='dev'?'flex':'block';
+      startEl.style.display='block';
       startEl.classList.add('active');
     }
     // (hulp-uitleg nu alleen op de loginpagina)
@@ -844,18 +856,23 @@ function subNotifs(){
   });
 }
 function subAvail(){
-  const {db,collection,onSnapshot,orderBy,query,where}=window._f;
+  const {db,collection,onSnapshot,query,where}=window._f;
   const col=collection(db,'availability');
-  const q=U.role==='admin'
-    ? query(col,orderBy('date','asc'))
-    : query(col,where('uid','==',U.uid),orderBy('date','asc'));
+  // Geen orderBy meer i.c.m. where() — dat vereist een Firestore composite index die er nooit was,
+  // en zonder foutafhandeling faalde dit voor medewerkers TOTAAL stil (vandaar dat eigen afwezigheid
+  // nooit zichtbaar was). We sorteren nu gewoon client-side.
+  const q=U.role==='admin' ? query(col) : query(col,where('uid','==',U.uid));
   unsubAvail=onSnapshot(q,s=>{
-    allAvail=s.docs.map(d=>({id:d.id,...d.data()}));
+    allAvail=s.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>{const ta=toDate(a.date)?.getTime()||0;const tb=toDate(b.date)?.getTime()||0;return ta-tb;});
     try{
       const av=document.getElementById('view-avail');
       if(av&&av.classList.contains('active')) render('avail');
     }catch(e){ console.error('subAvail render error:',e); }
     renderCal();
+  }, err=>{
+    console.error('subAvail FOUT (afwezigheid kon niet geladen worden):', err);
+    toast('Beschikbaarheid laden mislukt — probeer de app te verversen','err');
   });
 }
 
@@ -951,6 +968,66 @@ async function saveAppSettings(){
 }
 
 // ═══════════════════════════════════════════
+// EXCEL-EXPORT VAN DIENSTEN
+// Layout: linksboven de periode, linkerkolom medewerkersnamen, bovenste rij elke datum met
+// een dienst in die periode, en per cel een kruisje + tijd(en) als die medewerker die dag werkt(e).
+// ═══════════════════════════════════════════
+function exportShiftsExcel(){
+  const fromVal=document.getElementById('xlsFrom')?.value;
+  const toVal=document.getElementById('xlsTo')?.value;
+  if(!fromVal||!toVal){toast('Kies een van- en t/m-datum','err');return;}
+  const[fy,fm,fd]=fromVal.split('-').map(Number);
+  const[ty,tm,td]=toVal.split('-').map(Number);
+  const from=new Date(fy,fm-1,fd), to=new Date(ty,tm-1,td,23,59,59);
+  if(to<from){toast('T/m-datum ligt vóór de van-datum','err');return;}
+
+  const inRange=allShifts.filter(s=>{const d=toDate(s.date); return d>=from&&d<=to;});
+  if(!inRange.length){toast('Geen diensten gevonden in deze periode','err');return;}
+
+  // Unieke datums (kolommen), gesorteerd
+  const dateKeys=[...new Set(inRange.map(s=>dKey(s.date)))].sort();
+  // Medewerkers die in deze periode minstens één dienst hebben (rijen), alfabetisch
+  const uidsInRange=[...new Set(inRange.flatMap(s=>s.workers||[]))];
+  const rowsUsers=uidsInRange.map(uid=>allUsers.find(u=>u.uid===uid)).filter(Boolean)
+    .sort((a,b)=>a.name.localeCompare(b.name,'nl'));
+
+  const periodeLabel=`${from.toLocaleDateString('nl-NL',{day:'2-digit',month:'short'})} - ${to.toLocaleDateString('nl-NL',{day:'2-digit',month:'short'})}`;
+  const dateLabels=dateKeys.map(k=>{const[y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'});});
+
+  // AOA = array-of-arrays, precies zoals gevraagd: linksboven periode, rechtsboven elke datum,
+  // linkerkolom medewerkersnamen, kruisjes+tijden in de cellen.
+  const aoa=[];
+  aoa.push([periodeLabel, ...dateLabels]);
+  rowsUsers.forEach(u=>{
+    const row=[u.name];
+    dateKeys.forEach(k=>{
+      const shift=inRange.find(s=>dKey(s.date)===k && s.workers?.includes(u.uid));
+      if(!shift){ row.push(''); return; }
+      const{start,end}=getEffectiveTimes(shift,u.uid);
+      row.push(`X ${start}-${end}`);
+    });
+    aoa.push(row);
+  });
+
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:20},...dateKeys.map(()=>({wch:14}))];
+  // Kopregel + medewerkerskolom vetgedrukt
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let C=range.s.c;C<=range.e.c;C++){
+    const cell=ws[XLSX.utils.encode_cell({r:0,c:C})];
+    if(cell) cell.s={font:{bold:true}};
+  }
+  for(let R=range.s.r;R<=range.e.r;R++){
+    const cell=ws[XLSX.utils.encode_cell({r:R,c:0})];
+    if(cell) cell.s={font:{bold:true}};
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Diensten');
+  XLSX.writeFile(wb,`MHVwork-diensten_${fromVal}_tot_${toVal}.xlsx`);
+  toast('Excel-bestand gedownload!','ok');
+}
+
+// ═══════════════════════════════════════════
 // BEVESTIGINGS-REMINDERS
 // Draait client-side telkens als iemand de app opent (geen server/cron nodig op GitHub Pages).
 // Beheerders checken ALLE diensten (mag van de Firestore-rules), medewerkers alleen die van zichzelf.
@@ -959,9 +1036,11 @@ async function checkShiftReminders(){
   if(!allShifts.length){ await new Promise(r=>setTimeout(r,1200)); }
   await loadSettings();
   const{db,doc,updateDoc,serverTimestamp}=window._f;
-  const targets = U.role==='admin' ? allShifts : allShifts.filter(s=>s.workers?.includes(U.uid));
   const now=Date.now();
-  for(const s of targets){
+
+  // ── 1) Onbevestigde diensten NA afloop (bestaand systeem) ──
+  const finishedTargets = U.role==='admin' ? allShifts : allShifts.filter(s=>s.workers?.includes(U.uid));
+  for(const s of finishedTargets){
     if(!shiftFinished(s)) continue;
     const uids = U.role==='admin' ? (s.workers||[]) : [U.uid];
     for(const uid of uids){
@@ -975,12 +1054,52 @@ async function checkShiftReminders(){
       if(!already[uid]){
         try{
           await updateDoc(doc(db,'shifts',s.id),{[`reminderSent.${uid}`]:true});
-          if(uid===U.uid) await notifyUsers([uid],'⏰ Bevestig je dienst',`Je dienst op ${fmtDate(s.date)} is voorbij — bevestig je gewerkte tijd in de app.`,`Je dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) is voorbij. Ga naar Rooster om je tijd te bevestigen.`,{type:'general'});
+          if(uid===U.uid) await notifyUsers([uid],'👋 Hoe was je dienst?',`Je dienst op ${fmtDate(s.date)} is voorbij — bevestig je gewerkte tijd in de app.`,`Je dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) is voorbij. Ga naar Rooster om je tijd te bevestigen.`,{type:'general'});
         }catch(e){}
       } else if(hoursSince>=APP_SETTINGS.reminderHours && !already2[uid]){
         try{
           await updateDoc(doc(db,'shifts',s.id),{[`reminder2Sent.${uid}`]:true,[`confirmationLocked.${uid}`]:true});
           if(uid===U.uid) await notifyUsers([uid],'⏰ Nog steeds niet bevestigd!',`Je dienst op ${fmtDate(s.date)} staat nog open — bevestig 'm zo snel mogelijk.`,`Herinnering: je dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) is nog niet bevestigd, dit staat al ${APP_SETTINGS.reminderHours}+ uur open.`,{type:'general'});
+        }catch(e){}
+      }
+    }
+  }
+
+  // ── 2) Herinneringen VÓÓR een dienst: dag ervoor + 1 uur ervoor ──
+  // Let op: dit draait client-side (checkt zodra iemand de app opent), geen exacte cronjob —
+  // op GitHub Pages zonder Cloud Functions kan dat niet nauwkeuriger op de minuut.
+  const upcomingMine = allShifts.filter(s=>s.workers?.includes(U.uid) && !shiftFinished(s));
+  for(const s of upcomingMine){
+    const d=toDate(s.date);
+    const[sh,sm]=(s.startTime||'00:00').split(':').map(Number);
+    const shiftStart=new Date(d.getFullYear(),d.getMonth(),d.getDate(),sh,sm).getTime();
+    const hoursUntil=(shiftStart-now)/36e5;
+    const dayFlag=s.dayBeforeSent||{}; const hourFlag=s.hourBeforeSent||{};
+    if(hoursUntil<=24 && hoursUntil>0 && !dayFlag[U.uid]){
+      try{
+        await updateDoc(doc(db,'shifts',s.id),{[`dayBeforeSent.${U.uid}`]:true});
+        await notifyUsers([U.uid],'📅 Morgen dienst!',`Je hebt morgen een dienst van ${s.startTime} tot ${s.endTime}.`,`Herinnering: je hebt morgen (${fmtDate(s.date)}) een dienst van ${s.startTime} tot ${s.endTime}.`,{type:'general',email:false});
+      }catch(e){}
+    }
+    if(hoursUntil<=1 && hoursUntil>0 && !hourFlag[U.uid]){
+      try{
+        await updateDoc(doc(db,'shifts',s.id),{[`hourBeforeSent.${U.uid}`]:true});
+        await notifyUsers([U.uid],'⏰ Bijna je dienst!',`Je dienst begint over ongeveer een uur (${s.startTime}).`,`Je dienst van vandaag begint over ongeveer een uur, om ${s.startTime}.`,{type:'general',email:false});
+      }catch(e){}
+    }
+  }
+
+  // ── 3) Niet-toegewezen diensten die naderen — beheerder herinneren ──
+  if(U.role==='admin'){
+    const unassigned = allShifts.filter(s=>!(s.workers&&s.workers.length) && !shiftFinished(s));
+    for(const s of unassigned){
+      const d=toDate(s.date);
+      const hoursUntil=(d.getTime()-now)/36e5;
+      if(hoursUntil<=48 && hoursUntil>0 && !s.unassignedReminderSent){
+        try{
+          await updateDoc(doc(db,'shifts',s.id),{unassignedReminderSent:true});
+          const admins=allUsers.filter(u=>u.role==='admin').map(u=>u.uid);
+          await notifyUsers(admins,'🟠 Dienst zonder medewerker',`De dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) heeft nog niemand toegewezen.`,`De dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) nadert en er is nog niemand ingepland.`,{type:'general'});
         }catch(e){}
       }
     }
@@ -1019,7 +1138,7 @@ function nav(v,btn){
   const _el=$('view-'+v);
   if(_el){
     // Chat en dev gebruiken flex layout, andere views block
-    const needsFlex=(v==='chat'||v==='dev');
+    const needsFlex=(v==='chat');
     _el.style.display=needsFlex?'flex':'block';
     _el.classList.add('active');
     _el.style.opacity='0';
@@ -1044,7 +1163,9 @@ function render(v){
   if(v==='admin')   renderAdmin();
   if(v==='profile') renderProfile();
   if(v==='chat')    renderChat();
-  if(v==='dev')     renderDev();
+  if(v==='devacc')  renderDevAcc();
+  if(v==='devann')  renderDevAnn();
+  if(v==='devlog')  renderDevLog();
   if(v==='meldingen') renderMeldingen();
 }
 
@@ -1141,6 +1262,8 @@ async function renderAdminHome(c){
 }
 
 function renderAdminShiftCard(s){
+  const hasWorkers=(s.workers||[]).length>0;
+  const allPaid=hasWorkers && s.workers.every(uid=>getShiftStatus(s,uid)==='paid');
   const rows=(s.workers||[]).map(uid=>{
     const st=getShiftStatus(s,uid);
     const{start,end}=getEffectiveTimes(s,uid);
@@ -1152,7 +1275,10 @@ function renderAdminShiftCard(s){
       <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'❗':'⏳'}</span>
     </div>`;
   }).join('');
-  return `<div class="card">${rows}</div>`;
+  const headerBadge=!hasWorkers
+    ? `<span class="badge badge-orange" style="margin:8px 12px 0;display:inline-block">🟠 Niemand toegewezen</span>`
+    : (allPaid?`<span class="badge badge-green" style="margin:8px 12px 0;display:inline-block">✅ Volledig afgehandeld & uitbetaald</span>`:'');
+  return `<div class="card">${headerBadge}${rows||`<div style="padding:14px;color:var(--text3);font-size:13px">Nog geen medewerker toegewezen — je kunt de dienst wel al aanmaken en later invullen.</div>`}</div>`;
 }
 
 // EMPLOYEE HOME
@@ -1683,6 +1809,15 @@ function renderAdminTab(){
 }
 function renderAdminSettings(c){
   c.innerHTML=`
+    <div class="section-label">Diensten exporteren</div>
+    <div class="card" style="margin-bottom:16px"><div style="padding:16px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Exporteer alle diensten (geweest en gepland) van een periode naar Excel: per medewerker een rij, per datum een kolom, met een kruisje + tijden bij wie wanneer werkt(e).</p>
+      <div class="form-row">
+        <div class="form-section"><label class="form-label">Van</label><input type="date" class="form-input" id="xlsFrom"></div>
+        <div class="form-section"><label class="form-label">T/m</label><input type="date" class="form-input" id="xlsTo"></div>
+      </div>
+      <button class="btn btn-yellow btn-full" onclick="exportShiftsExcel()">📊 Exporteer naar Excel</button>
+    </div></div>
     <div class="section-label">Bevestigingsreminders</div>
     <div class="card"><div style="padding:16px">
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Als een medewerker een dienst niet bevestigt, krijgt hij/zij meteen na afloop een melding. Bevestigt diegene daarna nog steeds niet, dan volgt na dit aantal uur een herinnering — en kan de oorspronkelijke tijd niet meer door jou aangepast worden.</p>
@@ -1889,7 +2024,8 @@ async function saveShift(){
   const workers=[...document.querySelectorAll('#workerList input:checked')].map(i=>i.value);
   const note=($('esNote')?.value||'').trim();
   if(!dateVal||!start||!end){toast('Vul alles in','err');return;}
-  if(!workers.length){toast('Kies minstens één medewerker','err');return;}
+  // Een dienst zonder toegewezen medewerker mag — die krijgt een oranje "niemand toegewezen"-status
+  // en beheerders krijgen naarmate de datum nadert een herinnering (zie checkShiftReminders).
   const[y,m,d]=dateVal.split('-').map(Number);
   const startR=roundTimeStr(start), endR=roundTimeStr(end);
   const confs={}; workers.forEach(uid=>confs[uid]='pending');
@@ -2317,6 +2453,9 @@ async function openDMThread(otherUid,otherName){
   modal(`<div class="modal-handle"></div>
     <div class="modal-title" style="margin-bottom:10px">💬 ${otherName}</div>
     <div id="dmMsgs" style="max-height:44vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding-right:2px"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:var(--text3)">
+      <input type="checkbox" id="dmSendEmail" checked style="width:16px;height:16px"> Ook per e-mail versturen (naast pushmelding)
+    </label>
     <div style="display:flex;gap:8px">
       <input type="text" class="form-input" id="dmInput" placeholder="Typ een bericht…" style="flex:1" onkeydown="if(event.key==='Enter'){sendDM('${otherUid}','${otherName.replace(/'/g,"\\'")}')}">
       <button class="btn btn-yellow" style="width:48px;flex-shrink:0" onclick="sendDM('${otherUid}','${otherName.replace(/'/g,"\\'")}')">➤</button>
@@ -2337,6 +2476,7 @@ function _renderDMMessages(t){
 async function sendDM(otherUid,otherName){
   const inp=document.getElementById('dmInput'); if(!inp)return;
   const text=inp.value.trim(); if(!text)return;
+  const wantsEmail=document.getElementById('dmSendEmail')?.checked!==false;
   inp.value='';
   const id=dmThreadId(U.uid,otherUid);
   const{db,doc,updateDoc,serverTimestamp}=window._f;
@@ -2344,8 +2484,9 @@ async function sendDM(otherUid,otherName){
     messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),{from:U.uid,text,ts:Date.now()}],
     lastText:text, lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
   });
-  // Melding — dit is een écht persoonlijk bericht, dus met een ander uiterlijk dan systeemmeldingen
-  await notifyUsers([otherUid],'✉️ Bericht van '+U.name,text,text,{type:'message'});
+  // Melding — dit is een écht persoonlijk bericht, dus met een ander uiterlijk dan systeemmeldingen.
+  // Afzender staat duidelijk in de titel, ook in de e-mail zelf.
+  await notifyUsers([otherUid],'✉️ Bericht van '+U.name,text,text,{type:'message',email:wantsEmail});
 }
 async function markDMRead(id){
   const{db,doc,updateDoc,arrayUnion}=window._f;
@@ -2407,6 +2548,42 @@ async function markTourSeen(){
     await updateDoc(doc(db,'users',U.uid),{tourSeen:true});
     U.tourSeen=true;
   }catch(e){}
+}
+async function toggleEmailOptOut(receiveEmails){
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'users',U.uid),{emailOptOut:!receiveEmails});
+    U.emailOptOut=!receiveEmails;
+    toast(receiveEmails?'Niet-urgente mails weer aan':'Niet-urgente mails uitgezet','ok');
+  }catch(e){ toast('Opslaan mislukt','err'); }
+}
+// Profielfoto — opgeslagen als gecomprimeerde base64-afbeelding IN het Firestore-document zelf,
+// net als bij chat-/aankondigingsfoto's. Zo is er geen Firebase Storage (en dus geen Blaze-plan)
+// voor nodig; Firestore-documenten mogen tot 1MB zijn, en na compressie past een profielfoto ruim.
+function handleProfilePhoto(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=async()=>{
+      const canvas=document.createElement('canvas');
+      const size=300; // vierkant uitsnijden, klein genoeg voor snelle laadtijden
+      const minSide=Math.min(img.width,img.height);
+      canvas.width=size; canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,(img.width-minSide)/2,(img.height-minSide)/2,minSide,minSide,0,0,size,size);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.8);
+      try{
+        const{db,doc,updateDoc}=window._f;
+        await updateDoc(doc(db,'users',U.uid),{photoData:dataUrl});
+        U.photoData=dataUrl;
+        renderProfile();
+        toast('Profielfoto bijgewerkt!','ok');
+      }catch(err){ toast('Opslaan mislukt — probeer een kleinere foto','err'); }
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 function maybeShowFirstTour(){
   if(U && !U.tourSeen){
@@ -2471,8 +2648,12 @@ function renderProfile(){
   c.innerHTML=`
     <div class="page-title" style="margin-bottom:16px">Profiel</div>
     <div class="prof-card">
-      <div class="prof-avatar" style="${isDev?'background:var(--mhv-blue)':''}">${isDev?`<img src="${LOGO}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:getInitials(U.name)}</div>
-      <div class="prof-name">${U.name}${isDev?' <span style="color:var(--mhv-blue)" title="Geverifieerd dev-account">✔️</span>':''}</div>
+      <div class="prof-avatar" style="${isDev?'background:var(--mhv-blue)':''}position:relative;cursor:pointer" onclick="document.getElementById('profPhotoInput').click()">
+        ${isDev?`<img src="${LOGO}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(U.photoData?`<img src="${U.photoData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:getInitials(U.name))}
+        ${!isDev?'<div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--mhv-yellow);display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--bg1,#000)">📷</div>':''}
+      </div>
+      <input type="file" id="profPhotoInput" accept="image/*" style="display:none" onchange="handleProfilePhoto(this.files[0])">
+      <div class="prof-name">${U.name}${isUserVerified(U.uid)?VERIFIED_BADGE:''}</div>
       <div class="prof-sub">${U.email}</div>
       <div style="margin-top:8px"><span class="badge ${U.role==='admin'?'badge-yellow':U.role==='software'?'badge-blue':'badge-blue'}">${U.role==='admin'?'👑 Beheerder':U.role==='software'?'🛠 Developer':'Medewerker'}</span></div>
       ${U.role==='employee'?`<div class="prof-wage">${fmtMoney(U.wage||0)}<span style="font-size:14px;font-weight:400;color:var(--text3)"> / uur</span></div>`:''}
@@ -2501,6 +2682,17 @@ function renderProfile(){
       <div class="card-row"><div class="card-row-label">Bekende apparaten</div><div style="color:var(--text3);font-size:13px">${(U.knownDevices||[simpleDeviceLabel()]).length}</div></div>
     </div>`:''}
 
+    <div class="section-label">E-mailvoorkeuren</div>
+    <div class="card" style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
+        <div style="flex:1;padding-right:12px">
+          <div style="font-size:14px;font-weight:600">Niet-urgente e-mails</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Bijv. dienst vervallen of een notitie. Wachtwoord-mails en persoonlijke berichten van beheerder/dev blijven altijd binnenkomen.</div>
+        </div>
+        <input type="checkbox" id="emailOptOutToggle" ${U.emailOptOut?'':'checked'} onchange="toggleEmailOptOut(this.checked)" style="width:44px;height:26px;flex-shrink:0">
+      </label>
+    </div>
+
     <div class="section-label">Weergave</div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-row">
@@ -2522,15 +2714,6 @@ function renderProfile(){
       <div class="card-row-label">🧭 Rondleiding door de app</div>
       <div style="color:var(--text3)">›</div>
     </div></div>
-
-    ${U.role!=='admin'?`
-    <div class="section-label">Communicatie</div>
-    <div class="card">
-      <div class="card-row" style="cursor:pointer" onclick="openSendToAdmin()">
-        <div class="card-row-label">💬 Bericht naar beheerder</div>
-        <div style="color:var(--text3)">›</div>
-      </div>
-    </div>`:''}
 
     <div class="section-label">Beveiliging</div>
     <div class="card">
@@ -2603,6 +2786,9 @@ async function notifyUsers(uids, title, body, emailBody, opts){
   opts=opts||{};
   const notifType=opts.type||'general'; // 'general' | 'tag' | 'announce' | 'swap' | 'payment' | 'message'
   const sendEmail=opts.email!==false; // zet opts.email=false om NOOIT een mail te sturen (bv. bij @tag)
+  // Urgent = wordt ALTIJD gemaild, ook als iemand niet-urgente mails heeft uitgezet: wachtwoord-
+  // gerelateerd en een persoonlijk bericht van beheerder/dev.
+  const isUrgent = notifType==='message';
   const tplMap={
     tag: window._f.EMAILJS_TPL_TAG, announce: window._f.EMAILJS_TPL_ANNOUNCE,
     swap: window._f.EMAILJS_TPL_SWAP, general: window._f.EMAILJS_TPL_NOTIF,
@@ -2623,13 +2809,14 @@ async function notifyUsers(uids, title, body, emailBody, opts){
     const tplId=tplMap[notifType]||window._f.EMAILJS_TPL_NOTIF;
     for(const uid of uids){
       const u=allUsers.find(x=>x.uid===uid);
-      if(u&&u.email&&uid!==U.uid){
-        try{
-          await emailjs.send(window._f.EMAILJS_SERVICE_ID,tplId,{
-            to_email:u.email, to_name:u.name, title, body:emailBody||body
-          });
-        }catch(e){}
-      }
+      if(!u||!u.email||uid===U.uid) continue;
+      // Niet-urgente mails respecteren de opt-out die de medewerker zelf bij Profiel instelt
+      if(!isUrgent && u.emailOptOut) continue;
+      try{
+        await emailjs.send(window._f.EMAILJS_SERVICE_ID,tplId,{
+          to_email:u.email, to_name:u.name, title, body:emailBody||body
+        });
+      }catch(e){}
     }
   }
 }
@@ -2750,6 +2937,15 @@ function _renderPinnedBar(){
     +'</div>';
 }
 
+const VERIFIED_BADGE='<svg width="13" height="13" viewBox="0 0 24 24" fill="var(--mhv-blue)" style="display:inline-block;vertical-align:-2px;margin-left:2px"><path d="M12 1l2.6 2.3 3.4-.6 1 3.3 3.3 1-.6 3.4L24 12l-2.3 2.6.6 3.4-3.3 1-1 3.3-3.4-.6L12 24l-2.6-2.3-3.4.6-1-3.3-3.3-1 .6-3.4L0 12l2.3-2.6-.6-3.4 3.3-1 1-3.3 3.4.6z"/><path d="M9.5 12.8l-2-2-1.4 1.4L9.5 15.6l7-7-1.4-1.4z" fill="#fff"/></svg>';
+function isUserVerified(uid){
+  const u=allUsers.find(x=>x.uid===uid);
+  return !!(u && (u.role==='software' || u.verified));
+}
+function _userPhoto(uid){
+  const u=allUsers.find(x=>x.uid===uid);
+  return u&&u.photoData?u.photoData:null;
+}
 function _renderChatMsgs(){
   const c=document.getElementById('chatMsgs'); if(!c)return;
   if(!allChat.length){
@@ -2762,7 +2958,9 @@ function _renderChatMsgs(){
   function renderMsg(msg,idx){
     const t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
     const mine=msg.uid===U.uid;
-    const av=getInitials(msg.name||'?');
+    const verified=isUserVerified(msg.uid);
+    const av=msg.role==='software'?('<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">')
+      :(_userPhoto(msg.uid)?('<img src="'+_userPhoto(msg.uid)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'):getInitials(msg.name||'?'));
     const ts=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
     const roleTag=msg.role==='admin'?'<span class="chat-role-tag tag-admin">Beheerder</span>'
       :msg.role==='software'?'<span class="chat-role-tag tag-sw">Dev</span>':'';
@@ -2777,7 +2975,7 @@ function _renderChatMsgs(){
     return '<div class="chat-row'+(mine?' me':'')+' anim-up" style="animation-delay:'+(idx*.02)+'s">'
       +(mine?'':'<div class="'+avClass+'">'+av+'</div>')
       +'<div class="chat-col">'
-      +(mine?'<div class="chat-meta">'+ts+'</div>':'<div class="chat-meta">'+msg.name+roleTag+' · '+ts+'</div>')
+      +(mine?'<div class="chat-meta">'+ts+'</div>':'<div class="chat-meta">'+msg.name+(verified?VERIFIED_BADGE:'')+roleTag+' · '+ts+'</div>')
       +'<div class="chat-bubble'+(mine?'':msg.role==='admin'?' admin-msg':msg.role==='software'?' software-msg':'')+'" style="position:relative;padding-right:'+((canDel?28:0)+(canPin?28:0)+14)+'px">'
       +delBtn+pinBtn+txt+imgHtml+payHtml+swapHtml
       +'</div>'
@@ -3067,10 +3265,16 @@ function exportShiftToCalendar(shift){
     'DTSTART:'+icsDate(d,sh,sm),'DTEND:'+icsDate(d,eh,em),
     'SUMMARY:Dienst MHV','DESCRIPTION:Dienst bij MHV — '+shift.startTime+' tot '+shift.endTime,
     'LOCATION:MHV','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS){
+    // Op iOS (ook als geïnstalleerde PWA) is een data:-URI het enige patroon dat betrouwbaar
+    // de "Voeg toe aan agenda"-prompt van Apple opent — blob-downloads en zelfs de Share API
+    // falen daar regelmatig stilletjes.
+    const dataUrl='data:text/calendar;charset=utf-8,'+encodeURIComponent(ics);
+    window.location.href=dataUrl;
+    return;
+  }
   const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
-  // Op mobiel (en zeker in een geïnstalleerde PWA) werkt een <a download> blob-link vaak niet —
-  // Safari/iOS in standalone-modus negeert 'm stilletjes. Web Share API lukt daar wél en opent
-  // direct "Voeg toe aan Agenda". Op desktop valt dit terug op de normale download.
   const file=new File([blob],'dienst-mhv.ics',{type:'text/calendar'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     navigator.share({files:[file],title:'Dienst MHV'}).catch(()=>{ fallbackDownload(blob); });
@@ -3089,21 +3293,13 @@ function exportShiftToCalendar(shift){
 // ═══════════════════════════════════════════════════════════════
 // DEV DASHBOARD (software rol)
 // ═══════════════════════════════════════════════════════════════
-function renderDev(){
-  const v=document.getElementById('view-dev'); if(!v)return;
-  let devSubTab=window._devSubTab||'msg';
-
-  const tabsHtml=
-    '<div class="pill-tabs" style="margin:0 16px 14px">'
-    +'<button class="pill-tab '+(devSubTab==='msg'?'active':'')+'" onclick="setDevSubTab(\'msg\',this)">📨 Melding</button>'
-    +'<button class="pill-tab '+(devSubTab==='acc'?'active':'')+'" onclick="setDevSubTab(\'acc\',this)">👥 Accounts</button>'
-    +'<button class="pill-tab '+(devSubTab==='ann'?'active':'')+'" onclick="setDevSubTab(\'ann\',this)">📢 Aankondiging</button>'
-    +'<button class="pill-tab '+(devSubTab==='log'?'active':'')+'" onclick="setDevSubTab(\'log\',this)">📋 Logboek</button>'
-    +'</div>';
-
-  v.innerHTML=
-    '<div class="page-title" style="padding:16px 16px 0">🛠 Dev Panel</div>'
-    +'<div style="padding:0 16px;display:flex;gap:10px;margin:14px 0 18px">'
+// ═══════════════════════════════════════════
+// DEV — Beheer (accounts + uitzending)
+// ═══════════════════════════════════════════
+function renderDevAcc(){
+  const v=document.getElementById('view-devacc'); if(!v)return;
+  const statsHtml=
+    '<div style="padding:0 16px;display:flex;gap:10px;margin:14px 0 18px">'
     +'<div style="flex:1;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px;text-align:center">'
     +'<div style="font-size:26px;font-weight:800;color:var(--mhv-yellow)">'+allUsers.length+'</div>'
     +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Gebruikers</div>'
@@ -3116,114 +3312,112 @@ function renderDev(){
     +'<div style="font-size:26px;font-weight:800;color:#64d2ff">'+allChat.length+'</div>'
     +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Berichten</div>'
     +'</div>'
-    +'</div>'
-    +tabsHtml
-    +'<div id="devSubContent" style="padding:0 16px 32px"></div>';
+    +'</div>';
 
-  renderDevSubTab();
+  const rows=allUsers.map(function(u){
+    const badge=u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray';
+    const isSuspended=!!u.suspended;
+    const isMe=u.uid===U.uid;
+    const verified=isUserVerified(u.uid);
+    return '<div style="padding:13px 16px;border-bottom:1px solid var(--separator)">'
+      +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<div class="avatar" style="'+(u.role==='software'?'background:var(--mhv-blue)':'')+(isSuspended?';opacity:.4':'')+'">'
+      +(u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(u.photoData?'<img src="'+u.photoData+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':getInitials(u.name)))+'</div>'
+      +'<div style="flex:1;min-width:0'+(isSuspended?';opacity:.5':'')+'">'
+      +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+(verified?VERIFIED_BADGE:'')+(isSuspended?' <span style="color:var(--red);font-weight:700">(geschorst)</span>':'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div>'
+      +'</div>'
+      +'<span class="badge '+badge+'" style="flex-shrink:0">'+u.role+'</span>'
+      +'</div>'
+      +(isMe?'':'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'
+        +'<button class="btn btn-ghost btn-sm" style="flex:1" onclick="openEditEmployee(\''+u.uid+'\')">✏ Rol/gegevens</button>'
+        +'<button class="btn '+(isSuspended?'btn-green':'btn-ghost')+' btn-sm" style="flex:1" onclick="toggleSuspend(\''+u.uid+'\','+isSuspended+')">'+(isSuspended?'✓ Activeer':'⏸ Schors')+'</button>'
+        +(u.role!=='software'?'<button class="btn btn-ghost btn-sm" style="flex:1" onclick="toggleVerified(\''+u.uid+'\','+(!!u.verified)+')">'+(u.verified?'Vinkje intrekken':'✔️ Vinkje geven')+'</button>':'')
+        +'<button class="btn btn-red btn-sm" onclick="deleteEmployeeDev(\''+u.uid+'\',\''+u.name.replace(/'/g,"&#39;")+'\',\''+(u.email||'').replace(/'/g,"&#39;")+'\')">🗑</button>'
+        +'</div>')
+      +'</div>';
+  }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
+
+  const rcptHtml=allUsers.map(function(u){
+    return '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--separator)">'
+      +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'" style="width:18px;height:18px;accent-color:var(--mhv-yellow);flex-shrink:0">'
+      +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+getInitials(u.name)+'</div>'
+      +'<div style="min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">'+u.role+'</div></div>'
+      +'</label>';
+  }).join('');
+
+  v.innerHTML=
+    '<div class="page-title" style="padding:16px 16px 0">🛠 Beheer</div>'
+    +statsHtml
+    +'<div style="padding:0 16px">'
+    +'<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Gebruiker uitnodigen</button>'
+    +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;margin-bottom:24px">'+rows+'</div>'
+    +'<div class="section-label">Uitzending sturen</div>'
+    +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px;margin-bottom:24px">'
+    +'<div>'
+    +'<div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
+    +'<label style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1.5px solid var(--mhv-yellow);margin-bottom:2px">'
+    +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
+    +'<div style="font-size:14px;font-weight:700">Iedereen ('+allUsers.length+')</div>'
+    +'</label>'
+    +'<div style="max-height:180px;overflow-y:auto">'+rcptHtml+'</div>'
+    +'</div>'
+    +'<div><div class="form-label">Type</div>'
+    +'<select class="form-input" id="devMsgType" style="padding:10px 12px;margin-top:6px">'
+    +'<option value="notif">📱 In-app melding</option>'
+    +'<option value="email">📧 Email</option>'
+    +'<option value="both">📱 + 📧 Allebei</option>'
+    +'</select></div>'
+    +'<div><div class="form-label">Titel</div>'
+    +'<input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.1" style="margin-top:6px"></div>'
+    +'<div><div class="form-label">Bericht</div>'
+    +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
+    +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
+    +'</div>'
+    +'</div>';
 }
 
-window.setDevSubTab=function(tab,el){
-  window._devSubTab=tab;
-  document.querySelectorAll('#view-dev .pill-tab').forEach(b=>b.classList.remove('active'));
-  if(el) el.classList.add('active');
-  renderDevSubTab();
-};
+// ═══════════════════════════════════════════
+// DEV — Aankondiging
+// ═══════════════════════════════════════════
+function renderDevAnn(){
+  const v=document.getElementById('view-devann'); if(!v)return;
+  v.innerHTML=
+    '<div class="page-title" style="padding:16px 16px 0">📢 Aankondiging</div>'
+    +'<div style="padding:16px">'
+    +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:24px;text-align:center">'
+    +'<div style="font-size:32px;margin-bottom:10px">📢</div>'
+    +'<div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5">Plaats een aankondiging met tekst en foto op de homepage van alle medewerkers. Speciale aankondigingen krijgen een eigen kleur en verschijnen als pop-up.</div>'
+    +'<button class="btn btn-yellow btn-full" onclick="openAnnouncementModal()">Aankondiging plaatsen</button>'
+    +'</div>'
+    +'</div>';
+}
 
-function renderDevSubTab(){
-  const tab=window._devSubTab||'msg';
-  const cont=document.getElementById('devSubContent'); if(!cont)return;
-
-  if(tab==='msg'){
-    const rcptHtml=allUsers.map(function(u){
-      return '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--separator)">'
-        +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'" style="width:18px;height:18px;accent-color:var(--mhv-yellow);flex-shrink:0">'
-        +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+getInitials(u.name)+'</div>'
-        +'<div style="min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
-        +'<div style="font-size:11px;color:var(--text3)">'+u.role+'</div></div>'
-        +'</label>';
-    }).join('');
-
-    cont.innerHTML=
-      '<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px">'
-      +'<div>'
-      +'<div class="form-label" style="margin-bottom:8px">Ontvangers</div>'
-      +'<label style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1.5px solid var(--mhv-yellow);margin-bottom:2px">'
-      +'<input type="checkbox" id="devAll" onchange="toggleDevAll(this)" style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
-      +'<div style="font-size:14px;font-weight:700">Iedereen ('+allUsers.length+')</div>'
-      +'</label>'
-      +'<div style="max-height:180px;overflow-y:auto">'+rcptHtml+'</div>'
-      +'</div>'
-      +'<div><div class="form-label">Type</div>'
-      +'<select class="form-input" id="devMsgType" style="padding:10px 12px;margin-top:6px">'
-      +'<option value="notif">📱 In-app melding</option>'
-      +'<option value="email">📧 Email</option>'
-      +'<option value="both">📱 + 📧 Allebei</option>'
-      +'</select></div>'
-      +'<div><div class="form-label">Titel</div>'
-      +'<input type="text" class="form-input" id="devTitle" placeholder="Bijv. App update v3.1" style="margin-top:6px"></div>'
-      +'<div><div class="form-label">Bericht</div>'
-      +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
-      +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
+// ═══════════════════════════════════════════
+// DEV — Logboek
+// ═══════════════════════════════════════════
+function renderDevLog(){
+  const v=document.getElementById('view-devlog'); if(!v)return;
+  v.innerHTML='<div class="page-title" style="padding:16px 16px 0">📋 Logboek</div><div id="devLogContent" style="padding:16px;text-align:center;color:var(--text3)">Logboek laden…</div>';
+  loadLoginLogs().then(logs=>{
+    const cont=document.getElementById('devLogContent'); if(!cont)return;
+    if(!logs.length){ cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Nog geen inlog-activiteit</p></div>'; return; }
+    cont.innerHTML='<p style="font-size:12px;color:var(--text3);margin-bottom:12px;text-align:left">Laatste 100 in-/uitlogmomenten, met apparaat en (indien beschikbaar) IP-adres.</p>'
+      +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;text-align:left">'
+      +logs.map(l=>{
+        const t=l.createdAt?.toDate?l.createdAt.toDate():null;
+        const name=userName(l.uid);
+        return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center;gap:8px">'
+          +'<div style="min-width:0">'
+          +'<div style="font-size:13px;font-weight:600">'+(l.type==='login'?'🟢':'🔴')+' '+name+' — '+(l.type==='login'?'ingelogd':'uitgelogd')+'</div>'
+          +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(l.device||'?')+(l.ip?' · '+l.ip:' · IP onbekend')+'</div>'
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--text4);flex-shrink:0">'+(t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
+          +'</div>';
+      }).join('')
       +'</div>';
-  }
-
-  if(tab==='acc'){
-    const rows=allUsers.map(function(u){
-      const badge=u.role==='admin'?'badge-yellow':u.role==='software'?'badge-blue':'badge-gray';
-      const isSuspended=!!u.suspended;
-      const isMe=u.uid===U.uid;
-      return '<div style="padding:13px 16px;border-bottom:1px solid var(--separator)">'
-        +'<div style="display:flex;align-items:center;gap:12px">'
-        +'<div class="avatar" style="'+(u.role==='software'?'background:var(--mhv-blue)':'')+(isSuspended?';opacity:.4':'')+'">'
-        +(u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':getInitials(u.name))+'</div>'
-        +'<div style="flex:1;min-width:0'+(isSuspended?';opacity:.5':'')+'">'
-        +'<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+(u.role==='software'?' ✔️':'')+(isSuspended?' <span style="color:var(--red);font-weight:700">(geschorst)</span>':'')+'</div>'
-        +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div>'
-        +'</div>'
-        +'<span class="badge '+badge+'" style="flex-shrink:0">'+u.role+'</span>'
-        +'</div>'
-        +(isMe?'':'<div style="display:flex;gap:6px;margin-top:10px">'
-          +'<button class="btn btn-ghost btn-sm" style="flex:1" onclick="openEditEmployee(\''+u.uid+'\')">✏ Rol/gegevens</button>'
-          +'<button class="btn '+(isSuspended?'btn-green':'btn-ghost')+' btn-sm" style="flex:1" onclick="toggleSuspend(\''+u.uid+'\','+isSuspended+')">'+(isSuspended?'✓ Activeer':'⏸ Schors')+'</button>'
-          +'<button class="btn btn-red btn-sm" onclick="deleteEmployeeDev(\''+u.uid+'\',\''+u.name.replace(/'/g,"&#39;")+'\')">🗑</button>'
-          +'</div>')
-        +'</div>';
-    }).join('')||'<div class="empty"><p>Geen gebruikers</p></div>';
-    cont.innerHTML='<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Gebruiker uitnodigen</button>'
-      +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden">'+rows+'</div>';
-  }
-
-  if(tab==='ann'){
-    cont.innerHTML=
-      '<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:24px;text-align:center">'
-      +'<div style="font-size:32px;margin-bottom:10px">📢</div>'
-      +'<div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5">Plaats een aankondiging met tekst en foto op de homepage van alle medewerkers.</div>'
-      +'<button class="btn btn-yellow btn-full" onclick="openAnnouncementModal()">Aankondiging plaatsen</button>'
-      +'</div>';
-  }
-
-  if(tab==='log'){
-    cont.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--text3)">Logboek laden…</div>';
-    loadLoginLogs().then(logs=>{
-      if(!document.getElementById('devSubContent')||window._devSubTab!=='log')return;
-      if(!logs.length){ cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Nog geen inlog-activiteit</p></div>'; return; }
-      cont.innerHTML='<p style="font-size:12px;color:var(--text3);margin-bottom:12px">Laatste 100 in-/uitlogmomenten, met apparaat en (indien beschikbaar) IP-adres.</p>'
-        +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden">'
-        +logs.map(l=>{
-          const t=l.createdAt?.toDate?l.createdAt.toDate():null;
-          const name=userName(l.uid);
-          return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center;gap:8px">'
-            +'<div style="min-width:0">'
-            +'<div style="font-size:13px;font-weight:600">'+(l.type==='login'?'🟢':'🔴')+' '+name+' — '+(l.type==='login'?'ingelogd':'uitgelogd')+'</div>'
-            +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(l.device||'?')+(l.ip?' · '+l.ip:' · IP onbekend')+'</div>'
-            +'</div>'
-            +'<div style="font-size:11px;color:var(--text4);flex-shrink:0">'+(t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
-            +'</div>';
-        }).join('')
-        +'</div>';
-    });
-  }
+  });
 }
 async function loadLoginLogs(){
   try{
@@ -3236,17 +3430,27 @@ async function toggleSuspend(uid,current){
   const{db,doc,updateDoc}=window._f;
   await updateDoc(doc(db,'users',uid),{suspended:!current});
   await loadUsers();
-  renderDevSubTab();
+  renderDevAcc();
   toast(current?'Account geactiveerd':'Account tijdelijk geschorst','ok');
 }
-async function deleteEmployeeDev(uid,name){
-  const ok=await confirm2('Verwijderen',`Weet je zeker dat je ${name} permanent wil verwijderen?`,'Verwijderen','btn-red');
+async function toggleVerified(uid,current){
+  if(U.role!=='software'){toast('Alleen een dev-account kan dit toewijzen','err');return;}
+  const{db,doc,updateDoc}=window._f;
+  await updateDoc(doc(db,'users',uid),{verified:!current});
+  await loadUsers();
+  renderDevAcc();
+  toast(current?'Vinkje ingetrokken':'Geverifieerd-vinkje toegekend!','ok');
+}
+async function deleteEmployeeDev(uid,name,email){
+  const ok=await confirm2('Verwijderen',
+    `Weet je zeker dat je ${name} wil verwijderen?\n\nLet op: dit verwijdert alleen het profiel in de app. Het inlog-account (${email||'e-mailadres'}) blijft in Firebase bestaan — anders kan diegene ooit nog met dit e-mailadres inloggen zonder profiel. Wil je het e-mailadres ook weer vrijgeven om opnieuw te gebruiken, verwijder het account dan ook zelf even in Firebase Console → Authentication → Users.`,
+    'Verwijderen','btn-red');
   if(!ok)return;
   const{db,doc,deleteDoc}=window._f;
   await deleteDoc(doc(db,'users',uid));
   await loadUsers();
-  renderDevSubTab();
-  toast(`${name} verwijderd`,'ok');
+  renderDevAcc();
+  toast(`${name} verwijderd — check evt. ook Firebase Auth als je het e-mailadres wil vrijgeven`,'ok');
 }
 
 window.toggleDevAll=function(cb){ document.querySelectorAll('.dev-rcpt').forEach(r=>r.checked=cb.checked); };
@@ -3284,9 +3488,19 @@ const HELP_CONTENT = {
     body: 'Iedereen zit in dezelfde chat. Gebruik @naam, @iedereen, @beheerder of @dev om iemand gericht te taggen — die krijgt dan een pushmelding.',
     tips: ['Sleep of kies een foto om die te versturen.','Beheerders/dev kunnen berichten vastpinnen (📌) of verwijderen.','Gebruik 🔄 Dienst ruilen om een verzoek te plaatsen.']
   },
-  dev: {
-    title: '🛠 Dev Panel',
-    body: 'Alleen zichtbaar voor de dev-rol. Hier stuur je meldingen/e-mails naar gebruikers, zie je een overzicht van accounts en plaats je speciale aankondigingen (met eigen kleur + in-app pop-up) op de homepage.',
+  devacc: {
+    title: '🛠 Beheer (dev)',
+    body: 'Hier beheer je alle accounts: uitnodigen, rollen wijzigen, tijdelijk schorsen of verwijderen, en het geverifieerd-vinkje toekennen. Onderaan kun je ook een uitzending (melding/mail) naar geselecteerde gebruikers sturen.',
+    tips: ['Schorsen blokkeert direct het inloggen, zonder het account te verwijderen.','Verwijderen wist alleen het profiel — het inlog-account moet je apart verwijderen in Firebase Console als je het e-mailadres wil vrijgeven.']
+  },
+  devann: {
+    title: '📢 Aankondiging (dev)',
+    body: 'Plaats een aankondiging op de homepage van alle medewerkers, met eigen kleur en in-app pop-up.',
+    tips: []
+  },
+  devlog: {
+    title: '📋 Logboek',
+    body: 'Alleen zichtbaar voor jou als dev: elke in- en uitlogpoging van elke gebruiker, met tijdstip, apparaat en (indien beschikbaar) IP-adres.',
     tips: []
   },
   meldingen: {
@@ -3298,8 +3512,7 @@ const HELP_CONTENT = {
 function openHelpModal(){
   const active=document.querySelector('.view.active');
   let key=active?active.id.replace('view-',''):'home';
-  if(key==='dev') key='dev';
-  const h=HELP_CONTENT[key]||HELP_CONTENT.home;
+  const h=HELP_CONTENT[key]||(U&&U.role==='software'?HELP_CONTENT.devacc:HELP_CONTENT.home);
   modal('<div class="modal-handle"></div>'
     +'<div class="modal-title">'+h.title+'</div>'
     +'<p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:'+(h.tips.length?'14px':'4px')+'">'+h.body+'</p>'
@@ -3405,7 +3618,7 @@ async function saveAnnouncement(){
     await addDoc(collection(db,'announcements'), payload);
     closeModal();
     toast('Aankondiging geplaatst!','ok');
-    render(U.role==='software'?'dev':'home');
+    render(U.role==='software'?'devacc':'home');
     if(special){
       const targets=allUsers.filter(u=>{
         if(u.uid===U.uid)return false;
@@ -3515,6 +3728,10 @@ const _FN = {
   startAppTour: startAppTour,
   setTheme: setTheme,
   toggleSuspend: toggleSuspend,
+  toggleVerified: toggleVerified,
+  toggleEmailOptOut: toggleEmailOptOut,
+  handleProfilePhoto: handleProfilePhoto,
+  exportShiftsExcel: exportShiftsExcel,
   deleteEmployeeDev: deleteEmployeeDev,
   editAvailNote: editAvailNote,
   saveAvailNote: saveAvailNote,
