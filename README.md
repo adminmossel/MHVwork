@@ -437,6 +437,12 @@ De actuele versie wordt weergegeven via de GitHub release/version badge bovenaan
 ## 🤝 Contributing
 
 Bijdragen zijn welkom wanneer dit project daarvoor wordt opengesteld.
+We bedanken de volgende mensen voor testing en developing
+- R. Massalt
+- I. Massalt
+- C. Koning
+- J. v Heun (dev)
+- Jou!!
 
 ### Workflow
 
