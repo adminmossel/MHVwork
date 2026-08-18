@@ -437,7 +437,12 @@ The current application version is displayed through the version badge at the to
 ## 🤝 Contributing
 
 Contributions are welcome when the project is open for them.
-
+We thank and praise the following people for helping with testing and developing.
+- R. Massalt
+- I. Massalt
+- C. Koning
+- J. v Heun (dev)
+- You!
 ### Workflow
 
 ```text
