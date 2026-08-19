@@ -90,3 +90,12 @@ meteen bij het opstarten, vóórdat alle knoppen aan hun functies gekoppeld kond
 inloggen werkte nog (apart stukje code), maar daarna reageerde niets meer. Verwijderd en
 getest met een volledige runtime-simulatie (niet alleen een syntax-check) om zeker te zijn
 dat alle 77 functies weer correct gebonden worden.
+
+## 🆕 Update 4 — bugfixes op je laatste meldingen
+
+- **Privébericht sturen "hele veld is 1 knop"** — root cause: kwetsbare, dubbel-geëscapete quotes in een onclick-attribuut met de naam van de ontvanger erin, wat bij bepaalde tekens de HTML-parsing brak. Volledig herschreven naar `data-uid`-attributen + losse click-listeners per rij (robuuster, geen escaping-risico meer).
+- **Zwart scherm bij klikken op een chatfoto** — `window.open()` op een `data:`-URI faalt vaak stil in een PWA. Vervangen door een echte in-app lightbox (overal waar op een foto geklikt kan worden: chat, dienstnotities).
+- **Logboek uitgebreider en overzichtelijker**: per-gebruiker samenvattingskaartjes (aantal logins, eerste/laatste keer) bovenaan, aanklikbaar om de tijdlijn te filteren, plus een "Exporteer naar Excel"-knop.
+- **Tab- en meldingen-icoon animeren nu** bij het wisselen van pagina (kleine "pop"-animatie).
+- **Geschorst account krijgt een eigen pagina** direct na inloggen, met de reden die de beheerder/dev bij het schorsen kan invullen — i.p.v. een simpele foutmelding op de inlogpagina.
+- **README volledig herschreven**: overzichtelijker, met badges, inhoudsopgave, projectstructuur, en een licentie-sectie (inclusief de externe bibliotheken die MHVwork gebruikt en hún licenties).

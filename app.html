@@ -86,8 +86,9 @@ onAuthStateChanged(auth, async (user) => {
   if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
   const userData = snap.data();
   if (userData.suspended) {
-    await auth.signOut();
-    setTimeout(() => { window.location.href="index.html?suspended=1"; }, 200);
+    _authHandled = true;
+    window._user = { uid: user.uid, email: user.email, ...userData };
+    window.dispatchEvent(new Event("mhv:suspended"));
     return;
   }
   _authHandled = true;
@@ -267,6 +268,9 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .btn         { transition: opacity .12s ease, transform .1s ease; }
 .btn:active  { transform: scale(.95); opacity:.85; }
 .tab         { transition: color .15s ease; }
+.tab svg     { transition: transform .15s ease; }
+@keyframes iconPop { 0%{transform:scale(1)} 35%{transform:scale(1.35)} 60%{transform:scale(0.92)} 100%{transform:scale(1)} }
+.icon-pop { animation: iconPop .35s cubic-bezier(.34,1.56,.64,1); }
 
 /* ─── Help knop & modal ─── */
 .help-btn{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);color:var(--text2);font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;transition:background .15s ease,transform .1s ease;}
@@ -585,7 +589,7 @@ select.form-input option { background:var(--bg3); }
     <div class="app-name">MHV<span>work</span></div>
     <div style="flex:1"></div>
     <button class="help-btn" onclick="openHelpModal()" title="Hulp & uitleg">?</button>
-    <button class="notif-pill" onclick="nav('meldingen')" id="notifBtn">
+    <button class="notif-pill" onclick="nav('meldingen',this)" id="notifBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       <div class="notif-dot" id="notifDot"></div>
     </button>
@@ -693,6 +697,23 @@ let rosterTab='mine', adminTab='medewerkers', adminRTab='all', payMonth=0;
 let unsubShifts, unsubNotifs, unsubAvail;
 
 // ── INIT ──────────────────────────────────────
+window.addEventListener('mhv:suspended', ()=>{
+  U = window._user;
+  document.body.innerHTML=`
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;background:var(--bg)">
+      <div style="font-size:56px;margin-bottom:18px">🚫</div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:10px;color:var(--text)">Account tijdelijk geschorst</div>
+      <p style="font-size:14px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:20px">
+        Je account is door een beheerder tijdelijk geschorst en kan nu niet inloggen.
+      </p>
+      ${U.suspendReason?`<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:16px 18px;max-width:340px;margin-bottom:24px;text-align:left">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Reden</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.5">${U.suspendReason}</div>
+      </div>`:''}
+      <p style="font-size:13px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:24px">Neem contact op met een beheerder als je denkt dat dit niet klopt.</p>
+      <button onclick="window._f.signOut(window._f.auth).then(()=>window.location.href='index.html')" style="padding:13px 28px;border-radius:12px;background:var(--mhv-yellow);color:#000;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Uitloggen</button>
+    </div>`;
+});
 window.addEventListener('mhv:ready', async ()=>{
   try {
     U = window._user;
@@ -1149,7 +1170,11 @@ function nav(v,btn){
       _el.style.transform='translateY(0)';
     });
   }
-  if(btn)btn.classList.add('active');
+  if(btn){
+    btn.classList.add('active');
+    const svg=btn.querySelector('svg');
+    if(svg){ svg.classList.remove('icon-pop'); void svg.offsetWidth; svg.classList.add('icon-pop'); }
+  }
   render(v);
 }
 function rerender(){
@@ -1363,7 +1388,7 @@ async function renderEmployeeHome(c){
         ${next.note?`<div style="margin-top:10px;background:rgba(245,200,0,.08);border-radius:10px;padding:10px 12px">
           <div style="font-size:11px;font-weight:700;color:var(--mhv-yellow);margin-bottom:3px">📝 Notitie van de beheerder</div>
           <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${next.note}</div>
-          ${next.noteImage?`<img src="${next.noteImage}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}
+          ${next.noteImage?`<img src="${next.noteImage}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;cursor:pointer" onclick="openImageLightbox(this.src)">`:''}
         </div>`:''}
         ${(next.workers||[]).filter(uid=>uid!==U.uid).length?`
           <div style="margin-top:10px;font-size:12px;color:var(--text3);margin-bottom:6px">Samen met</div>
@@ -1651,7 +1676,7 @@ function renderDayShifts(k){
       ${s.note?`<div style="padding:10px 14px;background:rgba(245,200,0,.07);border-bottom:1px solid var(--separator)">
         <div style="font-size:12px;font-weight:700;color:var(--mhv-yellow);margin-bottom:4px">📝 Notitie van de beheerder</div>
         <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${s.note}</div>
-        ${s.noteImage?`<img src="${s.noteImage}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:8px;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}
+        ${s.noteImage?`<img src="${s.noteImage}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:8px;cursor:pointer" onclick="openImageLightbox(this.src)">`:''}
       </div>`:''}
       ${workers}
     </div>`;
@@ -2414,8 +2439,8 @@ function _renderMeldContent(){
 function _renderDMList(c){
   const targets=dmTargets();
   let html='<div class="section-label">Nieuw gesprek</div><div class="card" style="margin-bottom:16px">'
-    +targets.map(u=>`<div class="card-row" style="cursor:pointer" onclick="openDMThread('${u.uid}','${(u.name||'').replace(/'/g,"\\'")}')">
-        <div class="card-row-label">${u.role==='admin'?'👑':u.role==='software'?'🛠':'👤'} ${u.name}</div><div style="color:var(--text3)">›</div>
+    +targets.map(u=>`<div class="card-row dm-target-row" style="cursor:pointer" data-uid="${u.uid}">
+        <div class="card-row-label">${u.role==='admin'?'\ud83d\udc51':u.role==='software'?'\ud83d\udee0':'\ud83d\udc64'} ${u.name}</div><div style="color:var(--text3)">\u203a</div>
       </div>`).join('')
     +'</div>';
   if(allDMs.length){
@@ -2425,14 +2450,22 @@ function _renderDMList(c){
       const otherName=(t.participantNames&&t.participantNames[otherUid])||'?';
       const unread=!(t.readBy||[]).includes(U.uid)&&t.lastFrom!==U.uid;
       const lastText=t.lastText||'';
-      return `<div class="card" style="margin-bottom:8px;padding:12px 14px;cursor:pointer;${unread?'border-left:3px solid var(--mhv-yellow)':''}" onclick="openDMThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
+      return `<div class="card dm-target-row" style="margin-bottom:8px;padding:12px 14px;cursor:pointer;${unread?'border-left:3px solid var(--mhv-yellow)':''}" data-uid="${otherUid}">
         <div style="font-weight:700;font-size:14px">${otherName}</div>
         <div style="font-size:13px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lastText}</div>
       </div>`;
     }).join('');
   }
   c.innerHTML=html;
+  c.querySelectorAll('.dm-target-row').forEach(row=>{
+    row.addEventListener('click', function(){
+      const uid=this.getAttribute('data-uid');
+      const u=allUsers.find(x=>x.uid===uid);
+      openDMThread(uid, u?u.name:'Onbekend');
+    });
+  });
 }
+
 async function openDMThread(otherUid,otherName){
   const id=dmThreadId(U.uid,otherUid);
   activeDMThread=id;
@@ -2765,6 +2798,16 @@ function modal(html){
 }
 function closeModal(){$('modal-root').innerHTML='';}
 function handleModalClick(e){if(e.target.id==='mBg')closeModal();}
+// Lightbox voor afbeeldingen — window.open() op een data:-URI faalde regelmatig met een
+// zwart/leeg scherm (vooral in de geïnstalleerde PWA). Dit toont de foto gewoon direct in de app.
+function openImageLightbox(src){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeSlide .15s ease';
+  overlay.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain">'
+    +'<button style="position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:18px;cursor:pointer">✕</button>';
+  overlay.onclick=()=>overlay.remove();
+  document.body.appendChild(overlay);
+}
 // (De oude "sluit notif-panel bij klik buiten" listener is verwijderd — dat paneel bestaat niet
 // meer sinds Meldingen een volledige pagina is geworden. Hij verwees naar een niet-bestaand
 // element en gooide daardoor bij ÉÉN keer klikken waar dan ook een fout.)
@@ -2968,7 +3011,7 @@ function _renderChatMsgs(){
     const delBtn=canDel?'<button class="chat-del-btn" onclick="delChatMsg(&quot;'+msg.id+'&quot;)" title="Verwijder" style="right:'+(canPin?'30px':'8px')+'">✕</button>':'';
     const pinBtn=canPin?'<button class="chat-del-btn" onclick="pinChatMsg(&quot;'+msg.id+'&quot;,'+(!!msg.pinned)+')" title="'+(msg.pinned?'Losmaken':'Vastpinnen')+'" style="right:8px;background:'+(msg.pinned?'var(--mhv-yellow)':'rgba(255,255,255,.12)')+';color:'+(msg.pinned?'#000':'#fff')+'">📌</button>':'';
     const txt=msg.text?_formatMentions(msg.text):'';
-    const imgHtml=msg.imageData?'<img src="'+msg.imageData+'" style="max-width:100%;border-radius:10px;margin-top:'+(txt?'6px':'0')+';display:block;cursor:pointer" onclick="window.open(this.src,\'_blank\')">':'';
+    const imgHtml=msg.imageData?'<img src="'+msg.imageData+'" style="max-width:100%;border-radius:10px;margin-top:'+(txt?'6px':'0')+';display:block;cursor:pointer" onclick="openImageLightbox(this.src)">':'';
     const swapHtml=msg.type==='swap'?_renderSwapCard(msg):'';
     const payHtml=msg.type==='payment'?'<div style="font-size:13px;color:var(--green);font-weight:700;margin-top:4px">💶 '+msg.amount+'</div>':'';
     const avClass='chat-av'+(msg.role==='admin'?' admin':msg.role==='software'?' software':'');
@@ -3399,39 +3442,128 @@ function renderDevAnn(){
 // ═══════════════════════════════════════════
 function renderDevLog(){
   const v=document.getElementById('view-devlog'); if(!v)return;
-  v.innerHTML='<div class="page-title" style="padding:16px 16px 0">📋 Logboek</div><div id="devLogContent" style="padding:16px;text-align:center;color:var(--text3)">Logboek laden…</div>';
+  v.innerHTML='<div class="page-title" style="padding:16px 16px 0">📋 Logboek</div>'
+    +'<div style="padding:0 16px 8px"><button class="btn btn-ghost btn-full" onclick="exportLoginLogsExcel()">📊 Exporteer naar Excel</button></div>'
+    +'<div id="devLogContent" style="padding:16px;text-align:center;color:var(--text3)">Logboek laden…</div>';
   loadLoginLogs().then(logs=>{
     const cont=document.getElementById('devLogContent'); if(!cont)return;
     if(!logs.length){ cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Nog geen inlog-activiteit</p></div>'; return; }
-    cont.innerHTML='<p style="font-size:12px;color:var(--text3);margin-bottom:12px;text-align:left">Laatste 100 in-/uitlogmomenten, met apparaat en (indien beschikbaar) IP-adres.</p>'
-      +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;text-align:left">'
-      +logs.map(l=>{
+    window._devLogsCache=logs;
+
+    // Per gebruiker samenvatten: eerste login, aantal logins, laatst gezien
+    const byUser={};
+    logs.forEach(l=>{
+      if(!byUser[l.uid]) byUser[l.uid]={count:0, first:null, last:null};
+      const t=l.createdAt?.toDate?l.createdAt.toDate():null;
+      if(l.type==='login'){
+        byUser[l.uid].count++;
+        if(!byUser[l.uid].first || (t&&t<byUser[l.uid].first)) byUser[l.uid].first=t;
+        if(!byUser[l.uid].last || (t&&t>byUser[l.uid].last)) byUser[l.uid].last=t;
+      }
+    });
+    const userCards=Object.keys(byUser).map(uid=>{
+      const u=allUsers.find(x=>x.uid===uid);
+      const st=byUser[uid];
+      return `<div class="devlog-user-card" data-uid="${uid}" style="flex-shrink:0;width:150px;background:var(--bg2);border:1.5px solid var(--separator);border-radius:14px;padding:12px;cursor:pointer;scroll-snap-align:start">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div class="avatar" style="width:30px;height:30px;font-size:12px;flex-shrink:0;${u&&u.role==='software'?'background:var(--mhv-blue)':''}">${u&&u.role==='software'?`<img src="${LOGO}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(u?getInitials(u.name):'?')}</div>
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u?u.name:'Onbekend'}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.6">
+          <div>${st.count}× ingelogd</div>
+          <div>1e keer: ${st.first?st.first.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):'—'}</div>
+          <div>Laatst: ${st.last?st.last.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    function timelineHtml(filterUid){
+      const filtered=filterUid?logs.filter(l=>l.uid===filterUid):logs;
+      return filtered.map(l=>{
         const t=l.createdAt?.toDate?l.createdAt.toDate():null;
-        const name=userName(l.uid);
-        return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center;gap:8px">'
-          +'<div style="min-width:0">'
+        const u=allUsers.find(x=>x.uid===l.uid);
+        const name=u?u.name:userName(l.uid);
+        return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;align-items:center;gap:10px">'
+          +'<div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;'+(u&&u.role==='software'?'background:var(--mhv-blue)':'')+'">'+(u&&u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(u?getInitials(u.name):'?'))+'</div>'
+          +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:13px;font-weight:600">'+(l.type==='login'?'🟢':'🔴')+' '+name+' — '+(l.type==='login'?'ingelogd':'uitgelogd')+'</div>'
           +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(l.device||'?')+(l.ip?' · '+l.ip:' · IP onbekend')+'</div>'
           +'</div>'
-          +'<div style="font-size:11px;color:var(--text4);flex-shrink:0">'+(t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text4);flex-shrink:0;text-align:right">'+(t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
           +'</div>';
-      }).join('')
-      +'</div>';
+      }).join('') || '<div class="empty" style="padding:24px"><p>Geen activiteit voor deze gebruiker</p></div>';
+    }
+
+    cont.innerHTML='<div class="section-label" style="margin-top:0;text-align:left">Per gebruiker</div>'
+      +'<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:18px;scroll-snap-type:x proximity">'
+      +'<div class="devlog-user-card" data-uid="" style="flex-shrink:0;width:90px;background:var(--mhv-yellow);color:#000;border-radius:14px;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;font-size:13px">Alles</div>'
+      +userCards
+      +'</div>'
+      +'<div class="section-label" style="text-align:left" id="devLogTimelineLabel">Alle activiteit</div>'
+      +'<div id="devLogTimeline" style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;text-align:left">'+timelineHtml(null)+'</div>';
+
+    cont.querySelectorAll('.devlog-user-card').forEach(card=>{
+      card.addEventListener('click',function(){
+        const uid=this.getAttribute('data-uid')||null;
+        document.getElementById('devLogTimeline').innerHTML=timelineHtml(uid);
+        const u=uid?allUsers.find(x=>x.uid===uid):null;
+        document.getElementById('devLogTimelineLabel').textContent=u?('Activiteit — '+u.name):'Alle activiteit';
+      });
+    });
   });
+}
+function exportLoginLogsExcel(){
+  const logs=window._devLogsCache;
+  if(!logs||!logs.length){toast('Geen logboek-data om te exporteren','err');return;}
+  const aoa=[['Gebruiker','Rol','Type','Datum','Tijd','Apparaat','IP-adres']];
+  logs.forEach(l=>{
+    const u=allUsers.find(x=>x.uid===l.uid);
+    const t=l.createdAt?.toDate?l.createdAt.toDate():null;
+    aoa.push([
+      u?u.name:userName(l.uid), u?u.role:'', l.type==='login'?'Ingelogd':'Uitgelogd',
+      t?t.toLocaleDateString('nl-NL'):'', t?t.toLocaleTimeString('nl-NL'):'',
+      l.device||'', l.ip||'onbekend'
+    ]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:18},{wch:12},{wch:10},{wch:12},{wch:10},{wch:22},{wch:16}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Logboek');
+  XLSX.writeFile(wb,`MHVwork-logboek_${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Logboek geëxporteerd!','ok');
 }
 async function loadLoginLogs(){
   try{
     const{db,collection,getDocs,query,orderBy,limit}=window._f;
-    const snap=await getDocs(query(collection(db,'loginLogs'),orderBy('createdAt','desc'),limit(100)));
+    const snap=await getDocs(query(collection(db,'loginLogs'),orderBy('createdAt','desc'),limit(300)));
     return snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){ console.warn('loadLoginLogs:',e); return []; }
 }
 async function toggleSuspend(uid,current){
   const{db,doc,updateDoc}=window._f;
-  await updateDoc(doc(db,'users',uid),{suspended:!current});
+  if(!current){
+    // Schorsen: reden opvragen
+    modal(`<div class="modal-handle"></div>
+      <div class="modal-title">Account schorsen</div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Deze reden wordt getoond aan de gebruiker zelf zodra die probeert in te loggen.</p>
+      <div class="form-section"><label class="form-label">Reden (optioneel)</label>
+        <textarea class="form-input" id="suspendReasonInput" rows="3" style="resize:none" placeholder="Bijv. Tijdelijk gepauzeerd i.v.m. ..."></textarea></div>
+      <button class="btn btn-red btn-full" onclick="confirmSuspend('${uid}')">Schorsen</button>`);
+    return;
+  }
+  await updateDoc(doc(db,'users',uid),{suspended:false,suspendReason:null});
   await loadUsers();
   renderDevAcc();
-  toast(current?'Account geactiveerd':'Account tijdelijk geschorst','ok');
+  toast('Account geactiveerd','ok');
+}
+async function confirmSuspend(uid){
+  const reason=(document.getElementById('suspendReasonInput')?.value||'').trim();
+  const{db,doc,updateDoc}=window._f;
+  await updateDoc(doc(db,'users',uid),{suspended:true,suspendReason:reason||null});
+  await loadUsers();
+  closeModal();
+  renderDevAcc();
+  toast('Account tijdelijk geschorst','ok');
 }
 async function toggleVerified(uid,current){
   if(U.role!=='software'){toast('Alleen een dev-account kan dit toewijzen','err');return;}
@@ -3727,10 +3859,13 @@ const _FN = {
   startAppTour: startAppTour,
   setTheme: setTheme,
   toggleSuspend: toggleSuspend,
+  confirmSuspend: confirmSuspend,
   toggleVerified: toggleVerified,
   toggleEmailOptOut: toggleEmailOptOut,
   handleProfilePhoto: handleProfilePhoto,
   exportShiftsExcel: exportShiftsExcel,
+  openImageLightbox: openImageLightbox,
+  exportLoginLogsExcel: exportLoginLogsExcel,
   deleteEmployeeDev: deleteEmployeeDev,
   editAvailNote: editAvailNote,
   saveAvailNote: saveAvailNote,

@@ -1,119 +1,181 @@
-# 🍺 MHVwork (v.0.9.5)
+<div align="center">
 
-> **Roosterbeheer voor MHV 1931 — gebouwd voor de barhulp**
+<img src="icon.svg" width="88" height="88" alt="MHVwork logo">
 
-MHVwork is een volledig gratis Progressive Web App (PWA) waarmee MHV 1931 zijn vrijwillige barhulp eenvoudig beheert. Van roosters en beschikbaarheid tot uitbetalingen, een live groepschat en dienstruilverzoeken — alles in één app.
+# 🍺 MHVwork
+
+**Roosterbeheer voor MHV 1931 — gebouwd vóór en dóór de barhulp**
+
+[![PWA](https://img.shields.io/badge/PWA-installeerbaar-1A3BB5?style=flat-square)](#-installeren)
+[![Hosting](https://img.shields.io/badge/hosting-GitHub%20Pages-181717?style=flat-square&logo=github)](#-technologie)
+[![Database](https://img.shields.io/badge/database-Firebase%20Firestore-FFCA28?style=flat-square&logo=firebase&logoColor=black)](#-technologie)
+[![License](https://img.shields.io/badge/licentie-intern%20gebruik-lightgrey?style=flat-square)](#-licentie)
+
+Een volledig gratis Progressive Web App waarmee MHV 1931 zijn vrijwillige barhulp eenvoudig
+beheert — roosters, beschikbaarheid, uitbetalingen, chat en meldingen, allemaal in één app.
+
+</div>
+
+---
+
+## 📋 Inhoud
+
+- [Wat kan MHVwork?](#-wat-kan-mhvwork)
+- [Rollen](#-rollen)
+- [Technologie](#-technologie)
+- [Aan de slag](#-aan-de-slag)
+- [Projectstructuur](#-projectstructuur)
+- [Beveiliging](#-beveiliging)
+- [Gebruikte bibliotheken & licenties](#-gebruikte-bibliotheken--licenties)
+- [Licentie](#-licentie)
 
 ---
 
 ## ✨ Wat kan MHVwork?
 
-### 📅 Roosters
-- Beheerders maken diensten aan en wijzen medewerkers toe
-- Medewerkers bevestigen hun diensten of melden afwijkingen in tijden
-- Overzicht per dag, week of maand via een ingebouwde kalender
-- Diensten exporteren naar de telefoonagenda (`.ics`)
+### 📅 Rooster & diensten
+- Beheerders maken diensten aan (ook zónder direct iemand toe te wijzen) en wijzen medewerkers toe
+- Medewerkers bevestigen hun diensten of melden afwijkingen in gewerkte tijd
+- Notities + foto per dienst (bijv. bijzondere instructies)
+- Automatische pushmeldingen: een dag van tevoren, een uur van tevoren, direct na afloop, en een
+  vervolgherinnering als een dienst na een instelbaar aantal uren nog niet bevestigd is
+- Diensten exporteren naar de eigen telefoonagenda (`.ics`)
+- Diensten van een periode exporteren naar Excel (medewerkers × datums)
 
 ### 🔄 Dienst ruilen
 - Medewerker plaatst een ruilverzoek via de groepschat
 - Collega's reageren door interesse te tonen
 - Beheerder keurt het goed → dienst wordt automatisch overgezet
-- Beide medewerkers ontvangen een push‑ en e‑mailmelding
+- Beide betrokkenen ontvangen een melding
 
-### 💬 Groepschat
-- Iedereen (beheerders, medewerkers én dev) in één chat
-- `@medewerker`, `@iedereen`, `@dev` taggen voor gerichte meldingen
-- Beheerders kunnen berichten verwijderen
-- Afbeeldingen versturen (automatisch gecomprimeerd)
-- Uitbetalingen aankondigen via één knop
-- Berichten ouder dan 3 maanden worden automatisch opgeruimd (tenzij vastgepind)
-
-### 📊 Dashboard (medewerker)
-- Overzicht van komende diensten
-- Verwacht salaris op basis van geplande uren
-- Goedgekeurde en uitbetaalde bedragen
-- Bevestigingsstatus door de beheerder
-
-### 💶 Uitbetalingen
-- Beheerder markeert diensten als uitbetaald
-- Medewerker ontvangt automatisch een e‑mailbevestiging
-- Overzicht per maand
+### 💬 Groepschat & privéberichten
+- Iedereen in één groepschat, met `@naam`, `@iedereen`, `@beheerder`, `@dev` om gericht te taggen
+- Foto's versturen (slepen of kiezen, automatisch gecomprimeerd)
+- Berichten vastpinnen of verwijderen
+- Losstaande privéberichten (DM) tussen medewerker en beheerder/dev, met keuze voor push en/of e-mail
 
 ### 🔔 Meldingen
-- In‑app notificaties (badge + inbox)
-- E‑mailmeldingen via EmailJS
-- Browser‑push notificaties wanneer de app als PWA is geïnstalleerd
+- Eén volwaardige pagina voor systeemmeldingen én privéberichten
+- Instelbare e-mailvoorkeuren per medewerker (niet-urgente mails uit te zetten; wachtwoord- en
+  persoonlijke berichten blijven altijd binnenkomen)
 
-### 🔒 Beveiliging
-- Alle data‑toegang beveiligd via Firestore Security Rules
-- Medewerkers kunnen alleen hun eigen data aanpassen
-- Beheerders beheren alles; dev alleen chat en meldingen
+### 🚫 Beschikbaarheid
+- Meerdere dagen tegelijk als afwezig opgeven (een hele periode, niet per se één dag)
+- Eigen opgegeven afwezigheid inzien, bewerken en verwijderen
+
+### 💶 Uitbetalingen
+- Beheerder markeert diensten als uitbetaald, medewerker krijgt een melding
+- Overzicht per maand, en automatisch een groen vinkje zodra een dienst volledig is afgehandeld
+  én iedereen is uitbetaald
+
+### 🛠 Dev-omgeving
+- Eigen navigatie, los van de medewerker-/beheerderskant: **Beheer**, **Aankondiging**, **Logboek**
+- Accounts uitnodigen, rollen wijzigen, tijdelijk schorsen (met reden) of verwijderen
+- Geverifieerd-vinkje toe te kennen aan elk account
+- Logboek van elke in-/uitlog per gebruiker (tijd, apparaat, IP), exporteerbaar naar Excel
+- Speciale aankondigingen met eigen kleur, in-app pop-up en directe push + mail
+
+### 🔒 Overig
+- Wachtwoord-sterktemeter en tonen/verbergen bij account aanmaken
+- Licht/donker thema, los van de systeeminstelling
+- Automatische app-tour bij de eerste login, later terug te kijken via Profiel
+- PWA-installatie-uitleg (met aparte, visuele stappen voor iOS)
+- Gebruiksvoorwaarden & privacyverklaring, verplicht te accepteren bij registratie
 
 ---
 
 ## 👤 Rollen
 
 | Rol | Toegang |
-|-----|---------|
-| **Medewerker** | Eigen rooster, beschikbaarheid, chat, profiel, agenda‑export, dienst ruilen |
-| **Beheerder** | Alles + roosters beheren, medewerkers uitnodigen, uitbetalingen, berichten sturen |
-| **Dev** | Chat, push‑ en e‑mailmeldingen versturen, accounts bekijken |
+|---|---|
+| **Medewerker** | Eigen rooster, beschikbaarheid, chat, profiel, agenda-export, dienst ruilen |
+| **Beheerder** | Alles van medewerker + roosters beheren, medewerkers uitnodigen, uitbetalingen, aankondigingen |
+| **Dev** | Eigen omgeving: accountbeheer (uitnodigen/rollen/schorsen/verwijderen), aankondigingen, logboek — géén toegang tot financiële gegevens |
 
 ---
 
 ## 🛠 Technologie
 
 | Onderdeel | Technologie |
-|-----------|-------------|
+|---|---|
 | Hosting | GitHub Pages (gratis) |
-| Database | Firebase Firestore |
-| Authenticatie | Firebase Auth |
-| E‑mail | EmailJS |
+| Database | Firebase Firestore (Spark-plan, gratis tier) |
+| Authenticatie | Firebase Authentication |
+| E-mail | EmailJS (optioneel: Gmail SMTP via Cloud Functions, zie `functions/`) |
 | Push | Browser Notification API + Service Worker |
 | PWA | Web App Manifest + Service Worker |
-| Agenda | `.ics` export (werkt op iPhone, Android, Windows, Mac) |
+| Agenda-export | `.ics`-bestand (iPhone, Android, Windows, Mac) |
+| Excel-export | [SheetJS](https://sheetjs.com) (client-side, geen server nodig) |
+
+Geen build-stap, geen framework — puur HTML/CSS/JavaScript, direct leesbaar en aanpasbaar.
 
 ---
 
-## 💰 Kosten
+## 🚀 Aan de slag
 
-**Volledig gratis** binnen de volgende limieten:
+Volledige installatie- en updatehandleiding: zie **[HANDLEIDING.md](./HANDLEIDING.md)**.
+Overzicht van alle wijzigingen per versie: zie **[CHANGELOG.md](./CHANGELOG.md)**.
 
-| Service | Gratis limiet | Verwacht gebruik |
-|---------|--------------|-----------------|
-| Firebase Firestore | 1 GB, 50.000 reads/dag | < 1 MB, < 500/dag ✅ |
-| Firebase Auth | Onbeperkt | ~15 gebruikers ✅ |
-| EmailJS | 200 e‑mails/maand | < 50/maand ✅ |
-| GitHub Pages | Onbeperkt | — ✅ |
-
----
-
-## 🚀 Setup
-
-Zie **HANDLEIDING.md** voor de volledige stap‑voor‑stap setup.
-
-Kort samengevat:
-1. Firebase project aanmaken + Firestore + Auth inschakelen
-2. `firestore.rules` uploaden in Firebase console
-3. EmailJS account aanmaken + 2 templates maken
-4. Bestanden uploaden naar GitHub Pages
-5. `seed-admin.html` openen → accounts worden automatisch aangemaakt
-6. Inloggen met `h.mhvwork@gmail.com` en gaan!
+In het kort:
+1. Fork of clone deze repository
+2. Maak een eigen [Firebase](https://console.firebase.google.com)-project aan (Spark-plan volstaat)
+3. Vul je Firebase-configuratie in bovenaan `app.html`, `index.html`, `register.html` en `reset-pw.html`
+4. Publiceer de `firestore.rules` in de Firebase Console
+5. Zet GitHub Pages aan voor deze repository
 
 ---
 
-## 📱 App installeren
+## 📁 Projectstructuur
 
-**iPhone:** Safari → Deel‑icoon → "Zet op beginscherm"  
-**Android:** Chrome → Menu → "Toevoegen aan startscherm"  
-**Desktop:** Chrome/Edge → installatie‑icoon in adresbalk
+```
+├── index.html          Inlogpagina
+├── register.html        Accountregistratie (via uitnodigingslink)
+├── reset-pw.html         Wachtwoord opnieuw instellen
+├── app.html              De volledige applicatie (alle rollen)
+├── voorwaarden.html       Gebruiksvoorwaarden & privacyverklaring
+├── promo.html             Uitlegpagina "Wat is MHVwork?"
+├── seed-admin.html        Eenmalige tool om de eerste beheerder aan te maken
+├── manifest.json          PWA-manifest
+├── sw.js                  Service worker
+├── firestore.rules        Firestore security rules
+├── functions/             Optionele Cloud Functions (Gmail SMTP, accountbeheer)
+├── icon.svg / icon-*.png  App-iconen
+├── HANDLEIDING.md         Installatie- en updatehandleiding
+└── CHANGELOG.md           Overzicht van alle wijzigingen
+```
 
 ---
 
-## 📬 Contact
+## 🔒 Beveiliging
 
-Vragen of problemen? Mail naar **h.mhvwork@gmail.com**
+- Alle databasetoegang loopt via Firestore Security Rules — medewerkers kunnen alleen hun eigen
+  gegevens aanpassen, beheerders beheren roosters/uitbetalingen, en de dev-rol heeft geen toegang
+  tot financiële gegevens
+- Alleen een dev-account kan de dev-rol toewijzen of intrekken (afgedwongen in zowel de app als
+  de databaseregels zelf)
+- Wachtwoord-reset verloopt via Firebase's eigen, beveiligde flow
+- Geschorste accounts worden bij inloggen direct geweigerd
 
 ---
 
-*MHVwork v3.0 — Gebouwd met ❤️ voor MHV 1931*
+## 📦 Gebruikte bibliotheken & licenties
+
+MHVwork is zelf geschreven zonder framework, maar leunt op de volgende diensten en bibliotheken:
+
+| Bibliotheek / dienst | Doel | Licentie |
+|---|---|---|
+| [Firebase](https://firebase.google.com) (Firestore, Auth, Cloud Functions) | Database, login, optionele mailserver | [Google APIs Terms of Service](https://developers.google.com/terms) |
+| [EmailJS](https://www.emailjs.com) | E-mailverzending vanuit de browser | Eigen servicevoorwaarden ([emailjs.com/legal](https://www.emailjs.com/legal/terms-of-service/)) |
+| [SheetJS (xlsx)](https://sheetjs.com) | Excel-export in de browser | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+| [Nodemailer](https://nodemailer.com) | Gmail SMTP-verzending (optioneel, `functions/`) | MIT License |
+| [Outfit](https://fonts.google.com/specimen/Outfit) (Google Fonts) | Lettertype | [SIL Open Font License 1.1](https://openfontlicense.org) |
+
+---
+
+## 📄 Licentie
+
+Deze applicatie is gebouwd voor en het interne gebruik van **MHV 1931**. De broncode mag vrij
+bekeken, aangepast en hergebruikt worden voor gelijksoortige vrijwilligersorganisaties; gebruik
+op eigen risico en zonder enige garantie. Bovenstaande externe diensten en bibliotheken vallen
+onder hún eigen licentievoorwaarden (zie tabel hierboven) — check die zelf even als je deze app
+elders wil inzetten of doorontwikkelen.
