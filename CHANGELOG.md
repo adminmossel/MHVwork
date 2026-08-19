@@ -81,3 +81,12 @@ Puntsgewijs, gekoppeld aan de oorspronkelijke lijst.
 - **Dev heeft nu een écht eigen navigatiestructuur**, net als beheerder z'n eigen tabs heeft — niet langer alles verzameld in één "Dev"-tab met subtabjes. Drie aparte pagina's onderin de tabbalk: **Beheer** (accounts + uitzending), **Aankondiging**, **Logboek**. Plus Chat, Meldingen en Profiel, die alle rollen delen.
 - **Dev heeft geen Home-tab** — een dev is geen medewerker en start nu direct op de Beheer-pagina.
 - Help-uitleg (het "?"-icoon) bijgewerkt met de juiste tekst per nieuwe dev-pagina.
+
+## 🚨 Hotfix — "geen enkele knop werkt na inloggen"
+
+Kritieke fout: bij het opsplitsen van het dev-paneel in aparte pagina's bleef er één verwijzing
+staan naar de oude, inmiddels verwijderde functie `renderDev`. Daardoor crashte het script
+meteen bij het opstarten, vóórdat alle knoppen aan hun functies gekoppeld konden worden —
+inloggen werkte nog (apart stukje code), maar daarna reageerde niets meer. Verwijderd en
+getest met een volledige runtime-simulatie (niet alleen een syntax-check) om zeker te zijn
+dat alle 77 functies weer correct gebonden worden.
