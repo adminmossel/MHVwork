@@ -77,10 +77,10 @@ onAuthStateChanged(auth, async (user) => {
   }
   // Hardcoded dev bypass
   if ((!snap || !snap.exists()) && user.email === 'tyg01132@gmail.com') {
-    window._user = { uid: user.uid, email: user.email, name: 'Tygo (Dev)', role: 'software', wage: 0 };
+    window._user = { uid: user.uid, email: user.email, name: 'Dev', role: 'software', wage: 0 };
     _authHandled = true;
     window.dispatchEvent(new Event("mhv:ready"));
-    setDoc(doc(db,'users',user.uid),{ name:'Tygo (Dev)', email:'tyg01132@gmail.com', role:'software', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
+    setDoc(doc(db,'users',user.uid),{ name:'Dev', email:'tyg01132@gmail.com', role:'software', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
     return;
   }
   if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
@@ -190,7 +190,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 }
 .notif-pill:active { background:var(--glass); }
 .notif-dot {
-  position:absolute; top:5px; right:70px; width:8px; height:8px;
+  position:absolute; top:5px; right:5px; width:8px; height:8px;
   background:var(--red); border-radius:50%; border:2px solid #000; display:none;
 }
 
@@ -701,7 +701,9 @@ window.addEventListener('mhv:suspended', ()=>{
   U = window._user;
   document.body.innerHTML=`
     <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;background:var(--bg)">
-      <div style="font-size:56px;margin-bottom:18px">🚫</div>
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--red-dim,rgba(255,69,58,.12));display:flex;align-items:center;justify-content:center;margin-bottom:18px">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>
+      </div>
       <div style="font-size:22px;font-weight:800;margin-bottom:10px;color:var(--text)">Account tijdelijk geschorst</div>
       <p style="font-size:14px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:20px">
         Je account is door een beheerder tijdelijk geschorst en kan nu niet inloggen.
@@ -1149,6 +1151,20 @@ async function sendNotifMulti(uids,title,body){
 }
 
 // ── NAV ──────────────────────────────────────
+// Speelt de "pop"-animatie ALTIJD opnieuw af, ongeacht eerdere staat — via de Web Animations API
+// i.p.v. een CSS-class togglen (die truc bleek in de praktijk niet in elke browser betrouwbaar
+// opnieuw te starten, vandaar dat de animatie maar één keer leek te werken).
+function playPopAnimation(el){
+  if(!el||!el.animate)return;
+  try{
+    el.animate([
+      {transform:'scale(1)'},
+      {transform:'scale(1.35)', offset:0.35},
+      {transform:'scale(0.92)', offset:0.6},
+      {transform:'scale(1)'}
+    ],{duration:350, easing:'cubic-bezier(.34,1.56,.64,1)'});
+  }catch(e){}
+}
 function nav(v,btn){
   // Verberg alle views correct
   document.querySelectorAll('.view').forEach(x=>{
@@ -1173,7 +1189,7 @@ function nav(v,btn){
   if(btn){
     btn.classList.add('active');
     const svg=btn.querySelector('svg');
-    if(svg){ svg.classList.remove('icon-pop'); void svg.offsetWidth; svg.classList.add('icon-pop'); }
+    if(svg) playPopAnimation(svg);
   }
   render(v);
 }
@@ -1412,9 +1428,9 @@ async function renderEmployeeHome(c){
 
 // Gedeelde renderer voor aankondigingen — gebruikt door zowel medewerker- als beheerder-homepage.
 // 'special' aankondigingen (alleen door dev te plaatsen) krijgen een eigen kleur en tonen 1x een popup.
-function renderAnnouncementArea(area, announcements){
+function renderAnnouncementArea(area, announcements, showAll){
   if(!area)return;
-  const visibleAnn = announcements.filter(function(ann){
+  const visibleAnn = showAll ? announcements : announcements.filter(function(ann){
     const aud = ann.audience||'all';
     if(aud==='all') return true;
     if(aud==='employee') return U.role==='employee';
@@ -1731,7 +1747,7 @@ function renderEmployeeAvail(c){
           <div class="avail-date" style="font-size:15px;font-weight:600">${fmtDate(a.date)}</div>
           ${a.note?`<div class="avail-note">${a.note}</div>`:''}
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="editAvailNote('${a.id}','${(a.note||'').replace(/'/g,"\\'")}')">✏</button>
+        <button class="btn btn-ghost btn-sm avail-edit-btn" data-id="${a.id}">✏</button>
         <button class="btn btn-red btn-sm" onclick="deleteAvail('${a.id}')">Verwijder</button>
       </div>`).join('')}
     ${!myAvail.length?`<div class="empty"><div class="empty-icon">✅</div><p>Geen blokkades ingevoerd</p></div>`:''}
@@ -1745,6 +1761,13 @@ function renderEmployeeAvail(c){
         <button class="btn btn-ghost btn-sm" onclick="deleteAvail('${a.id}')">✕</button>
       </div>`).join('')}`:''}
   `;
+  c.querySelectorAll('.avail-edit-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id=this.getAttribute('data-id');
+      const a=allAvail.find(x=>x.id===id);
+      if(a) editAvailNote(id, a);
+    });
+  });
 }
 function openAvailModal(){
   const todayStr=new Date().toISOString().split('T')[0];
@@ -1795,16 +1818,23 @@ async function deleteAvail(id){
   await deleteDoc(doc(db,'availability',id));
   toast('Verwijderd','ok');
 }
-async function editAvailNote(id,currentNote){
+async function editAvailNote(id,avail){
+  const dateVal=dKey(avail.date);
   modal(`<div class="modal-handle"></div>
-    <div class="modal-title">Reden bewerken</div>
-    <div class="form-section"><input type="text" class="form-input" id="editAvailNoteInput" value="${currentNote.replace(/"/g,'&quot;')}" placeholder="Vakantie, verjaardag…"></div>
+    <div class="modal-title">Afwezigheid bewerken</div>
+    <div class="form-section"><label class="form-label">Datum</label>
+      <input type="date" class="form-input" id="editAvailDateInput" value="${dateVal}"></div>
+    <div class="form-section"><label class="form-label">Reden</label>
+      <input type="text" class="form-input" id="editAvailNoteInput" value="${(avail.note||'').replace(/"/g,'&quot;')}" placeholder="Vakantie, verjaardag…"></div>
     <button class="btn btn-yellow btn-full" onclick="saveAvailNote('${id}')">Opslaan</button>`);
 }
 async function saveAvailNote(id){
   const note=document.getElementById('editAvailNoteInput')?.value||'';
-  const{db,doc,updateDoc}=window._f;
-  await updateDoc(doc(db,'availability',id),{note});
+  const dateVal=document.getElementById('editAvailDateInput')?.value;
+  const{db,doc,updateDoc,Timestamp}=window._f;
+  const updates={note};
+  if(dateVal){ const[y,m,d]=dateVal.split('-').map(Number); updates.date=Timestamp.fromDate(new Date(y,m-1,d)); }
+  await updateDoc(doc(db,'availability',id),updates);
   closeModal(); toast('Opgeslagen!','ok');
 }
 
@@ -2029,21 +2059,33 @@ function openAddShift(){
   `);
   bindNoteImgInput();
 }
-function buildWorkerList(dayKey){
+function buildWorkerList(dayKey, preChecked){
+  preChecked=preChecked||[];
   const bl=blockedOn(dayKey).map(a=>a.uid);
   return employees().map(u=>{
-    const isBlocked=bl.includes(u.uid);
+    const isPreChecked=preChecked.includes(u.uid);
+    // Al toegewezen medewerkers blijven aanklikbaar/uitvinkbaar, ook als ze inmiddels niet
+    // beschikbaar staan — anders zou je ze bij bewerken per ongeluk kwijtraken. Nieuw
+    // toevoegen van iemand die niet beschikbaar is, is en blijft geblokkeerd.
+    const isBlocked=bl.includes(u.uid) && !isPreChecked;
     return `<label class="worker-check ${isBlocked?'blocked':''}">
-      <input type="checkbox" value="${u.uid}" ${isBlocked?'disabled':''}>
+      <input type="checkbox" value="${u.uid}" ${isPreChecked?'checked':''} ${isBlocked?'disabled':''}>
       <div class="avatar" style="${isBlocked?'background:var(--red);opacity:0.6':''}">${getInitials(u.name)}</div>
       <div class="worker-check-info">
         <div class="worker-check-name">${u.name}</div>
-        <div class="worker-check-wage">${isBlocked?'🚫 Niet beschikbaar':fmtMoney(u.wage||0)+'/uur'}</div>
+        <div class="worker-check-wage">${isBlocked?'🚫 Niet beschikbaar':(bl.includes(u.uid)?'⚠️ Was niet beschikbaar':fmtMoney(u.wage||0)+'/uur')}</div>
       </div>
     </label>`;
   }).join('');
 }
 window.refreshWorkers=(v)=>{const wl=$('workerList');if(wl){const[y,m,d]=v.split('-').map(Number);wl.innerHTML=buildWorkerList(dKey(new Date(y,m-1,d)));}};
+window.refreshEditWorkers=(v,shiftId)=>{
+  const wl=$('editWorkerList'); if(!wl)return;
+  const s=allShifts.find(x=>x.id===shiftId);
+  const currentlyChecked=[...document.querySelectorAll('#editWorkerList input:checked')].map(i=>i.value);
+  const[y,m,d]=v.split('-').map(Number);
+  wl.innerHTML=buildWorkerList(dKey(new Date(y,m-1,d)), currentlyChecked.length?currentlyChecked:(s?.workers||[]));
+};
 async function saveShift(){
   const dateVal=$('sDate').value, start=$('sStart').value, end=$('sEnd').value;
   const workers=[...document.querySelectorAll('#workerList input:checked')].map(i=>i.value);
@@ -2104,7 +2146,7 @@ function openEditShift(shiftId){
     <div class="modal-handle"></div>
     <div class="modal-title">Dienst bewerken</div>
     <div class="form-section"><label class="form-label">Datum</label>
-      <input type="date" class="form-input" id="esDate" value="${dateVal}"></div>
+      <input type="date" class="form-input" id="esDate" value="${dateVal}" onchange="refreshEditWorkers(this.value,'${shiftId}')"></div>
     <div class="form-row">
       <div class="form-section"><label class="form-label">Begin</label>
         <input type="time" class="form-input" id="esStart" value="${s.startTime}"></div>
@@ -2112,17 +2154,7 @@ function openEditShift(shiftId){
         <input type="time" class="form-input" id="esEnd" value="${s.endTime}"></div>
     </div>
     <label class="form-label">Medewerkers</label>
-    <div id="editWorkerList">
-      ${employees().map(u=>`
-        <label class="worker-check">
-          <input type="checkbox" value="${u.uid}" ${s.workers?.includes(u.uid)?'checked':''}>
-          <div class="avatar">${getInitials(u.name)}</div>
-          <div class="worker-check-info">
-            <div class="worker-check-name">${u.name}</div>
-            <div class="worker-check-wage">${fmtMoney(u.wage||0)}/uur</div>
-          </div>
-        </label>`).join('')}
-    </div>
+    <div id="editWorkerList">${buildWorkerList(dateVal, s.workers||[])}</div>
     ${noteFieldHtml(s.note, s.noteImage)}
     <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveEditShift('${shiftId}')">Opslaan</button>
   `);
@@ -2469,23 +2501,17 @@ function _renderDMList(c){
 async function openDMThread(otherUid,otherName){
   const id=dmThreadId(U.uid,otherUid);
   activeDMThread=id;
-  const{db,doc,getDoc,setDoc,serverTimestamp}=window._f;
-  let t=allDMs.find(x=>x.id===id);
-  if(!t){
-    const snap=await getDoc(doc(db,'dms',id));
-    if(snap.exists()) t={id,...snap.data()};
-  }
-  if(!t){
-    const names={}; names[U.uid]=U.name; names[otherUid]=otherName;
-    await setDoc(doc(db,'dms',id),{
-      participants:[U.uid,otherUid], participantNames:names,
-      messages:[], lastText:'', lastFrom:'', readBy:[U.uid], updatedAt:serverTimestamp()
-    });
-    t={id,participants:[U.uid,otherUid],participantNames:names,messages:[],readBy:[U.uid]};
-  }
+  const otherUser=allUsers.find(x=>x.uid===otherUid);
+  const showLogRequestBtn = U.role==='admin' && otherUser && otherUser.role==='software';
+  // Modal DIRECT tonen (met laadindicator) zodat er altijd meteen iets zichtbaars gebeurt bij
+  // het klikken — voorheen kon een trage/mislukte Firestore-aanroep ervoor zorgen dat er
+  // he-le-maal niets zichtbaars gebeurde bij een klik.
   modal(`<div class="modal-handle"></div>
     <div class="modal-title" style="margin-bottom:10px">💬 ${otherName}</div>
-    <div id="dmMsgs" style="max-height:44vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding-right:2px"></div>
+    ${showLogRequestBtn?`<button class="btn btn-ghost btn-sm btn-full" style="margin-bottom:10px" onclick="requestLogbook('${otherUid}','${otherName.replace(/'/g,"\\'")}')">🔒 Vraag logboek op</button>`:''}
+    <div id="dmMsgs" style="max-height:44vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding-right:2px">
+      <p style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">Laden…</p>
+    </div>
     <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:var(--text3)">
       <input type="checkbox" id="dmSendEmail" checked style="width:16px;height:16px"> Ook per e-mail versturen (naast pushmelding)
     </label>
@@ -2493,18 +2519,120 @@ async function openDMThread(otherUid,otherName){
       <input type="text" class="form-input" id="dmInput" placeholder="Typ een bericht…" style="flex:1" onkeydown="if(event.key==='Enter'){sendDM('${otherUid}','${otherName.replace(/'/g,"\\'")}')}">
       <button class="btn btn-yellow" style="width:48px;flex-shrink:0" onclick="sendDM('${otherUid}','${otherName.replace(/'/g,"\\'")}')">➤</button>
     </div>`);
-  _renderDMMessages(t);
-  markDMRead(id);
+  try{
+    const{db,doc,getDoc,setDoc,serverTimestamp}=window._f;
+    let t=allDMs.find(x=>x.id===id);
+    if(!t){
+      const snap=await getDoc(doc(db,'dms',id));
+      if(snap.exists()) t={id,...snap.data()};
+    }
+    if(!t){
+      const names={}; names[U.uid]=U.name; names[otherUid]=otherName;
+      await setDoc(doc(db,'dms',id),{
+        participants:[U.uid,otherUid], participantNames:names,
+        messages:[], lastText:'', lastFrom:'', readBy:[U.uid], updatedAt:serverTimestamp()
+      });
+      t={id,participants:[U.uid,otherUid],participantNames:names,messages:[],readBy:[U.uid]};
+    }
+    _renderDMMessages(t);
+    markDMRead(id);
+  }catch(e){
+    console.error('openDMThread FOUT:',e);
+    const box=document.getElementById('dmMsgs');
+    if(box) box.innerHTML='<p style="text-align:center;color:var(--red);font-size:13px;padding:20px 10px;line-height:1.5">Kon dit gesprek niet laden.<br><span style="font-size:11px;color:var(--text3)">'+(e.message||'Onbekende fout')+'</span><br><span style="font-size:11px;color:var(--text3)">Check of de Firestore-regels bijgewerkt zijn.</span></p>';
+    toast('Privébericht laden mislukt — zie details in het venster','err');
+  }
 }
 function _renderDMMessages(t){
   const c=document.getElementById('dmMsgs'); if(!c)return;
   const msgs=t.messages||[];
   if(!msgs.length){ c.innerHTML='<p style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">Nog geen berichten — zeg hallo!</p>'; return; }
-  c.innerHTML=msgs.map(m=>{
+  c.innerHTML=msgs.map((m,i)=>{
     const mine=m.from===U.uid;
+    if(m.type==='logRequest'){
+      return `<div style="align-self:center;max-width:90%;background:var(--bg3);border:1px solid var(--separator);border-radius:14px;padding:12px 14px;font-size:13px;text-align:center">
+        <div style="font-weight:700;margin-bottom:4px">🔒 Logboek aangevraagd</div>
+        ${m.status==='pending'?
+          (U.role==='software'?`<button class="btn btn-yellow btn-sm" style="margin-top:6px" onclick="openLogRequestReview('${t.id}',${i})">Bekijk & keur goed</button>`:'<div style="color:var(--text3)">Wacht op goedkeuring van dev…</div>')
+          :m.status==='approved'?`<div style="color:var(--green);margin-bottom:6px">✓ Goedgekeurd</div><button class="btn btn-green btn-sm" onclick="downloadApprovedLog('${t.id}',${i})">📥 Download logboek.xlsx</button>`
+          :`<div style="color:var(--red)">✕ Afgewezen</div>`}
+      </div>`;
+    }
     return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:80%;background:${mine?'var(--mhv-blue)':'var(--bg3)'};color:${mine?'#fff':'var(--text1)'};padding:8px 12px;border-radius:14px;font-size:14px">${(m.text||'').replace(/</g,'&lt;')}</div>`;
   }).join('');
   c.scrollTop=c.scrollHeight;
+}
+// Beheerder vraagt een logboek-export op bij de dev, via het gesprek zelf
+async function requestLogbook(devUid,devName){
+  const id=dmThreadId(U.uid,devUid);
+  const{db,doc,updateDoc,serverTimestamp}=window._f;
+  try{
+    await updateDoc(doc(db,'dms',id),{
+      messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),{from:U.uid,type:'logRequest',status:'pending',ts:Date.now()}],
+      lastText:'🔒 Logboek aangevraagd', lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
+    });
+    await notifyUsers([devUid],'🔒 Logboek aangevraagd',U.name+' vraagt een export van het logboek.',U.name+' vraagt een export van het logboek — bekijk en keur goed via Meldingen.',{type:'message'});
+    toast('Verzoek verstuurd naar '+devName,'ok');
+  }catch(e){ toast('Versturen mislukt: '+(e.message||'onbekende fout'),'err'); }
+}
+// Dev bekijkt het verzoek en kiest welke gebruikers in de export komen
+async function openLogRequestReview(threadId,msgIndex){
+  const logs=await loadLoginLogs();
+  const uids=[...new Set(logs.map(l=>l.uid))];
+  const rows=uids.map(uid=>{
+    const u=allUsers.find(x=>x.uid===uid);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--separator)">
+      <input type="checkbox" class="logreview-uid" value="${uid}" checked style="width:17px;height:17px;accent-color:var(--mhv-yellow)">
+      <div style="font-size:14px">${u?u.name:'Onbekend'}</div>
+    </label>`;
+  }).join('');
+  modal(`<div class="modal-handle"></div>
+    <div class="modal-title">Logboekverzoek beoordelen</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:12px">Kies welke gebruikers in de export mogen — de aanvrager krijgt alleen deze data te zien.</p>
+    <div style="max-height:220px;overflow-y:auto;margin-bottom:16px">${rows}</div>
+    <button class="btn btn-yellow btn-full" style="margin-bottom:8px" onclick="approveLogRequest('${threadId}',${msgIndex})">✓ Goedkeuren & versturen</button>
+    <button class="btn btn-ghost btn-full" onclick="rejectLogRequest('${threadId}',${msgIndex})">Afwijzen</button>`);
+}
+async function approveLogRequest(threadId,msgIndex){
+  const selectedUids=[...document.querySelectorAll('.logreview-uid:checked')].map(i=>i.value);
+  const logs=await loadLoginLogs();
+  const filtered=logs.filter(l=>selectedUids.includes(l.uid)).map(l=>({
+    uid:l.uid, name:userName(l.uid), type:l.type, device:l.device||'',
+    ip:l.ip||'', t:l.createdAt?.toDate?l.createdAt.toDate().toISOString():null
+  }));
+  const{db,doc,getDoc,updateDoc,serverTimestamp}=window._f;
+  const snap=await getDoc(doc(db,'dms',threadId));
+  const data=snap.data();
+  const messages=[...(data.messages||[])];
+  messages[msgIndex]={...messages[msgIndex],status:'approved',logData:filtered};
+  await updateDoc(doc(db,'dms',threadId),{messages,updatedAt:serverTimestamp()});
+  const otherUid=data.participants.find(p=>p!==U.uid);
+  await notifyUsers([otherUid],'✅ Logboek goedgekeurd',U.name+' heeft je logboekverzoek goedgekeurd — download het in het gesprek.',U.name+' heeft je logboekverzoek goedgekeurd. Open Meldingen om het te downloaden.',{type:'message'});
+  closeModal(); toast('Goedgekeurd en verstuurd!','ok');
+}
+async function rejectLogRequest(threadId,msgIndex){
+  const{db,doc,getDoc,updateDoc,serverTimestamp}=window._f;
+  const snap=await getDoc(doc(db,'dms',threadId));
+  const data=snap.data();
+  const messages=[...(data.messages||[])];
+  messages[msgIndex]={...messages[msgIndex],status:'rejected'};
+  await updateDoc(doc(db,'dms',threadId),{messages,updatedAt:serverTimestamp()});
+  closeModal(); toast('Verzoek afgewezen','ok');
+}
+function downloadApprovedLog(threadId,msgIndex){
+  const t=allDMs.find(x=>x.id===threadId);
+  const msg=t&&t.messages&&t.messages[msgIndex];
+  if(!msg||!msg.logData){toast('Geen data gevonden','err');return;}
+  const aoa=[['Gebruiker','Type','Datum','Tijd','Apparaat','IP-adres']];
+  msg.logData.forEach(l=>{
+    const d=l.t?new Date(l.t):null;
+    aoa.push([l.name,l.type==='login'?'Ingelogd':'Uitgelogd',d?d.toLocaleDateString('nl-NL'):'',d?d.toLocaleTimeString('nl-NL'):'',l.device,l.ip||'onbekend']);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:18},{wch:10},{wch:12},{wch:10},{wch:22},{wch:16}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Logboek');
+  XLSX.writeFile(wb,`MHVwork-logboek-gedeeld_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 async function sendDM(otherUid,otherName){
   const inp=document.getElementById('dmInput'); if(!inp)return;
@@ -2512,14 +2640,20 @@ async function sendDM(otherUid,otherName){
   const wantsEmail=document.getElementById('dmSendEmail')?.checked!==false;
   inp.value='';
   const id=dmThreadId(U.uid,otherUid);
-  const{db,doc,updateDoc,serverTimestamp}=window._f;
-  await updateDoc(doc(db,'dms',id),{
-    messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),{from:U.uid,text,ts:Date.now()}],
-    lastText:text, lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
-  });
-  // Melding — dit is een écht persoonlijk bericht, dus met een ander uiterlijk dan systeemmeldingen.
-  // Afzender staat duidelijk in de titel, ook in de e-mail zelf.
-  await notifyUsers([otherUid],'✉️ Bericht van '+U.name,text,text,{type:'message',email:wantsEmail});
+  try{
+    const{db,doc,updateDoc,serverTimestamp}=window._f;
+    await updateDoc(doc(db,'dms',id),{
+      messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),{from:U.uid,text,ts:Date.now()}],
+      lastText:text, lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
+    });
+    // Melding — dit is een écht persoonlijk bericht, dus met een ander uiterlijk dan systeemmeldingen.
+    // Afzender staat duidelijk in de titel, ook in de e-mail zelf.
+    await notifyUsers([otherUid],'✉️ Bericht van '+U.name,text,text,{type:'message',email:wantsEmail});
+  }catch(e){
+    console.error('sendDM FOUT:',e);
+    inp.value=text; // teruggeven zodat het niet kwijt is
+    toast('Versturen mislukt: '+(e.message||'onbekende fout'),'err');
+  }
 }
 async function markDMRead(id){
   const{db,doc,updateDoc,arrayUnion}=window._f;
@@ -3301,36 +3435,52 @@ function exportShiftToCalendar(shift){
   const d=toDate(shift.date);
   const pad=n=>String(n).padStart(2,'0');
   const icsDate=(date,h,m)=>[date.getFullYear(),pad(date.getMonth()+1),pad(date.getDate()),'T',pad(h),pad(m),'00'].join('');
+  const dtstamp=icsDate(new Date(),new Date().getHours(),new Date().getMinutes());
   const[sh,sm]=(shift.startTime||'00:00').split(':').map(Number);
   const[eh,em]=(shift.endTime||'00:00').split(':').map(Number);
-  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MHVwork//NL','BEGIN:VEVENT',
+  const startStr=icsDate(d,sh,sm), endStr=icsDate(d,eh,em);
+  const desc='Dienst bij MHV — '+shift.startTime+' tot '+shift.endTime;
+
+  // Agenda-toevoegen via een enkele "trick" (blob-download, Share API, of data:-URI) bleek in de
+  // praktijk onbetrouwbaar: Apple blokkeert het dynamisch openen van .ics-bestanden in sommige
+  // situaties, en Android-browsers hebben bekende, wisselvallige bugs met .ics-bestandsafhandeling.
+  // Daarom, net als grote partijen (Eventbrite, Meetup, etc.) doen: een keuze geven die altijd
+  // ergens toe leidt, i.p.v. gokken op één methode.
+  const gcalUrl='https://calendar.google.com/calendar/render?action=TEMPLATE'
+    +'&text='+encodeURIComponent('Dienst MHV')
+    +'&dates='+startStr+'/'+endStr
+    +'&details='+encodeURIComponent(desc)
+    +'&location='+encodeURIComponent('MHV');
+
+  modal(`<div class="modal-handle"></div>
+    <div style="text-align:center;padding:6px 0 4px">
+      <div style="font-size:40px;margin-bottom:10px">📅</div>
+      <div class="modal-title" style="text-align:center">Toevoegen aan agenda</div>
+      <p style="font-size:13px;color:var(--text3);margin:8px 0 18px">Kies wat bij jouw agenda-app past.</p>
+      <button class="btn btn-yellow btn-full" style="margin-bottom:10px" onclick="window.open('${gcalUrl}','_blank');closeModal()">Google Agenda</button>
+      <button class="btn btn-ghost btn-full" onclick="downloadIcsFile('${shift.id}');closeModal()">Apple Agenda / Outlook (.ics-bestand)</button>
+    </div>`);
+}
+function downloadIcsFile(shiftId){
+  const shift=allShifts.find(s=>s.id===shiftId); if(!shift)return;
+  const d=toDate(shift.date);
+  const pad=n=>String(n).padStart(2,'0');
+  const icsDate=(date,h,m)=>[date.getFullYear(),pad(date.getMonth()+1),pad(date.getDate()),'T',pad(h),pad(m),'00'].join('');
+  const now=new Date();
+  const[sh,sm]=(shift.startTime||'00:00').split(':').map(Number);
+  const[eh,em]=(shift.endTime||'00:00').split(':').map(Number);
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MHVwork//NL','CALSCALE:GREGORIAN','BEGIN:VEVENT',
     'UID:'+(shift.id||Date.now())+'@mhvwork',
+    'DTSTAMP:'+icsDate(now,now.getHours(),now.getMinutes()),
     'DTSTART:'+icsDate(d,sh,sm),'DTEND:'+icsDate(d,eh,em),
     'SUMMARY:Dienst MHV','DESCRIPTION:Dienst bij MHV — '+shift.startTime+' tot '+shift.endTime,
     'LOCATION:MHV','END:VEVENT','END:VCALENDAR'].join('\r\n');
-  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  if(isIOS){
-    // Op iOS (ook als geïnstalleerde PWA) is een data:-URI het enige patroon dat betrouwbaar
-    // de "Voeg toe aan agenda"-prompt van Apple opent — blob-downloads en zelfs de Share API
-    // falen daar regelmatig stilletjes.
-    const dataUrl='data:text/calendar;charset=utf-8,'+encodeURIComponent(ics);
-    window.location.href=dataUrl;
-    return;
-  }
   const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
-  const file=new File([blob],'dienst-mhv.ics',{type:'text/calendar'});
-  if(navigator.canShare && navigator.canShare({files:[file]})){
-    navigator.share({files:[file],title:'Dienst MHV'}).catch(()=>{ fallbackDownload(blob); });
-  } else {
-    fallbackDownload(blob);
-  }
-  function fallbackDownload(blob){
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download='dienst-mhv.ics'; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),4000);
-    toast('Agenda bestand gedownload!','ok');
-  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='dienst-mhv.ics'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  toast('Bestand gedownload — open het vanuit je downloads om toe te voegen','ok');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3424,17 +3574,16 @@ function renderDevAcc(){
 // ═══════════════════════════════════════════
 // DEV — Aankondiging
 // ═══════════════════════════════════════════
-function renderDevAnn(){
+async function renderDevAnn(){
   const v=document.getElementById('view-devann'); if(!v)return;
   v.innerHTML=
     '<div class="page-title" style="padding:16px 16px 0">📢 Aankondiging</div>'
     +'<div style="padding:16px">'
-    +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:24px;text-align:center">'
-    +'<div style="font-size:32px;margin-bottom:10px">📢</div>'
-    +'<div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5">Plaats een aankondiging met tekst en foto op de homepage van alle medewerkers. Speciale aankondigingen krijgen een eigen kleur en verschijnen als pop-up.</div>'
-    +'<button class="btn btn-yellow btn-full" onclick="openAnnouncementModal()">Aankondiging plaatsen</button>'
-    +'</div>'
+    +'<button class="btn btn-yellow btn-full" style="margin-bottom:18px" onclick="openAnnouncementModal()">+ Aankondiging plaatsen</button>'
+    +'<div id="announceArea"></div>'
     +'</div>';
+  const announcements = await loadAnnouncements();
+  renderAnnouncementArea(document.getElementById('announceArea'), announcements, true);
 }
 
 // ═══════════════════════════════════════════
@@ -3701,8 +3850,12 @@ function openAnnouncementModal(){
     +'<div id="annImgPreview" style="margin-top:8px"></div></div>'
     +(isDev?'<label style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:6px">'
       +'<input type="checkbox" id="annSpecial" style="width:18px;height:18px;accent-color:var(--red)">'
-      +'<span style="font-size:13px"><b>🚨 Speciale aankondiging</b><br><span style="color:var(--text3);font-size:12px">Andere kleur op de homepage, verschijnt als pop-up, en stuurt meteen push + e-mail naar iedereen in de doelgroep.</span></span>'
+      +'<span style="font-size:13px"><b>🚨 Speciale aankondiging</b><br><span style="color:var(--text3);font-size:12px">Andere kleur op de homepage en verschijnt als pop-up.</span></span>'
       +'</label>':'')
+    +'<label style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:10px">'
+      +'<input type="checkbox" id="annEmail" checked style="width:18px;height:18px;accent-color:var(--mhv-yellow)">'
+      +'<span style="font-size:13px"><b>📧 Ook een e-mail sturen</b><br><span style="color:var(--text3);font-size:12px">Naast de pushmelding en zichtbaarheid op de homepage.</span></span>'
+      +'</label>'
     +'<button class="btn btn-yellow btn-full" onclick="saveAnnouncement()">Plaatsen</button>');
 
   const imgInput = document.getElementById('annImg');
@@ -3733,6 +3886,7 @@ async function saveAnnouncement(){
   const text  = (document.getElementById('annText')||{}).value||'';
   const audience = (document.getElementById('annAudience')||{}).value||'all';
   const special = !!(document.getElementById('annSpecial')||{}).checked;
+  const wantsEmail = (document.getElementById('annEmail')||{}).checked!==false;
   if(!title.trim()){toast('Vul een titel in','err');return;}
   const{db,collection,addDoc,serverTimestamp}=window._f;
   const payload = {
@@ -3751,15 +3905,13 @@ async function saveAnnouncement(){
     closeModal();
     toast('Aankondiging geplaatst!','ok');
     render(U.role==='software'?'devacc':'home');
-    if(special){
-      const targets=allUsers.filter(u=>{
-        if(u.uid===U.uid)return false;
-        if(audience==='employee')return u.role==='employee';
-        if(audience==='admin')return u.role==='admin'||u.role==='software';
-        return true;
-      }).map(u=>u.uid);
-      if(targets.length) await notifyUsers(targets,'🚨 '+payload.title,payload.text||payload.title,payload.text||payload.title,{type:'announce'});
-    }
+    const targets=allUsers.filter(u=>{
+      if(u.uid===U.uid)return false;
+      if(audience==='employee')return u.role==='employee';
+      if(audience==='admin')return u.role==='admin'||u.role==='software';
+      return true;
+    }).map(u=>u.uid);
+    if(targets.length) await notifyUsers(targets,(special?'🚨 ':'📢 ')+payload.title,payload.text||payload.title,payload.text||payload.title,{type:'announce',email:wantsEmail});
   }catch(e){
     toast('Plaatsen mislukt: '+e.message,'err');
     console.error('saveAnnouncement error:',e);
@@ -3769,10 +3921,15 @@ async function saveAnnouncement(){
 async function deleteAnnouncement(id){
   const ok = await confirm2('Verwijderen','Aankondiging verwijderen?','Verwijderen','btn-red');
   if(!ok) return;
-  const{db,doc,deleteDoc}=window._f;
-  await deleteDoc(doc(db,'announcements',id));
-  toast('Verwijderd','ok');
-  render('home');
+  try{
+    const{db,doc,deleteDoc}=window._f;
+    await deleteDoc(doc(db,'announcements',id));
+    toast('Verwijderd','ok');
+    render(U.role==='software'?'devann':'home');
+  }catch(e){
+    console.error('deleteAnnouncement FOUT:',e);
+    toast('Verwijderen mislukt: '+(e.message||'onbekende fout'),'err');
+  }
 }
 
 async function loadAnnouncements(){
@@ -3866,6 +4023,12 @@ const _FN = {
   exportShiftsExcel: exportShiftsExcel,
   openImageLightbox: openImageLightbox,
   exportLoginLogsExcel: exportLoginLogsExcel,
+  requestLogbook: requestLogbook,
+  openLogRequestReview: openLogRequestReview,
+  approveLogRequest: approveLogRequest,
+  rejectLogRequest: rejectLogRequest,
+  downloadApprovedLog: downloadApprovedLog,
+  downloadIcsFile: downloadIcsFile,
   deleteEmployeeDev: deleteEmployeeDev,
   editAvailNote: editAvailNote,
   saveAvailNote: saveAvailNote,

@@ -99,3 +99,16 @@ dat alle 77 functies weer correct gebonden worden.
 - **Tab- en meldingen-icoon animeren nu** bij het wisselen van pagina (kleine "pop"-animatie).
 - **Geschorst account krijgt een eigen pagina** direct na inloggen, met de reden die de beheerder/dev bij het schorsen kan invullen — i.p.v. een simpele foutmelding op de inlogpagina.
 - **README volledig herschreven**: overzichtelijker, met badges, inhoudsopgave, projectstructuur, en een licentie-sectie (inclusief de externe bibliotheken die MHVwork gebruikt en hún licenties).
+
+## 🆕 Update 5 — bugfixes ronde 2
+
+- **Animaties die na 1x stopten** → vervangen door de Web Animations API, speelt nu altijd opnieuw af.
+- **Privébericht/aankondiging-acties "deden niets"** → root cause: geen foutafhandeling rond Firestore-aanroepen in `openDMThread`, `sendDM` en `deleteAnnouncement`. Als zo'n aanroep faalt (bv. rules nog niet bijgewerkt), gebeurde er he-le-maal niets zichtbaars. Nu tonen alle drie een duidelijke foutmelding met reden.
+- **Niet-beschikbare medewerkers toch toevoegbaar bij het bewerken van een dienst** → `openEditShift` checkte beschikbaarheid niet (in tegenstelling tot bij aanmaken). Gefixt, met behoud van reeds-toegewezen medewerkers.
+- **E-mail-keuze bij élke aankondiging** (niet alleen speciale).
+- **Geen emoji meer op de schorsingspagina** — nu een SVG-icoon.
+- **Beheerders konden dev-aankondigingen niet verwijderen** — zelfde silent-failure patroon als hierboven, nu met foutmelding. Dev's eigen Aankondiging-pagina toont nu ook alle bestaande aankondigingen (kon voorheen niet).
+- **"Tygo" hernoemd naar "Dev"** in de hardcoded dev-bypass. *Let op: als er al een bestaand account met de naam "Tygo (Dev)" in je database staat, pas die zelf even aan via Beheer → Accounts → ✏ Rol/gegevens — nieuwe accounts krijgen nu automatisch "Dev".*
+- **Datum aanpasbaar bij het bewerken van een afwezigheidsmelding** (kon voorheen alleen de reden).
+- **Logboek opvragen via het gesprek met de dev**: beheerder klikt "Vraag logboek op" in de chat met de dev → dev kiest welke gebruikers in de export mogen en keurt goed → aanvrager krijgt een downloadknop in hetzelfde gesprek.
+- **Agenda-export grondig herzien**: na onderzoek bleek elke losse "trick" (blob-download, Share API, `data:`-URI) op zich onbetrouwbaar — Apple blokkeert het dynamisch openen van .ics-bestanden in sommige gevallen, en Android-browsers hebben bekende bugs met .ics-afhandeling. Nu een keuze-scherm (zoals Eventbrite/Meetup): "Google Agenda" (opent direct, werkt universeel) of "Apple Agenda / Outlook" (.ics-download, nu ook met de verplichte `DTSTAMP`-regel die eerder ontbrak — sommige agenda-apps weigerden het bestand zonder die regel volledig).
