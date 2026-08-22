@@ -585,7 +585,7 @@ select.form-input option { background:var(--bg3); }
 
   <!-- TOPBAR -->
   <div id="topbar">
-    <img id="topLogo" src="" alt="MHV">
+    <img id="topLogo" src="" alt="MHV" onclick="handleLogoTap()">
     <div class="app-name">MHV<span>work</span></div>
     <div style="flex:1"></div>
     <button class="help-btn" onclick="openHelpModal()" title="Hulp & uitleg">?</button>
@@ -766,6 +766,7 @@ window.addEventListener('mhv:ready', async ()=>{
     // (hulp-uitleg nu alleen op de loginpagina)
     maybeShowInstallPrompt();
     maybeShowFirstTour();
+    applyHolidayTheme();
   }
 });;
 
@@ -915,6 +916,19 @@ function toTimeStr(h,m){return `${String(h).padStart(2,'0')}:${String(m).padStar
 function roundTimeStr(s){if(!s)return s;const[h,m]=s.split(':').map(Number);const q=roundQ(h,m);return toTimeStr(q.h,q.m);}
 function getInitials(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 function userName(uid){return allUsers.find(u=>u.uid===uid)?.name||'Onbekend';}
+function userNameBadged(uid){
+  const n=userName(uid);
+  return isUserVerified(uid)?(n+VERIFIED_BADGE):n;
+}
+// Centrale avatar-helper: profielfoto > dev-logo > initialen. Gebruik dit overal i.p.v. losse
+// getInitials()-aanroepen, zodat een profielfoto écht overal verschijnt i.p.v. op een paar plekken.
+function userAvatarHtml(uid){
+  const u=allUsers.find(x=>x.uid===uid);
+  if(!u)return getInitials(userName(uid));
+  if(u.role==='software')return '<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  if(u.photoData)return '<img src="'+u.photoData+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  return getInitials(u.name);
+}
 function userWage(uid){return allUsers.find(u=>u.uid===uid)?.wage||0;}
 function getTheme(){ try{return localStorage.getItem('mhv_theme')||'system';}catch(e){return 'system';} }
 function computeEffectiveTheme(pref){
@@ -1154,6 +1168,90 @@ async function sendNotifMulti(uids,title,body){
 // Speelt de "pop"-animatie ALTIJD opnieuw af, ongeacht eerdere staat — via de Web Animations API
 // i.p.v. een CSS-class togglen (die truc bleek in de praktijk niet in elke browser betrouwbaar
 // opnieuw te starten, vandaar dat de animatie maar één keer leek te werken).
+// ═══════════════════════════════════════════
+// 🍺 Verborgen easter egg — tik snel 7x op het logo
+// ═══════════════════════════════════════════
+let _logoTapCount=0, _logoTapTimer=null;
+function handleLogoTap(){
+  _logoTapCount++;
+  clearTimeout(_logoTapTimer);
+  _logoTapTimer=setTimeout(()=>{_logoTapCount=0;},1200);
+  if(_logoTapCount>=7){
+    _logoTapCount=0;
+    showEasterEgg();
+  }
+}
+function showEasterEgg(){
+  let found=0; try{found=parseInt(localStorage.getItem('mhv_egg_found')||'0');}catch(e){}
+  found++;
+  try{localStorage.setItem('mhv_egg_found',String(found));}catch(e){}
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeSlide .2s ease';
+  overlay.innerHTML=`
+    <div style="text-align:center;padding:20px">
+      <svg width="70" height="90" viewBox="0 0 70 90" style="margin-bottom:14px">
+        <rect x="10" y="18" width="50" height="62" rx="6" fill="none" stroke="#F5C800" stroke-width="3"/>
+        <rect x="60" y="30" width="8" height="26" rx="4" fill="none" stroke="#F5C800" stroke-width="3"/>
+        <rect id="eggBeer" x="14" y="76" width="42" height="0" fill="#F5C800" style="transition:height 1.1s cubic-bezier(.34,1.2,.64,1), y 1.1s cubic-bezier(.34,1.2,.64,1)"/>
+        <rect id="eggFoam" x="14" y="76" width="42" height="0" fill="#fff" opacity=".9" style="transition:height 1.1s ease .1s, y 1.1s ease .1s"/>
+      </svg>
+      <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:6px">Gevonden! 🎉</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6);max-width:260px;line-height:1.6">Ergens achter de bar heeft iemand dit hier verstopt.<br>Proost, en bedankt voor al het harde werk.</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:14px">${found===1?'Eerste keer gevonden op dit apparaat':'Alweer keer '+found+' dat je \'m vindt'}</div>
+    </div>`;
+  overlay.onclick=()=>overlay.remove();
+  document.body.appendChild(overlay);
+  requestAnimationFrame(()=>{
+    const beer=overlay.querySelector('#eggBeer'), foam=overlay.querySelector('#eggFoam');
+    if(beer){ beer.setAttribute('y','26'); beer.setAttribute('height','54'); }
+    if(foam){ foam.setAttribute('y','22'); foam.setAttribute('height','8'); }
+  });
+  setTimeout(()=>{ if(overlay.parentNode) overlay.remove(); },4500);
+}
+
+// ═══════════════════════════════════════════
+// 🎄 Feestdagen-thema — geen echte manifest-icoonwissel mogelijk (OS-beperking bij PWA's),
+// maar wel een feestelijk accent in de app + eenmalige felicitatie per feestdag-periode.
+// ═══════════════════════════════════════════
+function getCurrentHoliday(){
+  const now=new Date(); const m=now.getMonth()+1, d=now.getDate();
+  if(m===12&&d>=24&&d<=26) return {id:'kerst', emoji:'🎄', title:'Fijne kerstdagen!', msg:'Het hele MHVwork-team wenst je hele fijne kerstdagen!', color:'#c0392b'};
+  if((m===12&&d===31)||(m===1&&d===1)) return {id:'nieuwjaar', emoji:'🎆', title:'Gelukkig nieuwjaar!', msg:'Op naar een mooi nieuw jaar achter de bar!', color:'#f5c800'};
+  if(m===4&&d===27) return {id:'koningsdag', emoji:'🧡', title:'Fijne Koningsdag!', msg:'Geniet van de drukte — en van een oranje biertje.', color:'#ff7f00'};
+  if(m===10&&d===31) return {id:'halloween', emoji:'🎃', title:'Happy Halloween!', msg:'Spannende dienst vandaag? 👻', color:'#ff7518'};
+  if(m===3&&d>=22&&now.getDay()===0) return {id:'pasen', emoji:'🐣', title:'Fijne Pasen!', msg:'Fijne paasdagen gewenst!', color:'#7fc97f'};
+  if(m===4&&d<=25&&now.getDay()===0) return {id:'pasen', emoji:'🐣', title:'Fijne Pasen!', msg:'Fijne paasdagen gewenst!', color:'#7fc97f'};
+  return null;
+}
+function applyHolidayTheme(){
+  const h=getCurrentHoliday(); if(!h)return;
+  const logo=document.getElementById('topLogo');
+  if(logo && !document.getElementById('holidayBadge')){
+    const wrap=logo.parentElement;
+    if(wrap && getComputedStyle(wrap).position==='static') wrap.style.position='relative';
+    const badge=document.createElement('span');
+    badge.id='holidayBadge';
+    badge.textContent=h.emoji;
+    badge.style.cssText='position:absolute;top:-4px;left:18px;font-size:13px;pointer-events:none;transform:rotate(-12deg)';
+    logo.insertAdjacentElement('afterend', badge);
+  }
+  try{
+    const seenKey='mhv_holiday_seen_'+h.id+'_'+new Date().getFullYear();
+    if(!localStorage.getItem(seenKey)){
+      localStorage.setItem(seenKey,'1');
+      setTimeout(()=>{
+        modal(`<div class="modal-handle"></div>
+          <div style="text-align:center;padding:10px 0 4px">
+            <div style="font-size:48px;margin-bottom:10px">${h.emoji}</div>
+            <div class="modal-title" style="text-align:center;color:${h.color}">${h.title}</div>
+            <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 18px">${h.msg}</p>
+            <button class="btn btn-yellow btn-full" onclick="closeModal()">Bedankt!</button>
+          </div>`);
+      },1800);
+    }
+  }catch(e){}
+}
+
 function playPopAnimation(el){
   if(!el||!el.animate)return;
   try{
@@ -1282,9 +1380,9 @@ async function renderAdminHome(c){
           const ft=s.finalTimes?.[uid];
           const start=ft?.start||s.startTime; const end=ft?.end||s.endTime;
           return `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px;background:var(--bg3);border-radius:8px">
-            <div class="avatar">${getInitials(userName(uid))}</div>
+            <div class="avatar">${userAvatarHtml(uid)}</div>
             <div style="flex:1">
-              <div style="font-size:14px;font-weight:600">${userName(uid)}</div>
+              <div style="font-size:14px;font-weight:600">${userNameBadged(uid)}</div>
               <div style="font-size:12px;color:var(--text3)">Doorgestuurd: ${start} – ${end}</div>
             </div>
             <button class="btn btn-green btn-sm" onclick="approveShift('${s.id}','${uid}')">✓</button>
@@ -1311,7 +1409,7 @@ function renderAdminShiftCard(s){
     const pay=st==='approved'||st==='paid'?calcPay(start,end,userWage(uid)):null;
     return `<div class="roster-row">
       <div class="roster-time">${start}–${end}</div>
-      <div class="roster-name">${userName(uid)}</div>
+      <div class="roster-name">${userNameBadged(uid)}</div>
       ${pay!==null?`<div class="roster-pay">${fmtMoney(pay)}</div>`:`<div class="roster-pay" style="color:var(--text4)">—</div>`}
       <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'❗':'⏳'}</span>
     </div>`;
@@ -1411,12 +1509,12 @@ async function renderEmployeeHome(c){
           <div class="shift-people">
             ${(next.workers||[]).filter(uid=>uid!==U.uid).map(uid=>`
               <span class="person-pill">
-                <span class="avatar">${getInitials(userName(uid))}</span>
-                ${userName(uid)}
+                <span class="avatar">${userAvatarHtml(uid)}</span>
+                ${userNameBadged(uid)}
               </span>`).join('')}
           </div>` : `<div style="margin-top:8px;font-size:13px;color:var(--text3)">Je werkt alleen</div>`}
         <div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--separator)">
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportShiftToCalendar(allShifts.find(s=>s.id===\'${next.id}\'))">📅 Agenda</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportShiftToCalendar('${next.id}')">📅 Agenda</button>
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openSwapModal()">🔄 Ruilen</button>
         </div>
       </div>` : `<div class="empty"><div class="empty-icon">🎉</div><p>Geen komende diensten</p></div>`}
@@ -1440,7 +1538,10 @@ function renderAnnouncementArea(area, announcements, showAll){
   if(!visibleAnn.length){ area.innerHTML=''; return; }
   area.innerHTML = '<div class="section-label" style="margin-top:0;margin-bottom:8px">📢 Aankondigingen</div>'
     + visibleAnn.map(function(ann){
-        const canDel = U.role==='admin'||U.role==='software';
+        // Alleen dev mag een 'speciale' (dev-only) aankondiging verwijderen — een beheerder mag
+        // wél gewone aankondigingen verwijderen (ook die van andere beheerders), maar niet die
+        // van de dev-rol specifiek.
+        const canDel = U.role==='software' || (U.role==='admin' && !ann.special);
         const isSpecial = !!ann.special;
         const borderColor = isSpecial ? 'var(--red)' : 'var(--mhv-yellow)';
         const bg = isSpecial ? 'rgba(255,69,58,.06)' : '';
@@ -1570,7 +1671,7 @@ function renderAdminRoster(c){
             const pay=st==='approved'||st==='paid'?calcPay(start,end,userWage(uid)):null;
             return `<div class="roster-row">
               <div class="roster-time">${start}–${end}</div>
-              <div class="roster-name">${userName(uid)}</div>
+              <div class="roster-name">${userNameBadged(uid)}</div>
               ${pay!==null?`<div class="roster-pay">${fmtMoney(pay)}</div>`:`<div class="roster-pay" style="color:var(--text4)">—</div>`}
               ${st==='confirmed'?`<button class="btn btn-green" style="padding:4px 8px;font-size:11px" onclick="approveShift('${s.id}','${uid}')">✓</button><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="adminCorrect('${s.id}','${uid}')">✏</button>`
                 :`<span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'❗':'⏳'}</span>`}
@@ -1675,14 +1776,14 @@ function renderDayShifts(k){
       const finished=shiftFinished(s);
       const canConfirm=isMe&&finished&&st==='pending';
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--separator)">
-        <div class="avatar ${isMe?'yellow':''}">${getInitials(userName(uid))}</div>
+        <div class="avatar ${isMe?'yellow':''}">${userAvatarHtml(uid)}</div>
         <div style="flex:1">
-          <div style="font-size:14px;font-weight:${isMe?'700':'500'}">${userName(uid)}${isMe?' (jij)':''}</div>
+          <div style="font-size:14px;font-weight:${isMe?'700':'500'}">${userNameBadged(uid)}${isMe?' (jij)':''}</div>
           <div style="font-size:12px;color:var(--text3)">${start} – ${end}</div>
         </div>
         <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'In beoord.':st==='unconfirmed_locked'?'Geweest, onbevestigd':'Gepland'}</span>
         ${canConfirm?`<button class="btn btn-yellow btn-sm" onclick="openCorrectShift('${s.id}')">Bevestig</button>`:''}
-        ${isMe?`<button class="btn btn-ghost btn-sm" title="Exporteer naar agenda" onclick="exportShiftToCalendar(allShifts.find(x=>x.id==='${s.id}'))">📅</button>`:''}
+        ${isMe?`<button class="btn btn-ghost btn-sm" title="Exporteer naar agenda" onclick="exportShiftToCalendar('${s.id}')">📅</button>`:''}
       </div>`;
     }).join('');
     return `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
@@ -2472,7 +2573,7 @@ function _renderDMList(c){
   const targets=dmTargets();
   let html='<div class="section-label">Nieuw gesprek</div><div class="card" style="margin-bottom:16px">'
     +targets.map(u=>`<div class="card-row dm-target-row" style="cursor:pointer" data-uid="${u.uid}">
-        <div class="card-row-label">${u.role==='admin'?'\ud83d\udc51':u.role==='software'?'\ud83d\udee0':'\ud83d\udc64'} ${u.name}</div><div style="color:var(--text3)">\u203a</div>
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0"><div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0${u.role==='software'?';background:var(--mhv-blue)':''}">${userAvatarHtml(u.uid)}</div><div class="card-row-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${userNameBadged(u.uid)}</div></div><div style="color:var(--text3)">\u203a</div>
       </div>`).join('')
     +'</div>';
   if(allDMs.length){
@@ -2850,6 +2951,7 @@ function renderProfile(){
     </div>`:''}
 
     <div class="section-label">E-mailvoorkeuren</div>
+    <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px;padding:0 2px">📧 Dit gaat alleen over e-mail. In-app pushmeldingen zet je niet hier uit — die beheer je bij 🔔 Meldingen.</p>
     <div class="card" style="margin-bottom:16px">
       <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
         <div style="flex:1;padding-right:12px">
@@ -3320,7 +3422,7 @@ function _renderSwapCard(msg){
   const hasInterest = !!msg.interestedName;
   const canAccept=U.uid!==msg.uid&&U.role==='employee'&&!hasInterest;
   const canApprove=U.role==='admin'&&hasInterest;
-  return '<div class="swap-card"><h4>🔄 Dienst overnemen?</h4>'
+  return '<div class="swap-card"'+(hasInterest?' style="border-left:3px solid var(--mhv-yellow)"':'')+'><h4>🔄 Dienst overnemen?'+(hasInterest?' <span style="color:var(--mhv-yellow);font-size:13px">✓ interesse</span>':'')+'</h4>'
     +'<p>'+msg.swapDate+' · '+msg.swapTime+'</p>'
     +(hasInterest?'<p style="font-size:13px;color:var(--text2);margin-top:4px">👋 <b>'+msg.interestedName+'</b> heeft interesse getoond.</p>':'<p style="font-size:12px;color:var(--text3);margin-top:4px">Nog niemand heeft interesse getoond.</p>')
     +(canAccept?'<div class="swap-actions"><button class="btn btn-green btn-sm" onclick="acceptSwap(\''+msg.swapReqId+'\',\''+msg.id+'\')">Ik neem het over</button></div>':'')
@@ -3430,7 +3532,8 @@ async function rejectSwap(reqId,msgId){
 // ═══════════════════════════════════════════════════════════════
 // AGENDA EXPORT (.ics)
 // ═══════════════════════════════════════════════════════════════
-function exportShiftToCalendar(shift){
+function exportShiftToCalendar(shiftId){
+  const shift=allShifts.find(s=>s.id===shiftId);
   if(!shift){toast('Dienst niet gevonden','err');return;}
   const d=toDate(shift.date);
   const pad=n=>String(n).padStart(2,'0');
@@ -3631,7 +3734,7 @@ function renderDevLog(){
       return filtered.map(l=>{
         const t=l.createdAt?.toDate?l.createdAt.toDate():null;
         const u=allUsers.find(x=>x.uid===l.uid);
-        const name=u?u.name:userName(l.uid);
+        const name=u?(u.name+(isUserVerified(u.uid)?VERIFIED_BADGE:'')):userName(l.uid);
         return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;align-items:center;gap:10px">'
           +'<div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;'+(u&&u.role==='software'?'background:var(--mhv-blue)':'')+'">'+(u&&u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(u?getInitials(u.name):'?'))+'</div>'
           +'<div style="flex:1;min-width:0">'
@@ -4029,6 +4132,7 @@ const _FN = {
   rejectLogRequest: rejectLogRequest,
   downloadApprovedLog: downloadApprovedLog,
   downloadIcsFile: downloadIcsFile,
+  handleLogoTap: handleLogoTap,
   deleteEmployeeDev: deleteEmployeeDev,
   editAvailNote: editAvailNote,
   saveAvailNote: saveAvailNote,

@@ -112,3 +112,17 @@ dat alle 77 functies weer correct gebonden worden.
 - **Datum aanpasbaar bij het bewerken van een afwezigheidsmelding** (kon voorheen alleen de reden).
 - **Logboek opvragen via het gesprek met de dev**: beheerder klikt "Vraag logboek op" in de chat met de dev → dev kiest welke gebruikers in de export mogen en keurt goed → aanvrager krijgt een downloadknop in hetzelfde gesprek.
 - **Agenda-export grondig herzien**: na onderzoek bleek elke losse "trick" (blob-download, Share API, `data:`-URI) op zich onbetrouwbaar — Apple blokkeert het dynamisch openen van .ics-bestanden in sommige gevallen, en Android-browsers hebben bekende bugs met .ics-afhandeling. Nu een keuze-scherm (zoals Eventbrite/Meetup): "Google Agenda" (opent direct, werkt universeel) of "Apple Agenda / Outlook" (.ics-download, nu ook met de verplichte `DTSTAMP`-regel die eerder ontbrak — sommige agenda-apps weigerden het bestand zonder die regel volledig).
+
+## 🆕 Update 6 — twee kritieke fixes + verdere verbeteringen
+
+### 🚨 Kritiek (verklaart meerdere terugkerende klachten)
+- **Agenda-export "werkte nog steeds niet"**: de knoppen verwezen rechtstreeks naar `allShifts` middenin een `onclick=""`-attribuut. Zulke attributen draaien in de globale scope, terwijl `allShifts` module-scoped is — dus onzichtbaar daarbuiten. Dit gaf altijd een `ReferenceError`, op alle apparaten, meteen bij het klikken. Gefixt door alleen het ID mee te geven.
+- **Privébericht "werkt nog steeds niet"**: eindelijk de échte oorzaak gevonden dankzij jouw screenshot — een subtiele fout in de Firestore-regel crashte bij het *allereerste* bericht naar iemand nieuws (vóór het gesprek bestaat), en Firestore behandelt zo'n crash als een blokkade. **Dit vereist opnieuw dat je de bijgewerkte `firestore.rules` publiceert in de Firebase Console — zonder die stap blijft dit stuk.**
+
+### ✨ Verder deze ronde
+- Beheerders kunnen **geen** dev-aankondigingen meer verwijderen (teruggedraaid, was per ongeluk andersom gefixt) — zowel in de app als hard in de Firestore-regels.
+- Geverifieerd-vinkje en profielfoto tonen nu op veel meer plekken (roosterlijsten, dienstenoverzicht, privéberichten-lijst, logboek), niet alleen chat/profiel.
+- Ruilverzoek: als iemand interesse toont, wordt het **originele** bericht in de chat nu ook duidelijk visueel bijgewerkt (gele rand + "✓ interesse"-label), niet alleen een nieuw apart berichtje.
+- Verborgen easter egg: tik 7x snel op het logo 🍺
+- Feestdagen-thema (kerst, oud & nieuw, Koningsdag, Halloween, Pasen): klein feestelijk accent bij het logo + eenmalige felicitatie in de app. *Het daadwerkelijke beginscherm-icoon van de PWA kan helaas niet dynamisch wisselen — dat is een technische beperking van hoe app-iconen werken, geen keuze.*
+- E-mailvoorkeuren-sectie verduidelijkt: dit gaat alleen over e-mail, in-app pushmeldingen beheer je bij Meldingen.

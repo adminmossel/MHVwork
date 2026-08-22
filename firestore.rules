@@ -95,12 +95,17 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isStaff();
       allow update: if isStaff();
-      allow delete: if isStaff();
+      // Een beheerder mag geen 'speciale' (dev-only) aankondiging verwijderen — alleen dev zelf.
+      allow delete: if isSoftware() || (isAdmin() && resource.data.special != true);
     }
 
     // Privéberichten (medewerker <-> beheerder/dev), 1 doc per thread
     match /dms/{threadId} {
-      allow read: if isAuth() && resource.data.participants.hasAny([request.auth.uid]);
+      // 'resource == null' dekt het moment vóórdat het gesprek bestaat (de allereerste keer dat
+      // je iemand een bericht stuurt) — zonder die check crasht de regel op resource.data van een
+      // niet-bestaand document, en behandelt Firestore dat als een blokkade ("missing or
+      // insufficient permissions"), zelfs voor een volkomen legitieme aanvraag.
+      allow read: if isAuth() && (resource == null || resource.data.participants.hasAny([request.auth.uid]));
       allow create: if isAuth() && request.resource.data.participants.hasAny([request.auth.uid]);
       allow update: if isAuth() && resource.data.participants.hasAny([request.auth.uid])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages','updatedAt','readBy','lastText','lastFrom']);
