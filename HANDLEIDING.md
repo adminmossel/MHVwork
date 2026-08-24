@@ -63,6 +63,18 @@ toegang tot jouw Firebase-project):
    *Dit is bewust niet automatisch al aangesloten — zo blijft EmailJS altijd als werkende
    fallback bestaan totdat jij bevestigt dat de Cloud Function goed werkt.*
 
+### Stap 6 — Echte pushmeldingen naar andermans apparaat (OPTIONEEL, aanbevolen)
+Zonder deze stap werkt een "pushmelding" alleen lokaal op het scherm van wie de actie zelf
+uitvoert — niet bij de ontvanger. Voor échte cross-device push (ook als de app dicht is):
+
+1. Voer eerst Stap 5 hierboven uit (dezelfde Cloud Function regelt nu ook de push)
+2. Firebase Console → tandwiel (⚙️) → **Project settings** → tabblad **Cloud Messaging** →
+   onder "Web configuration" → **Generate key pair** → kopieer de lange sleutel
+3. Open `app.html`, zoek naar `FCM_VAPID_KEY` (rond regel 45) en plak die sleutel erin
+4. Upload het aangepaste `app.html` opnieuw naar GitHub
+5. Klaar — zodra iemand notificaties toestaat in de app, wordt er automatisch een pushtoken
+   opgeslagen en werkt de melding voortaan ook als de app niet openstaat.
+
 ### Stap 6 — Testen (aanrader, ~5 minuten)
 - [ ] Log in als beheerder → plaats een aankondiging → verschijnt hij op de homepage?
 - [ ] Wachtwoord resetten via Beheer → Medewerkers → "Reset ww" → komt de mail aan en werkt de link?

@@ -126,3 +126,20 @@ dat alle 77 functies weer correct gebonden worden.
 - Verborgen easter egg: tik 7x snel op het logo 🍺
 - Feestdagen-thema (kerst, oud & nieuw, Koningsdag, Halloween, Pasen): klein feestelijk accent bij het logo + eenmalige felicitatie in de app. *Het daadwerkelijke beginscherm-icoon van de PWA kan helaas niet dynamisch wisselen — dat is een technische beperking van hoe app-iconen werken, geen keuze.*
 - E-mailvoorkeuren-sectie verduidelijkt: dit gaat alleen over e-mail, in-app pushmeldingen beheer je bij Meldingen.
+
+## 🆕 Update 7
+
+### 🚨 Belangrijke architectuurfix
+- **Pushmeldingen "werkten niet helemaal"**: geanalyseerd en uitgelegd — de bestaande "push" toonde
+  alleen een melding lokaal bij wie de actie uitvoerde, nooit bij de daadwerkelijke ontvanger op
+  een ander apparaat. Dat kan alleen via een echte pushserver. Firebase Cloud Messaging-infrastructuur
+  toegevoegd (client-registratie + Cloud Function + service worker) — **optioneel te activeren, zie
+  Stap 6 in HANDLEIDING.md**. Zonder die stap blijft alles werken zoals nu (lokale meldingen).
+
+### ✨ Nieuw
+- **Privéberichten zijn nu een volledige pagina** i.p.v. een pop-up, met terugknop, precies zoals de groepschat.
+- Privéberichten zijn nu **altijd alleen een pushmelding** — geen e-mail-keuze meer.
+- **Geweest + volledig uitbetaalde diensten zijn niet meer te bewerken of verwijderen** — tonen een "🔒 Afgehandeld"-label.
+- **Custom laadanimatie** i.p.v. een generieke spinner (het logo dat zachtjes ademt + een laadbalk).
+- **Easter egg verbeterd**: elke tik op het logo telt nu mee (bijgehouden), en bij 7x snel achter elkaar ontgrendel je een **geheim thema**: elke dag een nieuwe foto van NASA's "Astronomy Picture of the Day" als achtergrond, te kiezen bij Profiel → Thema.
+- **Nieuw thema: "Liquid Glass"** 🫧 — een kleurrijk, vervagend glaseffect-thema, gewoon te kiezen naast licht/donker/systeem (systeem blijft de standaard).
