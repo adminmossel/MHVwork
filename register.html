@@ -243,28 +243,7 @@ async function doRegister() {
       cred = await createUserWithEmailAndPassword(auth, inv.email, pw1);
     } catch(createErr) {
       if (createErr.code === 'auth/email-already-in-use') {
-        let logged = false;
-        if (!logged && inv.tempPw) {
-          try { cred = await signInWithEmailAndPassword(auth, inv.email, inv.tempPw); await updatePassword(cred.user, pw1); logged = true; } catch(e1) {}
-        }
-        if (!logged) {
-          try { cred = await signInWithEmailAndPassword(auth, inv.email, pw1); logged = true; } catch(e2) {}
-        }
-        if (!logged && inv.tempPw) {
-          try {
-            const apiKey = 'AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw';
-            const r1 = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+apiKey,
-              {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:inv.email,password:inv.tempPw,returnSecureToken:true})});
-            const d1 = await r1.json();
-            if (d1.idToken) {
-              const r2 = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key='+apiKey,
-                {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:d1.idToken,password:pw1,returnSecureToken:true})});
-              const d2 = await r2.json();
-              if (d2.idToken) { cred = await signInWithEmailAndPassword(auth, inv.email, pw1); logged = true; }
-            }
-          } catch(e3) {}
-        }
-        if (!logged) throw new Error('Er bestaat al een account. Vraag de beheerder om het account te verwijderen in Firebase en een nieuwe link te sturen.');
+        throw new Error('Er bestaat al een account met dit e-mailadres. Vraag de beheerder om het oude account te verwijderen (ook in Firebase Authentication) en een nieuwe uitnodigingslink te sturen.');
       } else { throw createErr; }
     }
 
@@ -279,6 +258,12 @@ async function doRegister() {
       termsAcceptedAt: serverTimestamp(),
       termsVersion: 'v1-2026'
     });
+    // Beperkte, publieke spiegel — zodat collega's deze persoon kunnen herkennen in chat/rooster
+    // zonder toegang te hebben tot e-mail of loon.
+    await setDoc(doc(db, 'publicProfiles', cred.user.uid), {
+      name: inv.name,
+      role: inv.role || 'employee',
+    }).catch(()=>{});
 
     // Mark invite as used
     await updateDoc(doc(db, 'invites', window._inviteId), {

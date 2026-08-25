@@ -143,3 +143,25 @@ dat alle 77 functies weer correct gebonden worden.
 - **Custom laadanimatie** i.p.v. een generieke spinner (het logo dat zachtjes ademt + een laadbalk).
 - **Easter egg verbeterd**: elke tik op het logo telt nu mee (bijgehouden), en bij 7x snel achter elkaar ontgrendel je een **geheim thema**: elke dag een nieuwe foto van NASA's "Astronomy Picture of the Day" als achtergrond, te kiezen bij Profiel → Thema.
 - **Nieuw thema: "Liquid Glass"** 🫧 — een kleurrijk, vervagend glaseffect-thema, gewoon te kiezen naast licht/donker/systeem (systeem blijft de standaard).
+
+## 🔐 Update 8 — beveiligingsaudit (P0 + belangrijkste P1)
+
+Naar aanleiding van een grondige externe security-review. Dit was de belangrijkste update tot nu toe.
+
+### 🚨 P0 — direct opgelost
+- **`seed-admin.html` verwijderd** — dit bestand bevatte letterlijk een e-mailadres + wachtwoord in de broncode, zichtbaar voor iedereen die de (publieke) GitHub-repo opent. Vervangen door een veilige, handmatige eerste-admin-procedure via Firebase Console zelf (zie HANDLEIDING.md, stap 1.7) — daar staat nergens een wachtwoord in code.
+- **Hardcoded admin/dev-bypass verwijderd** uit `app.html`. Rollen komen nu uitsluitend uit het Firestore-document van de gebruiker zelf, zoals het hoort — geen tweede, gevaarlijke autorisatielaag op basis van een e-mailadres-string meer.
+- **`tempPw`-restcode verwijderd** uit `register.html` — dit veld werd nergens meer daadwerkelijk gezet, maar de kwetsbare logica (incl. een rauwe REST-call naar Google's identity-API) stond er nog wel, wat een onnodig risico was. Vereenvoudigd naar een duidelijke foutmelding.
+- **Invite-uitnodigingen herontworpen**: `list` (de hele collectie in één keer opvragen) stond open voor **iedereen op internet, zonder in te loggen** — dat betekende dat elke openstaande uitnodiging (naam, e-mail, loon) uit te lezen was zonder enige toegang. Nu: het ophalen van één specifieke, unieke link blijft mogelijk (dat is hoe uitnodigingslinks werken), maar de hele lijst doorzoeken kan alleen nog door beheerder/dev.
+
+### 🔒 P1 — belangrijkste punt opgelost
+- **`/users`-collectie was volledig leesbaar voor elke ingelogde medewerker** — inclusief e-mailadres en loon van alle collega's. Volledig herontworpen: een medewerker kan nu alleen nog het **eigen** volledige profiel lezen, plus het volledige profiel van beheerders/dev (nodig om ze te kunnen mailen bij een ruilverzoek of privébericht). Voor het herkennen van collega's in chat/rooster (naam, rol, foto, vinkje) bestaat nu een aparte, bewust minimale `publicProfiles`-collectie zonder e-mail of loon.
+
+### ✅ Overige P1-punten
+- **Verlopen/gebruikte uitnodiging opnieuw bruikbaar**: al afgedekt — de regel controleert `!resource.data.used`, dus een reeds-gebruikte link kan niet opnieuw geclaimd worden.
+- **Medewerker kan zichzelf niet admin/dev maken**: al afgedekt én dit keer extra getest via de regel-logica — het `role`-veld zit in de lijst met velden die een gebruiker nooit zelf mag wijzigen.
+- **Medewerker kan geen betalingen van anderen lezen**: de `payments`-collectie was al beperkt tot beheerder/dev; ongewijzigd, klopt al.
+- Live testen met een echt medewerker-, beheerder- en dev-account kan ik niet vanuit hier (ik heb geen toegang tot jouw Firebase-project) — de bovenstaande punten zijn gecontroleerd via de regel-logica zelf, maar een handmatige eindcontrole met drie echte testaccounts blijft een goed idee vóór je live gaat.
+
+### 📌 P2 — voor later (nog niet gedaan, bewust)
+CSP/security headers, dependency-audit, rate limiting, Firebase App Check, geautomatiseerde rule-tests. Dit zijn allemaal zinvolle vervolgstappen maar minder urgent dan de P0/P1-punten hierboven — laat het weten als je hier ook mee verder wil.

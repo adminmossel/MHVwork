@@ -9,11 +9,17 @@ service cloud.firestore {
     function isStaff()   { return isAdmin() || isSoftware(); }
 
     match /users/{uid} {
-      allow read: if isAuth();
-      // Iedereen mag het EIGEN profiel-document aanmaken (na registratie via invite-link).
-      // De Auth-account zelf kan alleen ontstaan via een geldige uitnodigingslink of de
-      // hardcoded admin/dev-bypass, dus dit is veilig.
-      // Zelf-registratie (na invite-link) blijft toegestaan, zoals voorheen.
+      // Vroeger: elke ingelogde gebruiker mocht ALLE volledige profielen lezen (naam, e-mail,
+      // loon, alles). Nu: het volledige document is alleen leesbaar voor jezelf en staff.
+      // Voor wat anderen wél mogen zien (naam, rol, foto, geverifieerd-vinkje — nodig voor
+      // chat/rooster/privéberichten) bestaat een aparte, beperkte 'publicProfiles'-collectie.
+      // Iedereen mag het volledige profiel van een BEHEERDER/DEV lezen (nodig om ze te kunnen
+      // mailen bij bv. een ruilverzoek of privébericht) — maar NIET dat van een collega-
+      // medewerker. Dat sluit het oorspronkelijke lek (elke medewerker kon elke andere
+      // medewerkers' e-mail + loon zien) terwijl bestaande functionaliteit blijft werken.
+      allow read: if isAuth() && (request.auth.uid == uid || isStaff() || resource.data.role in ['admin','software']);
+      // Zelf-registratie (na invite-link) blijft toegestaan, zoals voorheen. Geen hardcoded
+      // email-bypass meer — rol komt uitsluitend uit het Firestore-document zelf.
       allow create: if isSoftware()
         || (isAdmin() && request.resource.data.role != 'software')
         || (isAuth() && request.auth.uid == uid);
@@ -21,7 +27,18 @@ service cloud.firestore {
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified']))
         || isSoftware()
         || (isAuth() && request.auth.uid == uid
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage']));
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified']));
+      allow delete: if isStaff();
+    }
+
+    // Publieke, bewust minimale profielgegevens: alleen wat nodig is om iemand herkenbaar te
+    // tonen elders in de app — géén e-mail, loon of andere gevoelige velden. 'role'/'verified'
+    // zijn na aanmaken alleen door staff aan te passen (voorkomt een zelf-toegekende nep-badge).
+    match /publicProfiles/{uid} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow update: if isStaff() || (isAuth() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData','name']));
       allow delete: if isStaff();
     }
 
@@ -70,12 +87,18 @@ service cloud.firestore {
     }
 
     match /invites/{id} {
-      allow read: if true;
-      allow create: if isAdmin();
-      // Alleen het 'used' veld mag gezet worden (door de registratie-pagina, vóór login)
+      // 'get' (één specifieke, unieke link) blijft nodig zonder inlog — dat IS de hele werking
+      // van een uitnodigingslink. Maar 'list' (de hele collectie opvragen/doorzoeken) staat NIET
+      // meer open: zonder deze scheiding kon letterlijk iedereen op internet, zonder in te loggen,
+      // alle openstaande uitnodigingen (naam, e-mail, loon) in één keer uitlezen.
+      allow get: if true;
+      allow list: if isStaff();
+      allow create: if isSoftware() || (isAdmin() && request.resource.data.role != 'software');
+      // Alleen het 'used' veld mag gezet worden, en alleen zolang die nog niet gebruikt is
+      // (voorkomt dat een link twee keer geclaimd kan worden, of dat iemand anders data wijzigt).
       allow update: if !resource.data.used
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used','usedAt','uid']);
-      allow delete: if isAdmin();
+      allow delete: if isStaff();
     }
 
     match /payments/{id} {

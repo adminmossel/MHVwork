@@ -134,10 +134,9 @@ In het kort:
 ├── app.html              De volledige applicatie (alle rollen)
 ├── voorwaarden.html       Gebruiksvoorwaarden & privacyverklaring
 ├── promo.html             Uitlegpagina "Wat is MHVwork?"
-├── seed-admin.html        Eenmalige tool om de eerste beheerder aan te maken
+├── firestore.rules        Firestore security rules
 ├── manifest.json          PWA-manifest
 ├── sw.js                  Service worker
-├── firestore.rules        Firestore security rules
 ├── functions/             Optionele Cloud Functions (Gmail SMTP, accountbeheer)
 ├── icon.svg / icon-*.png  App-iconen
 ├── HANDLEIDING.md         Installatie- en updatehandleiding

@@ -91,22 +91,9 @@ onAuthStateChanged(auth, async (user) => {
     if (snap && snap.exists()) break;
     await new Promise(r => setTimeout(r, 800));
   }
-  // Hardcoded admin bypass
-  if ((!snap || !snap.exists()) && user.email === 'h.mhvwork@gmail.com') {
-    window._user = { uid: user.uid, email: user.email, name: 'Beheerder', role: 'admin', wage: 0 };
-    _authHandled = true;
-    window.dispatchEvent(new Event("mhv:ready"));
-    setDoc(doc(db,'users',user.uid),{ name:'Beheerder', email:'h.mhvwork@gmail.com', role:'admin', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
-    return;
-  }
-  // Hardcoded dev bypass
-  if ((!snap || !snap.exists()) && user.email === 'tyg01132@gmail.com') {
-    window._user = { uid: user.uid, email: user.email, name: 'Dev', role: 'software', wage: 0 };
-    _authHandled = true;
-    window.dispatchEvent(new Event("mhv:ready"));
-    setDoc(doc(db,'users',user.uid),{ name:'Dev', email:'tyg01132@gmail.com', role:'software', wage:0, createdAt:serverTimestamp() }).catch(()=>{});
-    return;
-  }
+  // Geen enkele hardcoded email/rol-bypass meer — een account krijgt UITSLUITEND rechten via
+  // zijn eigen Firestore-document (users/{uid}.role), zoals het hoort. Bestaat dat document
+  // niet (bv. een Auth-account zonder profiel), dan wordt er simpelweg uitgelogd.
   if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
   const userData = snap.data();
   if (userData.suspended) {
@@ -930,8 +917,26 @@ window.triggerInstall=async function(){
 
 // ── DATA ──────────────────────────────────────
 async function loadUsers(){
-  const s = await window._f.getDocs(window._f.collection(window._f.db,'users'));
-  allUsers = s.docs.map(d=>({uid:d.id,...d.data()}));
+  const{db,collection,getDocs,query,where,doc,getDoc}=window._f;
+  if(U && (U.role==='admin'||U.role==='software')){
+    // Staff heeft toch al volledige toegang tot alle profielen — gewoon alles ophalen.
+    const s = await getDocs(collection(db,'users'));
+    allUsers = s.docs.map(d=>({uid:d.id,...d.data()}));
+    return;
+  }
+  // Medewerker: alleen beperkte publieke gegevens van iedereen (naam/rol/foto/vinkje — voor
+  // chat, rooster, privéberichten-lijst), plus de VOLLEDIGE gegevens van beheerders/dev (nodig
+  // om ze te kunnen mailen bij bv. een ruilverzoek), plus het eigen volledige profiel.
+  const[pubSnap, staffSnap, ownSnap] = await Promise.all([
+    getDocs(collection(db,'publicProfiles')),
+    getDocs(query(collection(db,'users'), where('role','in',['admin','software']))),
+    getDoc(doc(db,'users',U.uid)),
+  ]);
+  const byUid={};
+  pubSnap.docs.forEach(d=>{ byUid[d.id]={uid:d.id,...d.data()}; });
+  staffSnap.docs.forEach(d=>{ byUid[d.id]={uid:d.id,...d.data()}; }); // overschrijft met volledige data
+  if(ownSnap.exists()) byUid[U.uid]={uid:U.uid,...ownSnap.data()};
+  allUsers = Object.values(byUid);
 }
 function subShifts(){
   const {db,collection,onSnapshot,orderBy,query}=window._f;
@@ -2201,11 +2206,13 @@ async function saveEmployee(uid){
   const roleEl=$('eeRole');
   const role=roleEl&&!roleEl.disabled?roleEl.value:undefined;
   if(!name){toast('Naam verplicht','err');return;}
-  const{db,doc,updateDoc}=window._f;
+  const{db,doc,updateDoc,setDoc}=window._f;
   const payload={name,wage};
   if(role) payload.role=role;
   try{
     await updateDoc(doc(db,'users',uid),payload);
+    const pubPayload={name}; if(role) pubPayload.role=role;
+    await setDoc(doc(db,'publicProfiles',uid),pubPayload,{merge:true}).catch(()=>{});
     await loadUsers(); closeModal(); toast('Opgeslagen!','ok');
   }catch(e){
     toast('Opslaan mislukt: '+e.message,'err');
@@ -2215,8 +2222,9 @@ async function saveEmployee(uid){
 async function makeAdmin(uid,name){
   const ok=await confirm2('Admin maken',`${name} beheerderrechten geven?`,'Bevestigen','btn-yellow');
   if(!ok)return;
-  const{db,doc,updateDoc}=window._f;
+  const{db,doc,updateDoc,setDoc}=window._f;
   await updateDoc(doc(db,'users',uid),{role:'admin'});
+  await setDoc(doc(db,'publicProfiles',uid),{role:'admin'},{merge:true}).catch(()=>{});
   await loadUsers(); toast(`${name} is nu admin`,'ok');
 }
 
@@ -2971,8 +2979,9 @@ function handleProfilePhoto(file){
       ctx.drawImage(img,(img.width-minSide)/2,(img.height-minSide)/2,minSide,minSide,0,0,size,size);
       const dataUrl=canvas.toDataURL('image/jpeg',0.8);
       try{
-        const{db,doc,updateDoc}=window._f;
+        const{db,doc,updateDoc,setDoc}=window._f;
         await updateDoc(doc(db,'users',U.uid),{photoData:dataUrl});
+        await setDoc(doc(db,'publicProfiles',U.uid),{photoData:dataUrl},{merge:true}).catch(()=>{});
         U.photoData=dataUrl;
         renderProfile();
         toast('Profielfoto bijgewerkt!','ok');
@@ -3958,8 +3967,9 @@ async function confirmSuspend(uid){
 }
 async function toggleVerified(uid,current){
   if(U.role!=='software'){toast('Alleen een dev-account kan dit toewijzen','err');return;}
-  const{db,doc,updateDoc}=window._f;
+  const{db,doc,updateDoc,setDoc}=window._f;
   await updateDoc(doc(db,'users',uid),{verified:!current});
+  await setDoc(doc(db,'publicProfiles',uid),{verified:!current},{merge:true}).catch(()=>{});
   await loadUsers();
   renderDevAcc();
   toast(current?'Vinkje ingetrokken':'Geverifieerd-vinkje toegekend!','ok');
@@ -3971,6 +3981,7 @@ async function deleteEmployeeDev(uid,name,email){
   if(!ok)return;
   const{db,doc,deleteDoc}=window._f;
   await deleteDoc(doc(db,'users',uid));
+  await deleteDoc(doc(db,'publicProfiles',uid)).catch(()=>{});
   await loadUsers();
   renderDevAcc();
   toast(`${name} verwijderd — check evt. ook Firebase Auth als je het e-mailadres wil vrijgeven`,'ok');

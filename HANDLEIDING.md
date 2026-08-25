@@ -160,20 +160,27 @@ Klik **"Continue to console"**
 4. Plak dat in het tekstveld
 5. Klik **"Publish"**
 
-### 1.7 ADMIN account aanmaken (automatisch via setup pagina)
+### 1.7 Eerste ADMIN-account aanmaken (handmatig, veilig)
 
-Dit gaat heel makkelijk via de meegeleverde setup pagina:
+Er zit bewust géén "setup-pagina" meer bij die dit automatisch doet — zo'n pagina moet namelijk
+een wachtwoord ergens vastleggen, en alles in deze repository is **openbaar zichtbaar voor
+iedereen op internet**. Het kost je twee minuten extra, maar dan staat er nergens een wachtwoord
+in de broncode:
 
-1. Upload eerst alle bestanden naar GitHub Pages (zie Stap 4)
-2. Open dan: `https://jouwgebruikersnaam.github.io/mhvwork/seed-admin.html`
-3. Vul in:
-   - **E-mailadres**: bijv. `admin@mhv.nl`
-   - **Wachtwoord**: bijv. `MHV1953` (of iets wat jij kiest)
-   - **Naam**: `ADMIN`
-4. Klik **"ADMIN account aanmaken"**
-5. Je ziet een groene bevestiging ✓
+1. Firebase Console → **Authentication** → tabblad **Users** → **Add user**
+2. Vul een e-mailadres en een sterk wachtwoord in → **Add user**
+3. Kopieer de **User UID** die nu in de lijst verschijnt (een lange reeks letters/cijfers)
+4. Ga naar **Firestore Database** → **Start collection** (of: bestaande `users`-collectie openen → **Add document**)
+5. Collection ID: `users` — Document ID: **plak hier exact de User UID** die je zojuist kopieerde
+6. Voeg deze velden toe:
+   - `name` (string) → bijv. `Beheerder`
+   - `email` (string) → hetzelfde e-mailadres als in stap 2
+   - `role` (string) → `admin`
+   - `wage` (number) → `0`
+7. **Save**
 
-> ⚠️ **Belangrijk:** Na het aanmaken, verwijder `seed-admin.html` uit je GitHub repository! Ga naar je repository → klik op het bestand → klik op het prullenbak-icoontje → "Commit changes".
+Klaar — je kunt nu inloggen met dat e-mailadres/wachtwoord en heb je volledige beheerdersrechten.
+Wil je ook een dev-account, herhaal dit met `role: software` in plaats van `admin`.
 
 ---
 
