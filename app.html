@@ -483,12 +483,12 @@ select.form-input option { background:var(--bg3); }
 .cal-nav { display:flex; align-items:center; margin-bottom:14px; }
 .cal-nav h3 { flex:1; text-align:center; font-size:17px; font-weight:700; }
 .cal-arrow { width:32px; height:32px; border-radius:50%; background:var(--glass2); display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--text2); }
-.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
-.cal-dn { text-align:center; font-size:10px; font-weight:700; color:var(--text3); padding:4px 0 8px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+.cal-dn { text-align:center; font-size:10px; font-weight:700; color:var(--text3); padding:4px 0 8px; min-width:0; }
 .cal-d {
   aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column;
   align-items:center; justify-content:center; font-size:13px; font-weight:500;
-  cursor:pointer; position:relative; transition:background 0.15s;
+  cursor:pointer; position:relative; transition:background 0.15s; min-width:0;
 }
 .cal-d:active { background:var(--bg3); }
 .cal-d.today { background:var(--mhv-yellow); color:#1a1000; font-weight:800; }
@@ -988,7 +988,14 @@ function toDate(d){return d?.toDate?d.toDate():(d instanceof Date?d:new Date(d))
 function dKey(d){const dt=toDate(d);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;}
 function nowKey(){return dKey(new Date());}
 function minsFrom(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+(m||0);}
-function calcH(s,e){const d=minsFrom(e)-minsFrom(s);return d>0?d/60:0;}
+// "Sluit" = onbekende eindtijd (duurt tot de zaak dichtgaat), gekozen bij dienst aanmaken i.p.v.
+// een vaste kloktijd. Wordt opgeslagen als de tekst 'sluit' i.p.v. 'HH:MM'.
+function isSluit(t){return t==='sluit';}
+function dispTime(t){return isSluit(t)?'Sluit':(t||'');}
+function calcH(s,e){
+  if(isSluit(s)||isSluit(e))return 0; // mag hier nooit gebeuren (zie forceer-correctie-flow), maar geen NaN laten doorsijpelen naar loon
+  const d=minsFrom(e)-minsFrom(s);return d>0?d/60:0;
+}
 function calcPay(s,e,w){return calcH(s,e)*(w||0);}
 function roundQ(h,m){const t=Math.round((h*60+m)/15)*15;return{h:Math.floor(t/60)%24,m:t%60};}
 function toTimeStr(h,m){return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
@@ -1072,6 +1079,7 @@ function isToday(shift){return dKey(shift.date)===nowKey();}
 function shiftFinished(shift){
   if(!isPast(shift)&&!isToday(shift))return false;
   if(isPast(shift))return true;
+  if(isSluit(shift.endTime))return false; // eindtijd onbekend -> pas de volgende dag als 'geweest' beschouwen
   const now=new Date();
   const endMins=minsFrom(shift.endTime);
   const nowMins=now.getHours()*60+now.getMinutes();
@@ -1164,7 +1172,7 @@ function exportShiftsExcel(){
       const shift=inRange.find(s=>dKey(s.date)===k && s.workers?.includes(u.uid));
       if(!shift){ row.push(''); return; }
       const{start,end}=getEffectiveTimes(shift,u.uid);
-      row.push(`X ${start}-${end}`);
+      row.push(`X ${start}-${dispTime(end)}`);
     });
     aoa.push(row);
   });
@@ -1207,19 +1215,19 @@ async function checkShiftReminders(){
       const st=getShiftStatus(s,uid);
       if(st!=='pending' && st!=='unconfirmed_locked') continue; // al bevestigd/goedgekeurd/betaald
       const d=toDate(s.date);
-      const[eh,em]=(s.endTime||'00:00').split(':').map(Number);
+      const[eh,em]=isSluit(s.endTime)?[23,59]:(s.endTime||'00:00').split(':').map(Number);
       const shiftEnd=new Date(d.getFullYear(),d.getMonth(),d.getDate(),eh,em).getTime();
       const hoursSince=(now-shiftEnd)/36e5;
       const already=s.reminderSent||{}; const already2=s.reminder2Sent||{};
       if(!already[uid]){
         try{
           await updateDoc(doc(db,'shifts',s.id),{[`reminderSent.${uid}`]:true});
-          if(uid===U.uid) await notifyUsers([uid],'👋 Hoe was je dienst?',`Je dienst op ${fmtDate(s.date)} is voorbij — bevestig je gewerkte tijd in de app.`,`Je dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) is voorbij. Ga naar Rooster om je tijd te bevestigen.`,{type:'general'});
+          if(uid===U.uid) await notifyUsers([uid],'👋 Hoe was je dienst?',`Je dienst op ${fmtDate(s.date)} is voorbij — bevestig je gewerkte tijd in de app.`,`Je dienst op ${fmtDate(s.date)} (${s.startTime}-${dispTime(s.endTime)}) is voorbij. Ga naar Rooster om je tijd te bevestigen.`,{type:'general'});
         }catch(e){}
       } else if(hoursSince>=APP_SETTINGS.reminderHours && !already2[uid]){
         try{
           await updateDoc(doc(db,'shifts',s.id),{[`reminder2Sent.${uid}`]:true,[`confirmationLocked.${uid}`]:true});
-          if(uid===U.uid) await notifyUsers([uid],'⏰ Nog steeds niet bevestigd!',`Je dienst op ${fmtDate(s.date)} staat nog open — bevestig 'm zo snel mogelijk.`,`Herinnering: je dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) is nog niet bevestigd, dit staat al ${APP_SETTINGS.reminderHours}+ uur open.`,{type:'general'});
+          if(uid===U.uid) await notifyUsers([uid],'⏰ Nog steeds niet bevestigd!',`Je dienst op ${fmtDate(s.date)} staat nog open — bevestig 'm zo snel mogelijk.`,`Herinnering: je dienst op ${fmtDate(s.date)} (${s.startTime}-${dispTime(s.endTime)}) is nog niet bevestigd, dit staat al ${APP_SETTINGS.reminderHours}+ uur open.`,{type:'general'});
         }catch(e){}
       }
     }
@@ -1238,7 +1246,7 @@ async function checkShiftReminders(){
     if(hoursUntil<=24 && hoursUntil>0 && !dayFlag[U.uid]){
       try{
         await updateDoc(doc(db,'shifts',s.id),{[`dayBeforeSent.${U.uid}`]:true});
-        await notifyUsers([U.uid],'📅 Morgen dienst!',`Je hebt morgen een dienst van ${s.startTime} tot ${s.endTime}.`,`Herinnering: je hebt morgen (${fmtDate(s.date)}) een dienst van ${s.startTime} tot ${s.endTime}.`,{type:'general',email:false});
+        await notifyUsers([U.uid],'📅 Morgen dienst!',`Je hebt morgen een dienst van ${s.startTime} tot ${dispTime(s.endTime)}.`,`Herinnering: je hebt morgen (${fmtDate(s.date)}) een dienst van ${s.startTime} tot ${dispTime(s.endTime)}.`,{type:'general',email:false});
       }catch(e){}
     }
     if(hoursUntil<=1 && hoursUntil>0 && !hourFlag[U.uid]){
@@ -1259,7 +1267,7 @@ async function checkShiftReminders(){
         try{
           await updateDoc(doc(db,'shifts',s.id),{unassignedReminderSent:true});
           const admins=allUsers.filter(u=>u.role==='admin').map(u=>u.uid);
-          await notifyUsers(admins,'🟠 Dienst zonder medewerker',`De dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) heeft nog niemand toegewezen.`,`De dienst op ${fmtDate(s.date)} (${s.startTime}-${s.endTime}) nadert en er is nog niemand ingepland.`,{type:'general'});
+          await notifyUsers(admins,'🟠 Dienst zonder medewerker',`De dienst op ${fmtDate(s.date)} (${s.startTime}-${dispTime(s.endTime)}) heeft nog niemand toegewezen.`,`De dienst op ${fmtDate(s.date)} (${s.startTime}-${dispTime(s.endTime)}) nadert en er is nog niemand ingepland.`,{type:'general'});
         }catch(e){}
       }
     }
@@ -1493,7 +1501,7 @@ async function renderAdminHome(c){
       return `<div class="shift-card pending">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div class="shift-time">${s.startTime} – ${s.endTime}</div>
+            <div class="shift-time">${s.startTime} – ${dispTime(s.endTime)}</div>
             <div class="shift-date">${fmtDate(d)}</div>
           </div>
           <span class="badge badge-orange">Te beoordelen</span>
@@ -1505,7 +1513,7 @@ async function renderAdminHome(c){
             <div class="avatar">${userAvatarHtml(uid)}</div>
             <div style="flex:1">
               <div style="font-size:14px;font-weight:600">${userNameBadged(uid)}</div>
-              <div style="font-size:12px;color:var(--text3)">Doorgestuurd: ${start} – ${end}</div>
+              <div style="font-size:12px;color:var(--text3)">Doorgestuurd: ${start} – ${dispTime(end)}</div>
             </div>
             <button class="btn btn-green btn-sm" onclick="approveShift('${s.id}','${uid}')">✓</button>
             <button class="btn btn-ghost btn-sm" onclick="adminCorrect('${s.id}','${uid}')">✏</button>
@@ -1530,7 +1538,7 @@ function renderAdminShiftCard(s){
     const{start,end}=getEffectiveTimes(s,uid);
     const pay=st==='approved'||st==='paid'?calcPay(start,end,userWage(uid)):null;
     return `<div class="roster-row">
-      <div class="roster-time">${start}–${end}</div>
+      <div class="roster-time">${start}–${dispTime(end)}</div>
       <div class="roster-name">${userNameBadged(uid)}</div>
       ${pay!==null?`<div class="roster-pay">${fmtMoney(pay)}</div>`:`<div class="roster-pay" style="color:var(--text4)">—</div>`}
       <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'❗':'⏳'}</span>
@@ -1599,14 +1607,14 @@ async function renderEmployeeHome(c){
       <div class="shift-card pending">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div class="shift-time">${s.startTime} – ${s.endTime}</div>
+            <div class="shift-time">${s.startTime} – ${dispTime(s.endTime)}</div>
             <div class="shift-date">${fmtDate(s.date)}</div>
           </div>
           <span class="badge badge-orange">Bevestig</span>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-green btn-sm" style="flex:1" onclick="confirmShiftOk('${s.id}')">✓ Klopt</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openCorrectShift('${s.id}')">✏ Aanpassen</button>
+          ${isSluit(s.endTime)?'':`<button class="btn btn-green btn-sm" style="flex:1" onclick="confirmShiftOk('${s.id}')">✓ Klopt</button>`}
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openCorrectShift('${s.id}')">${isSluit(s.endTime)?'✏ Tijd doorgeven':'✏ Aanpassen'}</button>
         </div>
       </div>
     `).join('')}` : ''}
@@ -1616,7 +1624,7 @@ async function renderEmployeeHome(c){
       <div class="shift-card mine">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div class="shift-time">${next.startTime} – ${next.endTime}</div>
+            <div class="shift-time">${next.startTime} – ${dispTime(next.endTime)}</div>
             <div class="shift-date">${fmtDate(next.date)}</div>
           </div>
           <span class="badge badge-yellow">${getShiftStatus(next,U.uid)==='reviewing'?'In beoordeling':'Gepland'}</span>
@@ -1702,6 +1710,7 @@ function renderAnnouncementArea(area, announcements, showAll){
 // Confirm shift functions
 async function confirmShiftOk(shiftId){
   const s=allShifts.find(x=>x.id===shiftId); if(!s)return;
+  if(isSluit(s.endTime)){ openCorrectShift(shiftId); return; } // eindtijd was onbekend, dus altijd de werkelijke tijd opvragen
   const{db,doc,updateDoc}=window._f;
   await updateDoc(doc(db,'shifts',shiftId),{
     [`workerConfirmations.${U.uid}`]:'confirmed',
@@ -1716,13 +1725,13 @@ function openCorrectShift(shiftId){
     <div class="modal-title">Tijden doorgeven</div>
     <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:18px">
       <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Geplande tijd</div>
-      <div style="font-size:17px;font-weight:700;color:var(--mhv-yellow)">${s.startTime} – ${s.endTime}</div>
+      <div style="font-size:17px;font-weight:700;color:var(--mhv-yellow)">${s.startTime} – ${dispTime(s.endTime)}</div>
     </div>
     <div class="form-row">
       <div class="form-section"><label class="form-label">Werkelijk begin</label>
         <input type="time" class="form-input" id="cStart" value="${s.startTime}"></div>
       <div class="form-section"><label class="form-label">Werkelijk eind</label>
-        <input type="time" class="form-input" id="cEnd" value="${s.endTime}"></div>
+        <input type="time" class="form-input" id="cEnd" value="${isSluit(s.endTime)?'':s.endTime}"></div>
     </div>
     <button class="btn btn-yellow btn-full" onclick="submitCorrection('${shiftId}')">Doorsturen</button>
   `);
@@ -1792,7 +1801,7 @@ function renderAdminRoster(c){
             const{start,end}=getEffectiveTimes(s,uid);
             const pay=st==='approved'||st==='paid'?calcPay(start,end,userWage(uid)):null;
             return `<div class="roster-row">
-              <div class="roster-time">${start}–${end}</div>
+              <div class="roster-time">${start}–${dispTime(end)}</div>
               <div class="roster-name">${userNameBadged(uid)}</div>
               ${pay!==null?`<div class="roster-pay">${fmtMoney(pay)}</div>`:`<div class="roster-pay" style="color:var(--text4)">—</div>`}
               ${st==='confirmed'?`<button class="btn btn-green" style="padding:4px 8px;font-size:11px" onclick="approveShift('${s.id}','${uid}')">✓</button><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="adminCorrect('${s.id}','${uid}')">✏</button>`
@@ -1801,7 +1810,7 @@ function renderAdminRoster(c){
           }).join('');
           return `<div class="card" style="margin-bottom:8px">
             <div style="padding:12px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center">
-              <div style="font-size:15px;font-weight:700;color:var(--mhv-yellow)">${s.startTime} – ${s.endTime}</div>
+              <div style="font-size:15px;font-weight:700;color:var(--mhv-yellow)">${s.startTime} – ${dispTime(s.endTime)}</div>
               <div style="display:flex;gap:6px">
                 ${isShiftLocked(s)?'<span class="badge badge-gray" style="font-size:10px" title="Geweest en volledig uitbetaald — niet meer te bewerken">🔒 Afgehandeld</span>':`<button class="btn btn-ghost btn-sm" onclick="openEditShift('${s.id}')">✏</button><button class="btn btn-red btn-sm" onclick="deleteShift('${s.id}')">🗑</button>`}
               </div>
@@ -1900,7 +1909,7 @@ function renderDayShifts(k){
         <div class="avatar ${isMe?'yellow':''}">${userAvatarHtml(uid)}</div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:${isMe?'700':'500'}">${userNameBadged(uid)}${isMe?' (jij)':''}</div>
-          <div style="font-size:12px;color:var(--text3)">${start} – ${end}</div>
+          <div style="font-size:12px;color:var(--text3)">${start} – ${dispTime(end)}</div>
         </div>
         <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'In beoord.':st==='unconfirmed_locked'?'Geweest, onbevestigd':'Gepland'}</span>
         ${canConfirm?`<button class="btn btn-yellow btn-sm" onclick="openCorrectShift('${s.id}')">Bevestig</button>`:''}
@@ -1909,7 +1918,7 @@ function renderDayShifts(k){
     }).join('');
     return `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
       <div style="padding:12px 14px;background:var(--bg3);border-bottom:1px solid var(--separator)">
-        <div style="font-size:16px;font-weight:800;color:var(--mhv-yellow)">${s.startTime} – ${s.endTime}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--mhv-yellow)">${s.startTime} – ${dispTime(s.endTime)}</div>
       </div>
       ${s.note?`<div style="padding:10px 14px;background:rgba(245,200,0,.07);border-bottom:1px solid var(--separator)">
         <div style="font-size:12px;font-weight:700;color:var(--mhv-yellow);margin-bottom:4px">📝 Notitie van de beheerder</div>
@@ -2274,8 +2283,7 @@ function openAddShift(){
     <div class="form-row">
       <div class="form-section"><label class="form-label">Begin</label>
         <input type="time" class="form-input" id="sStart" value="10:00"></div>
-      <div class="form-section"><label class="form-label">Eind</label>
-        <input type="time" class="form-input" id="sEnd" value="14:00"></div>
+      ${endTimeFieldHtml('sEnd','sEndSluit','14:00')}
     </div>
     <label class="form-label">Medewerkers</label>
     <div id="workerList">${buildWorkerList(tomKey)}</div>
@@ -2313,13 +2321,14 @@ window.refreshEditWorkers=(v,shiftId)=>{
 };
 async function saveShift(){
   const dateVal=$('sDate').value, start=$('sStart').value, end=$('sEnd').value;
+  const sluit=$('sEndSluit')?.checked;
   const workers=[...document.querySelectorAll('#workerList input:checked')].map(i=>i.value);
   const note=($('esNote')?.value||'').trim();
-  if(!dateVal||!start||!end){toast('Vul alles in','err');return;}
+  if(!dateVal||!start||(!sluit&&!end)){toast('Vul alles in','err');return;}
   // Een dienst zonder toegewezen medewerker mag — die krijgt een oranje "niemand toegewezen"-status
   // en beheerders krijgen naarmate de datum nadert een herinnering (zie checkShiftReminders).
   const[y,m,d]=dateVal.split('-').map(Number);
-  const startR=roundTimeStr(start), endR=roundTimeStr(end);
+  const startR=roundTimeStr(start), endR=sluit?'sluit':roundTimeStr(end);
   const confs={}; workers.forEach(uid=>confs[uid]='pending');
   const{db,collection,addDoc,Timestamp,serverTimestamp}=window._f;
   await addDoc(collection(db,'shifts'),{
@@ -2331,9 +2340,26 @@ async function saveShift(){
   });
   window._shiftNoteImg=null;
   const dateStr=new Date(y,m-1,d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-  await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${endR}.`+(note?`\n\n📝 ${note}`:''));
+  await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${dispTime(endR)}.`+(note?`\n\n📝 ${note}`:''));
   closeModal(); toast('Dienst aangemaakt!','ok');
 }
+// Eind-tijd-veld met een "Sluit"-optie: voor diensten waarvan de eindtijd pas 's avonds
+// bekend is (duurt tot de zaak dichtgaat). Wordt intern opgeslagen als endTime:'sluit'.
+function endTimeFieldHtml(inputId,chkId,currentEnd){
+  const sluit=isSluit(currentEnd);
+  return `<div class="form-section"><label class="form-label">Eind</label>
+    <input type="time" class="form-input" id="${inputId}" value="${sluit?'':(currentEnd||'')}" ${sluit?'disabled':''}>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text3);cursor:pointer">
+      <input type="checkbox" id="${chkId}" ${sluit?'checked':''} onchange="toggleSluitField('${inputId}',this)"> Sluit <span style="opacity:.8">(onbekende eindtijd, tot de zaak dicht is)</span>
+    </label>
+  </div>`;
+}
+window.toggleSluitField=(inputId,chk)=>{
+  const el=$(inputId); if(!el)return;
+  el.disabled=chk.checked;
+  if(chk.checked){ el.dataset.prevValue=el.value||'23:00'; el.value=''; }
+  else { el.value=el.dataset.prevValue||'23:00'; }
+};
 function noteFieldHtml(note,noteImage){
   return `<div class="form-section" style="margin-top:14px"><label class="form-label">📝 Notitie voor medewerker(s) (optioneel)</label>
       <textarea class="form-input" id="esNote" rows="2" style="resize:none" placeholder="Bijv. Extra krukken klaarzetten, of speciale instructies...">${note||''}</textarea>
@@ -2376,8 +2402,7 @@ function openEditShift(shiftId){
     <div class="form-row">
       <div class="form-section"><label class="form-label">Begin</label>
         <input type="time" class="form-input" id="esStart" value="${s.startTime}"></div>
-      <div class="form-section"><label class="form-label">Eind</label>
-        <input type="time" class="form-input" id="esEnd" value="${s.endTime}"></div>
+      ${endTimeFieldHtml('esEnd','esEndSluit',s.endTime)}
     </div>
     <label class="form-label">Medewerkers</label>
     <div id="editWorkerList">${buildWorkerList(dateVal, s.workers||[])}</div>
@@ -2388,11 +2413,12 @@ function openEditShift(shiftId){
 }
 async function saveEditShift(shiftId){
   const dateVal=$('esDate').value, start=$('esStart').value, end=$('esEnd').value;
+  const sluit=$('esEndSluit')?.checked;
   const workers=[...document.querySelectorAll('#editWorkerList input:checked')].map(i=>i.value);
   const note=($('esNote')?.value||'').trim();
-  if(!dateVal||!start||!end||!workers.length){toast('Vul alles in','err');return;}
+  if(!dateVal||!start||(!sluit&&!end)||!workers.length){toast('Vul alles in','err');return;}
   const[y,m,d]=dateVal.split('-').map(Number);
-  const startR=roundTimeStr(start), endR=roundTimeStr(end);
+  const startR=roundTimeStr(start), endR=sluit?'sluit':roundTimeStr(end);
   const s=allShifts.find(x=>x.id===shiftId);
   const prevConf=s?.workerConfirmations||{};
   const newConf={}; workers.forEach(uid=>newConf[uid]=prevConf[uid]||'pending');
@@ -2418,7 +2444,7 @@ async function deleteShift(shiftId){
   const{db,doc,deleteDoc}=window._f;
   const d=toDate(s.date);
   const dateStr=d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-  if(s.workers?.length) await sendNotifMulti(s.workers,'Dienst vervallen',`Je dienst op ${dateStr} van ${s.startTime}–${s.endTime} is vervallen.`);
+  if(s.workers?.length) await sendNotifMulti(s.workers,'Dienst vervallen',`Je dienst op ${dateStr} van ${s.startTime}–${dispTime(s.endTime)} is vervallen.`);
   await deleteDoc(doc(db,'shifts',shiftId));
   toast('Verwijderd','ok');
 }
@@ -2440,13 +2466,13 @@ function adminCorrect(shiftId,uid){
     <div class="modal-title">Tijden aanpassen — ${userName(uid)}</div>
     <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:18px">
       <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Doorgestuurd door medewerker</div>
-      <div style="font-size:17px;font-weight:700;color:var(--orange)">${ft?.start||s.startTime} – ${ft?.end||s.endTime}</div>
+      <div style="font-size:17px;font-weight:700;color:var(--orange)">${ft?.start||s.startTime} – ${ft?.end||dispTime(s.endTime)}</div>
     </div>
     <div class="form-row">
       <div class="form-section"><label class="form-label">Definitief begin</label>
         <input type="time" class="form-input" id="acStart" value="${ft?.start||s.startTime}"></div>
       <div class="form-section"><label class="form-label">Definitief eind</label>
-        <input type="time" class="form-input" id="acEnd" value="${ft?.end||s.endTime}"></div>
+        <input type="time" class="form-input" id="acEnd" value="${ft?.end||(isSluit(s.endTime)?'':s.endTime)}"></div>
     </div>
     <button class="btn btn-yellow btn-full" onclick="saveAdminCorrect('${shiftId}','${uid}')">Goedkeuren</button>
   `);
@@ -2544,7 +2570,7 @@ function showPayDetail(uid,y,m){
       return `<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--separator)">
         <div style="flex:1">
           <div style="font-size:14px;font-weight:600">${fmtDate(s.date)}</div>
-          <div style="font-size:12px;color:var(--text3)">${start} – ${end}</div>
+          <div style="font-size:12px;color:var(--text3)">${start} – ${dispTime(end)}</div>
         </div>
         <span class="badge ${st==='paid'?'badge-green':st==='approved'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}">${st==='paid'?'Uitbetaald':st==='approved'?'Goedgekeurd':st==='reviewing'?'In beoord.':st==='unconfirmed_locked'?'Geweest, onbevestigd':'Wacht'}</span>
         <div style="font-weight:700;color:${pay?'var(--green)':'var(--text3)'};">${pay?fmtMoney(pay):'—'}</div>
@@ -3582,7 +3608,7 @@ function openSwapModal(){
   const myShifts=allShifts.filter(s=>s.workers&&s.workers.includes(U.uid));
   if(!myShifts.length){toast('Je hebt geen ingeplande diensten','err');return;}
   const opts=myShifts.map(function(s){
-    return '<label class="worker-check" style="margin-bottom:6px"><input type="radio" name="swapShift" value="'+s.id+'"><div style="font-size:14px">'+fmtDate(s.date)+' · '+s.startTime+'-'+s.endTime+'</div></label>';
+    return '<label class="worker-check" style="margin-bottom:6px"><input type="radio" name="swapShift" value="'+s.id+'"><div style="font-size:14px">'+fmtDate(s.date)+' · '+s.startTime+'-'+dispTime(s.endTime)+'</div></label>';
   }).join('');
   modal('<div class="modal-handle"></div>'
     +'<div class="modal-title">🔄 Dienst ruilen</div>'
@@ -3612,12 +3638,12 @@ async function submitSwap(){
     text:U.name+' zoekt iemand om zijn/haar dienst over te nemen'+(note?' ('+note+')':''),
     mentions:['all'], type:'swap',
     swapReqId:reqRef.id, swapStatus:'pending',
-    swapDate:fmtDate(shift.date), swapTime:shift.startTime+'-'+shift.endTime,
+    swapDate:fmtDate(shift.date), swapTime:shift.startTime+'-'+dispTime(shift.endTime),
     deleted:false, createdAt:serverTimestamp()
   });
   // Notificeer admins
   const admins=allUsers.filter(u=>u.role==='admin').map(u=>u.uid);
-  await notifyUsers(admins,'🔄 Ruil aanvraag',''+U.name+' wil zijn/haar dienst op '+fmtDate(shift.date)+' ruilen.',''+U.name+' wil zijn/haar dienst op '+fmtDate(shift.date)+' ('+shift.startTime+'-'+shift.endTime+') ruilen.'+(note?'\n\nToelichting: '+note:''),{type:'swap'});
+  await notifyUsers(admins,'🔄 Ruil aanvraag',''+U.name+' wil zijn/haar dienst op '+fmtDate(shift.date)+' ruilen.',''+U.name+' wil zijn/haar dienst op '+fmtDate(shift.date)+' ('+shift.startTime+'-'+dispTime(shift.endTime)+') ruilen.'+(note?'\n\nToelichting: '+note:''),{type:'swap'});
   closeModal();
   toast('Aanvraag geplaatst! De beheerder beoordeelt het.','ok');
   nav('chat',document.getElementById('tab-chat'));
@@ -3688,9 +3714,12 @@ function exportShiftToCalendar(shiftId){
   const icsDate=(date,h,m)=>[date.getFullYear(),pad(date.getMonth()+1),pad(date.getDate()),'T',pad(h),pad(m),'00'].join('');
   const dtstamp=icsDate(new Date(),new Date().getHours(),new Date().getMinutes());
   const[sh,sm]=(shift.startTime||'00:00').split(':').map(Number);
-  const[eh,em]=(shift.endTime||'00:00').split(':').map(Number);
+  // Bij "Sluit" (onbekende eindtijd) weten we de echte eindtijd pas als de dienst voorbij is —
+  // voor de agenda-afspraak gebruiken we dan een geschatte duur van 4 uur, en zetten "Sluit"
+  // duidelijk in de omschrijving zodat het niet als een harde eindtijd wordt gelezen.
+  const[eh,em]=isSluit(shift.endTime)?[(sh+4)%24,sm]:(shift.endTime||'00:00').split(':').map(Number);
   const startStr=icsDate(d,sh,sm), endStr=icsDate(d,eh,em);
-  const desc='Dienst bij MHV — '+shift.startTime+' tot '+shift.endTime;
+  const desc='Dienst bij MHV — '+shift.startTime+' tot '+dispTime(shift.endTime)+(isSluit(shift.endTime)?' (eindtijd onbekend, duurt tot de zaak dicht is)':'');
 
   // Agenda-toevoegen via een enkele "trick" (blob-download, Share API, of data:-URI) bleek in de
   // praktijk onbetrouwbaar: Apple blokkeert het dynamisch openen van .ics-bestanden in sommige
@@ -3719,12 +3748,12 @@ function downloadIcsFile(shiftId){
   const icsDate=(date,h,m)=>[date.getFullYear(),pad(date.getMonth()+1),pad(date.getDate()),'T',pad(h),pad(m),'00'].join('');
   const now=new Date();
   const[sh,sm]=(shift.startTime||'00:00').split(':').map(Number);
-  const[eh,em]=(shift.endTime||'00:00').split(':').map(Number);
+  const[eh,em]=isSluit(shift.endTime)?[(sh+4)%24,sm]:(shift.endTime||'00:00').split(':').map(Number);
   const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MHVwork//NL','CALSCALE:GREGORIAN','BEGIN:VEVENT',
     'UID:'+(shift.id||Date.now())+'@mhvwork',
     'DTSTAMP:'+icsDate(now,now.getHours(),now.getMinutes()),
     'DTSTART:'+icsDate(d,sh,sm),'DTEND:'+icsDate(d,eh,em),
-    'SUMMARY:Dienst MHV','DESCRIPTION:Dienst bij MHV — '+shift.startTime+' tot '+shift.endTime,
+    'SUMMARY:Dienst MHV','DESCRIPTION:Dienst bij MHV — '+shift.startTime+' tot '+dispTime(shift.endTime)+(isSluit(shift.endTime)?' (eindtijd onbekend, duurt tot de zaak dicht is)':''),
     'LOCATION:MHV','END:VEVENT','END:VCALENDAR'].join('\r\n');
   const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
   const url=URL.createObjectURL(blob);
