@@ -36,7 +36,7 @@ service cloud.firestore {
     // zijn na aanmaken alleen door staff aan te passen (voorkomt een zelf-toegekende nep-badge).
     match /publicProfiles/{uid} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.auth.uid == uid;
+      allow create: if isAuth() && (request.auth.uid == uid || isStaff());
       allow update: if isStaff() || (isAuth() && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData','name']));
       allow delete: if isStaff();

@@ -582,7 +582,7 @@ select.form-input option { background:var(--bg3); }
 .modal-bg {
   position:fixed; inset:0; background:rgba(0,0,0,0.7);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  z-index:100; display:none; align-items:flex-end; justify-content:center;
+  z-index:999999; display:none; align-items:flex-end; justify-content:center;
 }
 .modal-bg.open { display:flex; }
 .modal-box {
@@ -597,7 +597,7 @@ select.form-input option { background:var(--bg3); }
 .modal-close-btn { float:right; width:28px; height:28px; border-radius:50%; background:var(--bg3); color:var(--text3); font-size:14px; display:flex; align-items:center; justify-content:center; margin-top:-4px; }
 
 /* ── CONFIRM ─── */
-#confirm-bg { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:300; display:none; align-items:center; justify-content:center; padding:24px; }
+#confirm-bg { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:999998; display:none; align-items:center; justify-content:center; padding:24px; }
 #confirm-bg.open { display:flex; }
 .confirm-box { background:var(--bg2); border-radius:var(--radius-lg); padding:24px 20px; width:100%; max-width:320px; border:1px solid var(--separator); }
 .confirm-title { font-size:17px; font-weight:700; margin-bottom:8px; }
@@ -857,6 +857,7 @@ window.addEventListener('mhv:ready', async ()=>{
     }
     try { await loadUsers(); } catch(e){ allUsers=[]; }
     try { await ensureOwnPublicProfile(); } catch(e){}
+    if(U.role==='admin'||U.role==='software'){ try{ await ensureAllPublicProfiles(); }catch(e){} }
     try { await loadSettings(); } catch(e){}
     try { logLoginEvent(); } catch(e){}
     if(Notification.permission==='granted') { try{ registerPushToken(U.uid); }catch(e){} }
@@ -1008,6 +1009,33 @@ async function ensureOwnPublicProfile(){
     await setDoc(ref,{name:U.name,role:U.role}).catch(()=>{});
     await loadUsers().catch(()=>{}); // meteen opnieuw laden zodat het direct klopt in deze sessie
   }
+}
+// Voor beheerders/dev: repareer in één keer alle ONTBREKENDE of VEROUDERDE publicProfiles van
+// collega's (bv. na een eerder stilgeslikte fout bij registratie, of een account dat buiten de
+// normale uitnodigingslink om is aangemaakt). Zonder dit blijft zo'n collega voor altijd
+// "Onbekend" zonder foto bij andere medewerkers, tot iemand het toevallig opmerkt.
+async function ensureAllPublicProfiles(){
+  if(!U || !(U.role==='admin'||U.role==='software'))return;
+  const{db,doc,getDoc,setDoc}=window._f;
+  let fixed=0;
+  for(const u of allUsers){
+    if(!u.uid||u.role==='software')continue;
+    try{
+      const ref=doc(db,'publicProfiles',u.uid);
+      const snap=await getDoc(ref);
+      const want={name:u.name,role:u.role};
+      if(u.photoData)want.photoData=u.photoData;
+      if(!snap.exists()){
+        await setDoc(ref,want); fixed++;
+      }else{
+        const cur=snap.data();
+        if(cur.name!==want.name||(want.photoData&&cur.photoData!==want.photoData)){
+          await setDoc(ref,want,{merge:true}); fixed++;
+        }
+      }
+    }catch(e){ console.warn('publicProfile-reparatie mislukt voor',u.uid,e); }
+  }
+  if(fixed)console.log(`publicProfiles gerepareerd voor ${fixed} account(s)`);
 }
 function subShifts(){
   const {db,collection,onSnapshot,orderBy,query}=window._f;
@@ -2019,7 +2047,7 @@ function renderAdminAvail(c){
     <p style="font-size:14px;color:var(--text3);margin-bottom:16px;line-height:1.6">Overzicht van medewerkers die niet beschikbaar zijn.</p>
     ${upcoming.length?upcoming.map(a=>`
       <div class="avail-row">
-        <div class="avatar">${getInitials(userName(a.uid))}</div>
+        <div class="avatar">${userAvatarHtml(a.uid)}</div>
         <div class="avail-info">
           <div class="avail-name">${userName(a.uid)}</div>
           <div class="avail-date">${fmtDate(a.date)}</div>
@@ -2193,7 +2221,7 @@ function renderMedewerkers(c){
     ${emp.map(u=>`
       <div class="card" style="margin-bottom:10px">
         <div class="card-row">
-          <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${getInitials(u.name)}</div>
+          <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:700">${u.name}</div>
             <div style="font-size:13px;color:var(--text3)">${u.email||'—'}</div>
@@ -2375,7 +2403,7 @@ function buildWorkerList(dayKey, preChecked){
     const isBlocked=bl.includes(u.uid) && !isPreChecked;
     return `<label class="worker-check ${isBlocked?'blocked':''}">
       <input type="checkbox" value="${u.uid}" ${isPreChecked?'checked':''} ${isBlocked?'disabled':''}>
-      <div class="avatar" style="${isBlocked?'background:var(--red);opacity:0.6':''}">${getInitials(u.name)}</div>
+      <div class="avatar" style="${isBlocked?'background:var(--red);opacity:0.6':''}">${userAvatarHtml(u.uid)}</div>
       <div class="worker-check-info">
         <div class="worker-check-name">${u.name}</div>
         <div class="worker-check-wage">${isBlocked?'🚫 Niet beschikbaar':(bl.includes(u.uid)?'⚠️ Was niet beschikbaar':fmtMoney(u.wage||0)+'/uur')}</div>
@@ -2572,13 +2600,18 @@ function renderUitbetaling(c){
     const myS=monthShifts.filter(s=>s.workers?.includes(u.uid));
     const approved=myS.filter(s=>getShiftStatus(s,u.uid)==='approved');
     const paid=myS.filter(s=>getShiftStatus(s,u.uid)==='paid');
+    // "reviewing" = medewerker heeft de dienst al bevestigd, maar een beheerder moet 'm nog
+    // goedkeuren voor 'ie meetelt als schuldig loon. Zonder deze apart te tonen leek een
+    // bevestigde dienst hier gewoon te verdwijnen (0,00 schuldig, geen enkele aanwijzing waarom).
+    const reviewing=myS.filter(s=>getShiftStatus(s,u.uid)==='reviewing');
     const approvedPay=approved.reduce((sum,s)=>sum+getApprovedPay(s,u.uid),0);
     const paidPay=paid.reduce((sum,s)=>sum+getApprovedPay(s,u.uid),0);
     const isPaid=myS.length>0&&myS.every(s=>getShiftStatus(s,u.uid)==='paid'||!s.workers?.includes(u.uid));
-    return{...u,myS,approved,paid,approvedPay,paidPay,isPaid};
+    return{...u,myS,approved,paid,reviewing,approvedPay,paidPay,isPaid};
   }).filter(u=>u.myS.length>0);
   const totalSchuld=payData.reduce((s,u)=>s+u.approvedPay,0);
   const totalPaid=payData.reduce((s,u)=>s+u.paidPay,0);
+  const totalReviewing=payData.reduce((s,u)=>s+u.reviewing.length,0);
 
   c.innerHTML=`
     <div class="form-section" style="margin-bottom:14px">
@@ -2591,10 +2624,16 @@ function renderUitbetaling(c){
       <div class="stat-tile red"><div class="stat-num red" style="font-size:22px">${fmtMoney(totalSchuld)}</div><div class="stat-lbl">Nog te betalen</div></div>
       <div class="stat-tile green"><div class="stat-num green" style="font-size:22px">${fmtMoney(totalPaid)}</div><div class="stat-lbl">Uitbetaald</div></div>
     </div>
+    ${totalReviewing?`<div class="card" style="margin-bottom:12px;border:1px solid var(--orange)">
+      <div class="card-row"><div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--orange)">⏳ ${totalReviewing} dienst(en) wachten nog op jouw goedkeuring</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Deze tellen pas mee als "schuldig" zodra je ze hieronder goedkeurt.</div>
+      </div></div>
+    </div>`:''}
     ${payData.length?payData.map(u=>`
       <div class="card" style="margin-bottom:10px">
         <div class="card-row">
-          <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${getInitials(u.name)}</div>
+          <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:700">${u.name}</div>
             <div style="font-size:12px;color:var(--text3)">${u.myS.length} dienst(en) · ${fmtMoney(u.wage||0)}/uur</div>
@@ -2604,6 +2643,10 @@ function renderUitbetaling(c){
             ${u.paidPay>0?`<div style="font-size:13px;color:var(--green)">${fmtMoney(u.paidPay)} betaald</div>`:''}
           </div>
         </div>
+        ${u.reviewing.length?`<div class="card-row" style="background:var(--orange-dim)">
+          <div style="flex:1;font-size:13px;color:var(--orange)">⏳ ${u.reviewing.length} nog goed te keuren</div>
+          <button class="btn btn-sm" style="background:var(--orange);color:#1a0f00" onclick="openReviewApprovals('${u.uid}','${y}','${m}')">Bekijken</button>
+        </div>`:''}
         <div class="card-row" style="gap:8px">
           ${u.approvedPay>0?`<button class="btn btn-green btn-sm" style="flex:1" onclick="markPaid('${u.uid}','${y}','${m}','${u.name}','${u.approvedPay.toFixed(2)}')">✓ Uitbetaald</button>`:''}
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showPayDetail('${u.uid}','${y}','${m}')">Details</button>
@@ -2611,6 +2654,32 @@ function renderUitbetaling(c){
       </div>`).join('')
     :`<div class="empty"><div class="empty-icon">💶</div><p>Geen diensten deze maand</p></div>`}
   `;
+}
+// Snel-goedkeur-lijst voor alle nog niet goedgekeurde (maar wel al door de medewerker
+// bevestigde) diensten van iemand deze maand — direct vanuit Uitbetaling bereikbaar,
+// zodat niks meer stilzwijgend blijft hangen zonder dat een beheerder het ziet.
+function openReviewApprovals(uid,year,month){
+  const y=parseInt(year), m=parseInt(month);
+  const shifts=allShifts.filter(s=>{const d=toDate(s.date);return d.getFullYear()===y&&d.getMonth()===m&&s.workers?.includes(uid)&&getShiftStatus(s,uid)==='reviewing';});
+  modal(`
+    <div class="modal-title">Goed te keuren — ${userName(uid)}</div>
+    ${shifts.map(s=>{
+      const ft=s.finalTimes?.[uid];
+      return `<div class="card" style="margin-bottom:10px">
+        <div class="card-row">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">${fmtDate(s.date)}</div>
+            <div style="font-size:13px;color:var(--text3)">Gepland: ${s.startTime}–${dispTime(s.endTime)}</div>
+            <div style="font-size:13px;color:var(--mhv-yellow)">Doorgegeven: ${ft?.start||s.startTime}–${ft?.end||dispTime(s.endTime)}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-green btn-sm" onclick="approveShift('${s.id}','${uid}');closeModal();openReviewApprovals('${uid}','${y}','${m}')">✓</button>
+            <button class="btn btn-ghost btn-sm" onclick="adminCorrect('${s.id}','${uid}')">✏</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')||'<p style="color:var(--text3);font-size:13px">Niets meer goed te keuren.</p>'}
+  `);
 }
 async function markPaid(uid,year,month,name,amount){
   const ok=await confirm2('Uitbetaling registreren',`${name} markeren als uitbetaald voor ${fmtMoney(amount)}?`,'Bevestigen','btn-green');
@@ -2666,7 +2735,7 @@ function renderBerichten(c){
           </label>
           ${emp.map(u=>`<label class="worker-check" style="margin-bottom:6px">
             <input type="checkbox" class="msg-r" value="${u.uid}">
-            <div class="avatar" style="width:26px;height:26px;font-size:10px">${getInitials(u.name)}</div>
+            <div class="avatar" style="width:26px;height:26px;font-size:10px">${userAvatarHtml(u.uid)}</div>
             <div style="font-size:14px">${u.name}</div>
           </label>`).join('')}
         </div>
@@ -3897,7 +3966,7 @@ function renderDevAcc(){
   const rcptHtml=allUsers.map(function(u){
     return '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--separator)">'
       +'<input type="checkbox" class="dev-rcpt" value="'+u.uid+'" style="width:18px;height:18px;accent-color:var(--mhv-yellow);flex-shrink:0">'
-      +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+getInitials(u.name)+'</div>'
+      +'<div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">'+userAvatarHtml(u.uid)+'</div>'
       +'<div style="min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div>'
       +'<div style="font-size:11px;color:var(--text3)">'+u.role+'</div></div>'
       +'</label>';
@@ -3978,7 +4047,7 @@ function renderDevLog(){
       const st=byUser[uid];
       return `<div class="devlog-user-card" data-uid="${uid}" style="flex-shrink:0;width:150px;background:var(--bg2);border:1.5px solid var(--separator);border-radius:14px;padding:12px;cursor:pointer;scroll-snap-align:start">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div class="avatar" style="width:30px;height:30px;font-size:12px;flex-shrink:0;${u&&u.role==='software'?'background:var(--mhv-blue)':''}">${u&&u.role==='software'?`<img src="${LOGO}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(u?getInitials(u.name):'?')}</div>
+          <div class="avatar" style="width:30px;height:30px;font-size:12px;flex-shrink:0;${u&&u.role==='software'?'background:var(--mhv-blue)':''}">${u&&u.role==='software'?`<img src="${LOGO}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(u?userAvatarHtml(u.uid):'?')}</div>
           <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u?u.name:'Onbekend'}</div>
         </div>
         <div style="font-size:11px;color:var(--text3);line-height:1.6">
@@ -3996,7 +4065,7 @@ function renderDevLog(){
         const u=allUsers.find(x=>x.uid===l.uid);
         const name=u?(u.name+(isUserVerified(u.uid)?VERIFIED_BADGE:'')):userName(l.uid);
         return '<div style="padding:10px 16px;border-bottom:1px solid var(--separator);display:flex;align-items:center;gap:10px">'
-          +'<div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;'+(u&&u.role==='software'?'background:var(--mhv-blue)':'')+'">'+(u&&u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(u?getInitials(u.name):'?'))+'</div>'
+          +'<div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;'+(u&&u.role==='software'?'background:var(--mhv-blue)':'')+'">'+(u&&u.role==='software'?'<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(u?userAvatarHtml(u.uid):'?'))+'</div>'
           +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:13px;font-weight:600">'+(l.type==='login'?'🟢':'🔴')+' '+name+' — '+(l.type==='login'?'ingelogd':'uitgelogd')+'</div>'
           +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(l.device||'?')+(l.ip?' · '+l.ip:' · IP onbekend')+'</div>'
@@ -4437,6 +4506,7 @@ const _FN = {
   saveShift: saveShift,
   deleteShift: deleteShift,
   approveShift: approveShift,
+  openReviewApprovals: openReviewApprovals,
   openEditShift: openEditShift,
   saveEditShift: saveEditShift,
   adminCorrect: adminCorrect,
