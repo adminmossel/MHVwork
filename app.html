@@ -531,6 +531,53 @@ select.form-input option { background:var(--bg3); }
 .np-body  { font-size:13px; color:var(--text2); margin-top:3px; line-height:1.5; }
 .np-time  { font-size:11px; color:var(--text3); margin-top:5px; }
 
+/* ── IDLE-PAGINA (kiosk-weergave) ───
+   Bewust vast donker thema, los van de gekozen app-thema-instelling — dit scherm hangt
+   op een tablet en moet van een afstand goed leesbaar zijn, ongeacht wie 'm net zo instelde. */
+#idle-overlay {
+  position:fixed; inset:0; z-index:99999; display:none; flex-direction:column;
+  background:#000; color:#fff;
+  padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
+}
+#idle-overlay.open { display:flex; }
+.idle-head { text-align:center; margin-bottom:24px; flex-shrink:0; }
+.idle-clock { font-size:56px; font-weight:800; letter-spacing:-1px; }
+.idle-date { font-size:18px; color:rgba(255,255,255,0.55); margin-top:2px; text-transform:capitalize; }
+.idle-list { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+.idle-empty { text-align:center; color:rgba(255,255,255,0.4); font-size:18px; margin-top:60px; }
+.idle-shift { background:rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; }
+.idle-shift-time { font-size:15px; font-weight:700; color:var(--mhv-yellow); margin-bottom:10px; }
+.idle-shift-note { font-size:13px; color:rgba(255,255,255,0.6); margin:-4px 0 12px; line-height:1.4; }
+.idle-worker { margin-bottom:12px; }
+.idle-worker:last-child { margin-bottom:0; }
+.idle-worker-name { font-size:17px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between; gap:10px; }
+.idle-worker-sub { font-size:13px; font-weight:400; color:rgba(255,255,255,0.5); }
+.idle-bar-track { height:8px; border-radius:4px; background:rgba(255,255,255,0.12); overflow:hidden; position:relative; }
+.idle-bar-fill { height:100%; border-radius:4px; background:var(--mhv-yellow); transition:width 20s linear; }
+.idle-bar-fill.done { background:var(--green); }
+.idle-bar-fill.openend { background:repeating-linear-gradient(45deg,var(--mhv-yellow) 0 10px,rgba(245,200,0,0.4) 10px 20px); }
+.idle-exit-btn {
+  position:fixed; bottom:calc(14px + env(safe-area-inset-bottom)); right:14px;
+  width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.08);
+  border:none; color:rgba(255,255,255,0.4); font-size:14px; z-index:100000;
+}
+/* Liggende weergave / tablet-formaat: meerkoloms grid i.p.v. gestapelde lijst, en alles groter
+   zodat het ook van een afstandje (aan de muur, achter de bar) goed leesbaar blijft. */
+@media (min-width:680px) and (orientation:landscape) {
+  #idle-overlay { padding:36px 56px; }
+  .idle-head { margin-bottom:32px; }
+  .idle-clock { font-size:86px; }
+  .idle-date { font-size:24px; }
+  .idle-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); align-content:start; gap:20px; }
+  .idle-shift { padding:22px 24px; }
+  .idle-shift-time { font-size:19px; margin-bottom:14px; }
+  .idle-shift-note { font-size:15px; }
+  .idle-worker-name { font-size:21px; }
+  .idle-worker-sub { font-size:15px; }
+  .idle-bar-track { height:10px; }
+  .idle-exit-btn { width:40px; height:40px; font-size:16px; }
+}
+
 /* ── MODAL ─── */
 .modal-bg {
   position:fixed; inset:0; background:rgba(0,0,0,0.7);
@@ -728,6 +775,15 @@ select.form-input option { background:var(--bg3); }
   </nav>
 </div>
 
+<div id="idle-overlay">
+  <button class="idle-exit-btn" onclick="promptIdleExit()" title="Idle-modus verlaten">✕</button>
+  <div class="idle-head">
+    <div class="idle-clock" id="idleClock">--:--</div>
+    <div class="idle-date" id="idleDate"></div>
+  </div>
+  <div class="idle-list" id="idleList"></div>
+</div>
+
 <div id="confirm-bg"><div class="confirm-box">
   <div class="confirm-title" id="confirm-title"></div>
   <div class="confirm-msg" id="confirm-msg"></div>
@@ -750,6 +806,7 @@ const MO   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus
 const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
 
 let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[];
+let idleExitCode=null, idleTimer=null;
 let allChat=[]; let unsubChat;
 let allDMs=[]; let unsubDMs; let activeDMThread=null;
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
@@ -799,6 +856,7 @@ window.addEventListener('mhv:ready', async ()=>{
       document.querySelectorAll('.dev-only').forEach(t=>t.style.display='flex');
     }
     try { await loadUsers(); } catch(e){ allUsers=[]; }
+    try { await ensureOwnPublicProfile(); } catch(e){}
     try { await loadSettings(); } catch(e){}
     try { logLoginEvent(); } catch(e){}
     if(Notification.permission==='granted') { try{ registerPushToken(U.uid); }catch(e){} }
@@ -937,6 +995,19 @@ async function loadUsers(){
   staffSnap.docs.forEach(d=>{ byUid[d.id]={uid:d.id,...d.data()}; }); // overschrijft met volledige data
   if(ownSnap.exists()) byUid[U.uid]={uid:U.uid,...ownSnap.data()};
   allUsers = Object.values(byUid);
+}
+// Zelfherstel: als het eigen publicProfiles-document er onverhoopt niet is (bv. account niet via
+// de normale uitnodigingslink aangemaakt, of de create bij registratie faalde stil), alsnog
+// aanmaken. Zonder dit blijft iemand voor altijd 'Onbekend' bij collega's in bv. "Samen met".
+async function ensureOwnPublicProfile(){
+  if(!U || U.role==='software')return; // dev heeft dit niet nodig, staff leest 'm sowieso via het volledige profiel
+  const{db,doc,getDoc,setDoc}=window._f;
+  const ref=doc(db,'publicProfiles',U.uid);
+  const snap=await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref,{name:U.name,role:U.role}).catch(()=>{});
+    await loadUsers().catch(()=>{}); // meteen opnieuw laden zodat het direct klopt in deze sessie
+  }
 }
 function subShifts(){
   const {db,collection,onSnapshot,orderBy,query}=window._f;
@@ -1559,6 +1630,7 @@ async function renderEmployeeHome(c){
   const upcoming=myShifts.filter(s=>{
     const st=getShiftStatus(s,U.uid);
     if(st==='paid')return false;
+    if(shiftFinished(s))return false; // al voorbij (en dus niet meer 'te bevestigen') hoort niet meer als "volgende dienst"
     const d=toDate(s.date);
     return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   });
@@ -3151,6 +3223,17 @@ function renderProfile(){
       <div style="color:var(--text3)">›</div>
     </div></div>
 
+    <div class="section-label">Idle-pagina</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row" style="cursor:pointer" onclick="openIdleGate()">
+        <div style="flex:1;padding-right:12px">
+          <div class="card-row-label">📺 Start idle-modus</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Rooster van vandaag, bedoeld om op een tablet te laten hangen</div>
+        </div>
+        <div style="color:var(--text3)">›</div>
+      </div>
+    </div>
+
     <div class="section-label">Beveiliging</div>
     <div class="card">
       <div style="padding:16px">
@@ -4224,6 +4307,109 @@ async function loadAnnouncements(){
   }catch(e){ return []; }
 }
 
+// ═══════════════════════════════════════════
+// IDLE-PAGINA (kiosk-weergave voor op een tablet)
+// Toont het rooster van vandaag met een live voortgangsbalk per dienst. Bewust géén eigen
+// Firestore-listener — leest gewoon uit het al bestaande, live gehouden `allShifts`
+// (zie unsubShifts hierboven), dat is al up-to-date zonder extra netwerkverkeer.
+// De uitgangscode wordt bewust NIET opgeslagen (niet in Firestore, niet in localStorage) —
+// degene die idle-modus start bedenkt 'm ter plekke, en die geldt alleen voor deze sessie.
+// ═══════════════════════════════════════════
+function openIdleGate(){
+  modal(`
+    <div class="modal-title">📺 Idle-modus starten</div>
+    <p style="font-size:13px;color:var(--text3);margin:-4px 0 16px;line-height:1.5">
+      Dit toont het rooster van vandaag, groot en leesbaar — handig om op een tablet te laten
+      hangen. Bedenk een code van 4 cijfers waarmee je 'm straks weer kunt afsluiten.
+    </p>
+    <div class="form-section"><label class="form-label">Uitgangscode (4 cijfers)</label>
+      <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="form-input" id="idleCodeIn" placeholder="••••" style="letter-spacing:6px;font-size:20px;text-align:center"></div>
+    <button class="btn btn-yellow btn-full" style="margin-top:8px" onclick="startIdleMode()">Start idle-modus</button>
+  `);
+}
+async function startIdleMode(){
+  const code=($('idleCodeIn')?.value||'').trim();
+  if(!/^\d{4}$/.test(code)){ toast('Vul precies 4 cijfers in','err'); return; }
+  idleExitCode=code;
+  closeModal();
+  const ov=$('idle-overlay');
+  ov.classList.add('open');
+  // Best-effort fullscreen + landschap — mag ook zonder, sommige (geïnstalleerde) tablets/
+  // browsers staan dit niet toe. De rest van de app blijft portrait-vergrendeld via
+  // manifest.json; dit ontgrendelt alléén tijdens idle-modus, puur voor dit scherm.
+  try{
+    await document.documentElement.requestFullscreen?.().catch(()=>{});
+    await screen.orientation?.lock?.('landscape').catch(()=>{});
+  }catch(e){}
+  renderIdlePage();
+  if(idleTimer)clearInterval(idleTimer);
+  idleTimer=setInterval(renderIdlePage,30000); // elke 30s de klok/balkjes verversen, puur client-side, geen serververkeer
+}
+function promptIdleExit(){
+  modal(`
+    <div class="modal-title">Idle-modus verlaten</div>
+    <p style="font-size:13px;color:var(--text3);margin:-4px 0 16px">Voer de code in die is ingesteld bij het starten.</p>
+    <div class="form-section"><label class="form-label">Code</label>
+      <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="form-input" id="idleExitIn" placeholder="••••" style="letter-spacing:6px;font-size:20px;text-align:center"></div>
+    <button class="btn btn-yellow btn-full" style="margin-top:8px" onclick="checkIdleExit()">Verlaat idle-modus</button>
+  `);
+}
+function checkIdleExit(){
+  const code=($('idleExitIn')?.value||'').trim();
+  if(code!==idleExitCode){ toast('Onjuiste code','err'); return; }
+  closeModal();
+  exitIdleMode();
+}
+function exitIdleMode(){
+  if(idleTimer){ clearInterval(idleTimer); idleTimer=null; }
+  idleExitCode=null;
+  $('idle-overlay').classList.remove('open');
+  try{ screen.orientation?.unlock?.(); }catch(e){}
+  if(document.fullscreenElement)try{document.exitFullscreen?.();}catch(e){}
+}
+function renderIdlePage(){
+  const now=new Date();
+  $('idleClock').textContent=now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+  $('idleDate').textContent=now.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const today=nowKey();
+  // Losse dienst-blokken blijven bewust losse blokken (ook als ze overlappen in tijd, bv. een
+  // feestavond met bar + deur tegelijk) — nooit samenvoegen, dat was expliciet gevraagd.
+  const todayShifts=allShifts.filter(s=>dKey(s.date)===today).sort((a,b)=>minsFrom(a.startTime)-minsFrom(b.startTime));
+  const list=$('idleList');
+  if(!todayShifts.length){
+    list.innerHTML='<div class="idle-empty">Geen diensten vandaag 🎉</div>';
+    return;
+  }
+  const nowMins=now.getHours()*60+now.getMinutes();
+  list.innerHTML=todayShifts.map(s=>{
+    const names=(s.workers||[]).map(uid=>allUsers.find(u=>u.uid===uid)?.name||'?');
+    const startMins=minsFrom(s.startTime);
+    const sluit=isSluit(s.endTime);
+    const endMins=sluit?null:minsFrom(s.endTime);
+    let barHtml, subHtml;
+    if(sluit){
+      const started=nowMins>=startMins;
+      const elapsed=started?nowMins-startMins:0;
+      barHtml=`<div class="idle-bar-track"><div class="idle-bar-fill openend" style="width:${started?'100':'0'}%"></div></div>`;
+      subHtml=started?`bezig sinds ${s.startTime} (${Math.floor(elapsed/60)}u ${elapsed%60}m) — tot sluit`:`begint om ${s.startTime}`;
+    }else{
+      const pct=Math.max(0,Math.min(100,Math.round((nowMins-startMins)/(endMins-startMins)*100)));
+      const done=nowMins>=endMins;
+      const remain=Math.max(0,endMins-nowMins);
+      barHtml=`<div class="idle-bar-track"><div class="idle-bar-fill${done?' done':''}" style="width:${pct}%"></div></div>`;
+      subHtml=nowMins<startMins?`begint om ${s.startTime}`:done?'klaar':`nog ${Math.floor(remain/60)}u ${remain%60}m`;
+    }
+    return `<div class="idle-shift">
+      <div class="idle-shift-time">${s.startTime} – ${dispTime(s.endTime)}</div>
+      ${s.note?`<div class="idle-shift-note">📝 ${s.note}</div>`:''}
+      ${names.length?names.map(n=>`<div class="idle-worker">
+        <div class="idle-worker-name"><span>${n}</span><span class="idle-worker-sub">${subHtml}</span></div>
+        ${barHtml}
+      </div>`).join(''):'<div style="color:rgba(255,255,255,0.4);font-size:14px">Niemand toegewezen</div>'}
+    </div>`;
+  }).join('');
+}
+
 
 
 // ═══ WINDOW EXPORTS ═══
@@ -4315,6 +4501,11 @@ const _FN = {
   deleteEmployeeDev: deleteEmployeeDev,
   editAvailNote: editAvailNote,
   saveAvailNote: saveAvailNote,
+  openIdleGate: openIdleGate,
+  startIdleMode: startIdleMode,
+  promptIdleExit: promptIdleExit,
+  checkIdleExit: checkIdleExit,
+  exitIdleMode: exitIdleMode,
 };
 Object.keys(_FN).forEach(k => { if(typeof _FN[k]==='function') window[k]=_FN[k]; });
 window.openInviteModal = openAddEmployee;
