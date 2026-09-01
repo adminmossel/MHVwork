@@ -71,82 +71,113 @@ window.openPromoModal = function(){
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body {
-  height:100%; background:#F2F2F7;
+  height:100%;
   font-family:'Outfit',-apple-system,'Helvetica Neue',sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-body { display:flex; align-items:center; justify-content:center; padding:24px; }
-
-.wrap {
-  width:100%; max-width:360px;
-  display:flex; flex-direction:column; align-items:center; gap:32px;
+body {
+  display:flex; align-items:center; justify-content:center; padding:28px;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(26,59,181,0.55) 0%, transparent 55%),
+    radial-gradient(circle at 85% 100%, rgba(245,200,0,0.10) 0%, transparent 45%),
+    #060714;
+  overflow-x:hidden;
 }
 
-/* Logo */
-.logo-block { display:flex; flex-direction:column; align-items:center; gap:14px; }
-.logo-block img {
-  width:80px; height:80px; border-radius:20px; object-fit:contain;
-  box-shadow:0 4px 24px rgba(0,0,0,0.12);
-}
-.logo-block h1 {
-  font-size:26px; font-weight:800; color:#000; letter-spacing:-0.5px;
-}
-.logo-block p { font-size:15px; color:#8E8E93; font-weight:400; }
+.wrap { width:100%; max-width:360px; display:flex; flex-direction:column; align-items:center; gap:26px; }
 
-/* Card */
-.card {
-  width:100%; background:#FFFFFF; border-radius:18px;
-  overflow:hidden; box-shadow:0 2px 16px rgba(0,0,0,0.08);
+/* ── Tilted logo hero ─── */
+.hero-tilt { perspective:800px; width:148px; height:148px; }
+.hero-tilt-inner {
+  width:100%; height:100%; border-radius:34px; transform-style:preserve-3d;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(155deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.16);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  display:flex; align-items:center; justify-content:center;
 }
+.hero-tilt-inner img { width:76%; height:76%; object-fit:contain; border-radius:22px; filter:drop-shadow(0 10px 20px rgba(0,0,0,0.4)); }
+.brand-name { font-size:26px; font-weight:800; color:#fff; letter-spacing:-0.5px; text-align:center; }
+.brand-name span { color:var(--mhv-yellow,#F5C800); }
+.brand-tag { font-size:14px; color:rgba(255,255,255,0.5); font-weight:400; text-align:center; margin-top:2px; }
 
-/* Input rows */
+/* ── Glass card (inputs) ─── */
+.glass-card {
+  width:100%; border-radius:20px; overflow:hidden;
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.14);
+  box-shadow:0 16px 40px -14px rgba(0,0,0,0.55);
+}
 .input-row { display:flex; flex-direction:column; }
-.input-row + .input-row { border-top:1px solid #E5E5EA; }
+.input-row + .input-row { border-top:1px solid rgba(255,255,255,0.08); }
 .input-row label {
-  font-size:12px; font-weight:600; text-transform:uppercase;
-  letter-spacing:0.06em; color:#8E8E93; padding:12px 16px 0;
+  font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:0.06em; color:rgba(255,255,255,0.4); padding:13px 18px 0;
 }
 .input-row input {
-  padding:8px 16px 12px; font-size:16px; font-weight:500;
-  color:#000; border:none; outline:none; background:transparent;
+  padding:8px 18px 14px; font-size:16px; font-weight:500;
+  color:#fff; border:none; outline:none; background:transparent;
   font-family:inherit;
 }
-.input-row input::placeholder { color:#C7C7CC; }
+.input-row input::placeholder { color:rgba(255,255,255,0.28); }
 
-/* Button */
-.btn-login {
-  width:100%; padding:16px; border-radius:14px; border:none; cursor:pointer;
-  background:#007AFF; color:#fff; font-family:inherit;
-  font-size:17px; font-weight:700; letter-spacing:-0.2px;
-  transition:opacity 0.15s, transform 0.1s;
-  box-shadow:0 4px 16px rgba(0,122,255,0.35);
+/* ── Star-border glass button ─── */
+.glow-btn { position:relative; display:block; width:100%; border-radius:18px; overflow:hidden; border:none; background:none; padding:0; cursor:pointer; }
+.glow-btn .glow-bottom, .glow-btn .glow-top {
+  position:absolute; width:300%; height:60%; opacity:0.55; border-radius:50%; z-index:0;
+  background:radial-gradient(circle, var(--glow,#F5C800), transparent 12%);
 }
-.btn-login:active { opacity:0.8; transform:scale(0.98); }
-.btn-login:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+.glow-btn .glow-bottom { bottom:-14px; right:-250%; animation:glowMoveBottom 5s linear infinite alternate; }
+.glow-btn .glow-top    { top:-14px; left:-250%; animation:glowMoveTop 5s linear infinite alternate; }
+.glow-btn .glow-inner {
+  position:relative; z-index:1; border-radius:18px;
+  background:rgba(255,255,255,0.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,0.16);
+  padding:17px; text-align:center; font-family:inherit; font-size:17px; font-weight:700; color:#fff;
+  transition:transform .12s, background .15s;
+}
+.glow-btn:active .glow-inner { transform:scale(0.98); background:rgba(255,255,255,0.12); }
+.glow-btn:disabled { opacity:0.5; pointer-events:none; }
+.glow-btn.secondary .glow-inner { padding:13px; font-size:14px; font-weight:600; color:rgba(255,255,255,0.75); }
+@keyframes glowMoveBottom { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(-100%,0);opacity:0} }
+@keyframes glowMoveTop    { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(100%,0);opacity:0} }
+
+.text-link { background:none; border:none; color:rgba(255,255,255,0.55); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+.text-link:hover { color:#fff; }
 
 /* Error */
 .error-box {
-  width:100%; background:#FFE5E5; border-radius:12px;
-  padding:13px 16px; font-size:14px; color:#FF3B30;
+  width:100%; background:rgba(255,59,48,0.12); border-radius:14px;
+  padding:13px 16px; font-size:14px; color:#FF6B60;
   font-weight:500; display:none; text-align:center;
-  border:1px solid rgba(255,59,48,0.15);
+  border:1px solid rgba(255,59,48,0.25);
 }
 
 /* Footer */
-.footer { font-size:13px; color:#8E8E93; text-align:center; line-height:1.6; }
+.footer { font-size:13px; color:rgba(255,255,255,0.4); text-align:center; line-height:1.6; }
+.footer a { color:rgba(255,255,255,0.4); }
+
+@media (max-width:640px){ .hero-tilt-inner{ transform:none !important; } }
+@media (prefers-reduced-motion:reduce){ .glow-btn .glow-bottom,.glow-btn .glow-top{ animation:none; } .hero-tilt-inner{ transition:none; } }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
 <div class="wrap">
-  <div class="logo-block">
-    <img id="logoImg" src="icon.svg" alt="MHVwork" style="width:72px;height:72px;border-radius:18px;">
-    <h1>MHVwork</h1>
-    <p>Inloggen bij je account</p>
+  <div class="hero-tilt" id="heroTilt">
+    <div class="hero-tilt-inner" id="heroTiltInner">
+      <img id="logoImg" src="icon.svg" alt="MHVwork">
+    </div>
+  </div>
+  <div>
+    <div class="brand-name">MHV<span>work</span></div>
+    <div class="brand-tag">Inloggen bij je account</div>
   </div>
 
-  <div class="card">
+  <div class="glass-card">
     <div class="input-row">
       <label>E-mailadres</label>
       <input type="email" id="emailIn" placeholder="naam@email.nl" autocomplete="email">
@@ -159,15 +190,23 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
 
   <div class="error-box" id="errBox"></div>
 
-  <button class="btn-login" id="loginBtn" onclick="doLogin()">Inloggen</button>
+  <button class="glow-btn" id="loginBtn" style="--glow:#F5C800" onclick="doLogin()">
+    <div class="glow-bottom"></div><div class="glow-top"></div>
+    <div class="glow-inner" id="loginBtnLabel">Inloggen</div>
+  </button>
 
-  <button onclick="openForgot()" style="background:none;border:none;color:#007AFF;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Wachtwoord vergeten?</button>
+  <button onclick="openForgot()" class="text-link">Wachtwoord vergeten?</button>
 
-  <a href="voorwaarden.html" target="_blank" style="display:block;margin-top:14px;text-align:center;color:#8E8E93;font-size:12px;text-decoration:none">Gebruiksvoorwaarden & privacy</a>
+  <button onclick="openPromoModal()" class="glow-btn secondary" style="--glow:#1A3BB5">
+    <div class="glow-bottom"></div><div class="glow-top"></div>
+    <div class="glow-inner">Wat is MHVwork? →</div>
+  </button>
+
+  <a href="voorwaarden.html" target="_blank" style="display:block;text-align:center;text-decoration:none" class="text-link">Gebruiksvoorwaarden &amp; privacy</a>
 
   <!-- Forgot password form (hidden by default) -->
   <div id="forgotWrap" style="display:none;width:100%">
-    <div class="card">
+    <div class="glass-card">
       <div class="input-row">
         <label>Jouw naam</label>
         <input type="text" id="forgotName" placeholder="Volledige naam">
@@ -178,14 +217,33 @@ body { display:flex; align-items:center; justify-content:center; padding:24px; }
       </div>
     </div>
     <div id="forgotErr" class="error-box" style="margin-top:10px"></div>
-    <button class="btn-login" style="margin-top:12px" onclick="sendForgot()">Verzoek versturen</button>
-    <button onclick="closeForgot()" style="background:none;border:none;color:#8E8E93;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;width:100%;text-align:center;">Annuleren</button>
-    <p style="font-size:12px;color:#8E8E93;margin-top:10px;text-align:center;line-height:1.6;">Je beheerder ontvangt een melding en neemt contact op.</p>
+    <button class="glow-btn" style="--glow:#F5C800;margin-top:12px" onclick="sendForgot()">
+      <div class="glow-bottom"></div><div class="glow-top"></div>
+      <div class="glow-inner">Verzoek versturen</div>
+    </button>
+    <button onclick="closeForgot()" class="text-link" style="margin-top:10px;width:100%;text-align:center;">Annuleren</button>
+    <p style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:10px;text-align:center;line-height:1.6;">Je beheerder ontvangt een melding en neemt contact op.</p>
   </div>
 
-  <p class="footer"><button onclick="openPromoModal()" style="background:none;border:none;color:var(--mhv-blue,#1A3BB5);font-size:13px;cursor:pointer;text-decoration:underline;margin-bottom:12px">Wat is MHVwork? →</button>
-        Geen account? Vraag je beheerder<br>om een uitnodigingslink.</p>
+  <p class="footer">Geen account? Vraag je beheerder<br>om een uitnodigingslink.</p>
 </div>
+
+<script>
+// Tilted-card-effect (vanilla, geen React nodig) — volgt de muis op desktop; op
+// touch-schermen komt er simpelweg geen mousemove-event, dus staat 'm gewoon stil (zie
+// ook de CSS media query hierboven, die 'm op kleine schermen hard uitzet).
+(function(){
+  const card=document.getElementById('heroTilt'), inner=document.getElementById('heroTiltInner');
+  if(!card||!inner)return;
+  card.addEventListener('mousemove', e=>{
+    const r=card.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5;
+    inner.style.transform=`rotateX(${(-py*16).toFixed(2)}deg) rotateY(${(px*16).toFixed(2)}deg) scale(1.05)`;
+  });
+  card.addEventListener('mouseleave', ()=>{ inner.style.transform='rotateX(0) rotateY(0) scale(1)'; });
+})();
+</script>
+
 
 <script>
 window.addEventListener('DOMContentLoaded', () => {
@@ -201,10 +259,11 @@ async function doLogin() {
   const email = document.getElementById('emailIn').value.trim();
   const pass  = document.getElementById('passIn').value;
   const btn   = document.getElementById('loginBtn');
+  const label = document.getElementById('loginBtnLabel');
   const err   = document.getElementById('errBox');
   err.style.display = 'none';
   if (!email || !pass) { showErr('Vul beide velden in.'); return; }
-  btn.disabled = true; btn.textContent = 'Bezig…';
+  btn.disabled = true; label.textContent = 'Bezig…';
   try {
     await window._login(email, pass);
   } catch(e) {
@@ -214,7 +273,7 @@ async function doLogin() {
     if (e.code?.includes('too-many-requests'))
       msg = 'Te veel pogingen. Probeer later opnieuw.';
     showErr(msg);
-    btn.disabled = false; btn.textContent = 'Inloggen';
+    btn.disabled = false; label.textContent = 'Inloggen';
   }
 }
 function showErr(msg) {
@@ -246,7 +305,7 @@ async function sendForgot(){
   try{
     // Stuur direct een echte, werkende Firebase reset-mail naar de medewerker zelf...
     try{ await window._sendReset(email); }catch(resetErr){ console.warn('reset mail:',resetErr); }
-    document.getElementById('forgotWrap').innerHTML='<div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:14px">✅</div><p style="font-size:16px;font-weight:700;color:#000;margin-bottom:8px">Verzoek verstuurd!</p><p style="font-size:14px;color:#8E8E93;line-height:1.6">Check je e-mail voor een herstellink. Je beheerder krijgt ook een melding voor het geval dat niet lukt.</p></div>';
+    document.getElementById('forgotWrap').innerHTML='<div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:14px">✅</div><p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px">Verzoek verstuurd!</p><p style="font-size:14px;color:rgba(255,255,255,0.5);line-height:1.6">Check je e-mail voor een herstellink. Je beheerder krijgt ook een melding voor het geval dat niet lukt.</p></div>';
     // ...en informeer ALTIJD ook de beheerder, voor het geval het account niet bestaat of de mail niet aankomt
     emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
     emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TPL_NOTIF,{

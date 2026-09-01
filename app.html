@@ -143,7 +143,8 @@ html[data-theme="light"] {
   --green:#1E8C40; --red:#D62D26; --orange:#BF6E00;
 }
 html[data-theme="light"] #topbar { background:rgba(242,242,247,0.92); }
-html[data-theme="light"] #tabbar { background:rgba(242,242,247,0.92); }
+html[data-theme="light"] #tabbar { background:rgba(242,242,247,0.92); border-color:rgba(0,0,0,0.08); }
+html[data-theme="light"] .tab { color:rgba(0,0,0,0.4); }
 html[data-theme="light"] .notif-dot { border-color:var(--bg); }
 html[data-theme="light"] .badge-yellow { color:#8A6D00; }
 html[data-theme="light"] .stat-num.yellow { color:#8A6D00; }
@@ -245,26 +246,33 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 }
 
 /* ── SCROLL AREA ─── */
-#scroll { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+#scroll { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(var(--tab-h) + 28px + env(safe-area-inset-bottom)); }
 #scroll::-webkit-scrollbar { display:none; }
 
-/* ── TAB BAR ─── */
+/* ── TAB BAR — zwevende glazen pil (Apple-dock-stijl), los van de content-flow ─── */
 #tabbar {
-  height:var(--tab-h); flex-shrink:0;
-  background:rgba(0,0,0,0.85); backdrop-filter:blur(20px) saturate(180%);
-  -webkit-backdrop-filter:blur(20px) saturate(180%);
-  border-top:1px solid var(--separator);
-  display:flex; align-items:flex-start; padding-top:8px;
-  position:relative; z-index:50;
+  position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  height:var(--tab-h); max-width:calc(100% - 24px);
+  display:flex; align-items:center; gap:2px;
+  padding:0 8px; border-radius:999px;
+  background:rgba(28,28,32,0.6);
+  backdrop-filter:blur(26px) saturate(180%); -webkit-backdrop-filter:blur(26px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 18px 40px -12px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  overflow-x:auto; z-index:50;
 }
+#tabbar::-webkit-scrollbar { display:none; }
 .tab {
-  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:4px 2px 0; border:none; background:none; color:var(--text3);
-  transition:color 0.15s; font-size:10px; font-weight:500; letter-spacing:0.01em;
+  flex:0 0 auto; width:54px; height:54px; border-radius:50%; position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  border:none; background:none; color:rgba(255,255,255,0.5);
+  transition:color 0.15s, background 0.15s; font-size:9px; font-weight:600; letter-spacing:0.01em;
 }
-.tab svg { width:24px; height:24px; }
-.tab.active { color:var(--mhv-yellow); }
-.tab-label { font-size:10px; }
+.tab svg { width:20px; height:20px; }
+.tab.active { color:var(--mhv-yellow); background:rgba(245,200,0,0.15); }
+.tab-label { font-size:9px; }
 
 /* ── VIEWS ─── */
 .view { display:none; min-height:100%; padding:16px 16px 24px; animation:fadeSlide 0.25s ease; }
@@ -578,6 +586,11 @@ select.form-input option { background:var(--bg3); }
   .idle-exit-btn { width:40px; height:40px; font-size:16px; }
 }
 
+.shift-progress-track { height:8px; border-radius:4px; background:var(--bg3); overflow:hidden; margin-top:12px; }
+.shift-progress-fill { height:100%; border-radius:4px; background:var(--mhv-yellow); transition:width 30s linear; }
+.shift-progress-fill.openend { background:repeating-linear-gradient(45deg,var(--mhv-yellow) 0 10px,rgba(245,200,0,.35) 10px 20px); }
+.shift-progress-label { font-size:12px; color:var(--text3); margin-top:6px; font-weight:600; }
+
 /* ── MODAL ─── */
 .modal-bg {
   position:fixed; inset:0; background:rgba(0,0,0,0.7);
@@ -607,7 +620,7 @@ select.form-input option { background:var(--bg3); }
 
 /* ── TOAST ─── */
 #toast {
-  position:fixed; bottom:calc(var(--tab-h) + 12px); left:50%;
+  position:fixed; bottom:calc(var(--tab-h) + 28px + env(safe-area-inset-bottom)); left:50%;
   transform:translateX(-50%) translateY(8px);
   background:var(--bg3); border:1px solid var(--separator);
   border-radius:99px; padding:10px 20px; font-size:14px; font-weight:500;
@@ -660,11 +673,7 @@ select.form-input option { background:var(--bg3); }
 .roster-name { flex:1; font-size:14px; font-weight:500; }
 .roster-pay  { font-size:13px; color:var(--green); font-weight:600; min-width:60px; text-align:right; }
 
-/* iOS safe area */
-@supports(padding-bottom: env(safe-area-inset-bottom)){
-  #tabbar { padding-bottom:env(safe-area-inset-bottom); height:calc(var(--tab-h) + env(safe-area-inset-bottom)); }
-  #toast  { bottom:calc(var(--tab-h) + env(safe-area-inset-bottom) + 12px); }
-}
+/* iOS safe area: al verwerkt in #tabbar en #toast zelf (env(safe-area-inset-bottom) direct in bottom:) */
 </style>
 <script>
 // Thema zo vroeg mogelijk toepassen (vóór de eerste paint) om een flits van het verkeerde thema te voorkomen.
@@ -867,6 +876,13 @@ window.addEventListener('mhv:ready', async ()=>{
     try { subDMs(); } catch(e){}
     if(U.role!=='software'){ try { subAvail(); } catch(e){} }
     try { render(U.role==='software'?'devacc':'home'); } catch(e){ console.warn('render:',e); }
+    // Ververst Home elke minuut zolang je erop staat — puur voor de live voortgangsbalk/
+    // countdown tijdens een lopende dienst, geen extra netwerkverkeer (leest gewoon opnieuw
+    // uit het al geladen allShifts).
+    setInterval(()=>{
+      const active=document.querySelector('.view.active');
+      if(active&&active.id==='view-home')rerender();
+    },60000);
   } catch(err){ console.error('mhv:ready fout:', err); }
   finally {
     const l=document.getElementById('loader'), a=document.getElementById('app');
@@ -1686,6 +1702,21 @@ async function renderEmployeeHome(c){
   }).reduce((sum,s)=>sum+getApprovedPay(s,U.uid),0);
 
   const next=upcoming[0];
+  const nowMins=now.getHours()*60+now.getMinutes();
+  const isActiveNow=next&&dKey(next.date)===nowKey()&&minsFrom(next.startTime)<=nowMins;
+  let activePct=0, activeSub='', activeSluitFlag=false;
+  if(isActiveNow){
+    activeSluitFlag=isSluit(next.endTime);
+    if(activeSluitFlag){
+      const elapsed=nowMins-minsFrom(next.startTime);
+      activeSub=`Bezig sinds ${next.startTime} (${Math.floor(elapsed/60)}u ${elapsed%60}m) — tot sluit`;
+    }else{
+      const sMins=minsFrom(next.startTime), eMins=minsFrom(next.endTime);
+      activePct=Math.max(0,Math.min(100,Math.round((nowMins-sMins)/(eMins-sMins)*100)));
+      const remain=Math.max(0,eMins-nowMins);
+      activeSub=`Nog ${Math.floor(remain/60)}u ${remain%60}m te gaan`;
+    }
+  }
 
   c.innerHTML=`
     <div class="page-title">
@@ -1739,8 +1770,10 @@ async function renderEmployeeHome(c){
             <div class="shift-time">${next.startTime} – ${dispTime(next.endTime)}</div>
             <div class="shift-date">${fmtDate(next.date)}</div>
           </div>
-          <span class="badge badge-yellow">${getShiftStatus(next,U.uid)==='reviewing'?'In beoordeling':'Gepland'}</span>
+          <span class="badge ${isActiveNow?'badge-green':'badge-yellow'}">${isActiveNow?'🟢 Bezig':(getShiftStatus(next,U.uid)==='reviewing'?'In beoordeling':'Gepland')}</span>
         </div>
+        ${isActiveNow?`<div class="shift-progress-track"><div class="shift-progress-fill${activeSluitFlag?' openend':''}" style="width:${activeSluitFlag?100:activePct}%"></div></div>
+        <div class="shift-progress-label">${activeSub}</div>`:''}
         ${next.note?`<div style="margin-top:10px;background:rgba(245,200,0,.08);border-radius:10px;padding:10px 12px">
           <div style="font-size:11px;font-weight:700;color:var(--mhv-yellow);margin-bottom:3px">📝 Notitie van de beheerder</div>
           <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${next.note}</div>
