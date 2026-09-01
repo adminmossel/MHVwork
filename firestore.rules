@@ -44,7 +44,8 @@ service cloud.firestore {
 
     match /shifts/{id} {
       allow read: if isAuth();
-      allow create, delete: if isAdmin();
+      allow create: if isAdmin();
+      allow delete: if isStaff();
       allow update: if isAdmin()
         || (isAuth() && request.resource.data.diff(resource.data)
               .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']));
@@ -53,7 +54,7 @@ service cloud.firestore {
     match /availability/{id} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow delete: if (isAuth() && resource.data.uid == request.auth.uid) || isAdmin();
+      allow delete: if (isAuth() && resource.data.uid == request.auth.uid) || isStaff();
       allow update: if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note','date']));
     }
@@ -83,7 +84,7 @@ service cloud.firestore {
       allow update: if isAdmin()
         || (isAuth() && request.resource.data.diff(resource.data)
               .affectedKeys().hasOnly(['interestedUid','interestedName']));
-      allow delete: if isAdmin();
+      allow delete: if isStaff();
     }
 
     match /invites/{id} {
@@ -104,7 +105,7 @@ service cloud.firestore {
     match /payments/{id} {
       allow read: if isAuth()
         && (resource.data.uid == request.auth.uid || isAdmin());
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     // Legacy collectie — niet meer gebruikt sinds wachtwoord-reset via Firebase Auth verloopt.

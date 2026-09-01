@@ -1083,7 +1083,19 @@ const $ = id => document.getElementById(id);
 function toast(m,t=''){const el=$('toast');el.textContent=m;el.className='show '+t;clearTimeout(el._t);el._t=setTimeout(()=>el.className='',2800);}
 function fmtMoney(n){return '€\u202F'+Number(n||0).toFixed(2).replace('.',',');}
 function fmtDate(d){const dt=toDate(d);return dt.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});}
-function toDate(d){return d?.toDate?d.toDate():(d instanceof Date?d:new Date(d));}
+function toDate(d){
+  if(!d)return new Date(NaN);
+  if(d?.toDate)return d.toDate(); // Firestore Timestamp
+  if(d instanceof Date)return d;
+  if(typeof d==='string'){
+    // 'YYYY-MM-DD' (evt. met tijd erachter) altijd als LOKALE datum lezen — new Date("2026-08-20")
+    // leest dat namelijk als UTC-middernacht, wat op sommige plekken/tijdzones de datum een dag
+    // kan laten verschuiven t.o.v. wat er bedoeld was.
+    const m=d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+  }
+  return new Date(d);
+}
 function dKey(d){const dt=toDate(d);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;}
 function nowKey(){return dKey(new Date());}
 function minsFrom(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+(m||0);}
@@ -2595,20 +2607,26 @@ function renderUitbetaling(c){
   for(let i=0;i<6;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth(),label:`${MO[d.getMonth()]} ${d.getFullYear()}`});}
   const{y,m}=months[payMonth];
   const monthShifts=allShifts.filter(s=>{const d=toDate(s.date);return d.getFullYear()===y&&d.getMonth()===m;});
-  const emp=employees();
-  const payData=emp.map(u=>{
-    const myS=monthShifts.filter(s=>s.workers?.includes(u.uid));
-    const approved=myS.filter(s=>getShiftStatus(s,u.uid)==='approved');
-    const paid=myS.filter(s=>getShiftStatus(s,u.uid)==='paid');
+  // Bewust NIET starten vanuit employees() — die filtert strikt op role==='employee'. Een account
+  // met een afwijkend of ontbrekend rolveld (bv. handmatig/oud aangemaakt) viel daardoor volledig
+  // uit Uitbetaling weg, ook al stond diegene wel degelijk — en zelfs al uitbetaald — op een
+  // dienst. We bepalen dus wie hier moet verschijnen rechtstreeks vanuit de diensten zelf.
+  const workerIds=new Set();
+  monthShifts.forEach(s=>(s.workers||[]).forEach(uid=>workerIds.add(uid)));
+  const payData=[...workerIds].map(uid=>{
+    const u=allUsers.find(x=>x.uid===uid)||{uid,name:'Onbekend account',wage:0};
+    const myS=monthShifts.filter(s=>s.workers?.includes(uid));
+    const approved=myS.filter(s=>getShiftStatus(s,uid)==='approved');
+    const paid=myS.filter(s=>getShiftStatus(s,uid)==='paid');
     // "reviewing" = medewerker heeft de dienst al bevestigd, maar een beheerder moet 'm nog
     // goedkeuren voor 'ie meetelt als schuldig loon. Zonder deze apart te tonen leek een
     // bevestigde dienst hier gewoon te verdwijnen (0,00 schuldig, geen enkele aanwijzing waarom).
-    const reviewing=myS.filter(s=>getShiftStatus(s,u.uid)==='reviewing');
-    const approvedPay=approved.reduce((sum,s)=>sum+getApprovedPay(s,u.uid),0);
-    const paidPay=paid.reduce((sum,s)=>sum+getApprovedPay(s,u.uid),0);
-    const isPaid=myS.length>0&&myS.every(s=>getShiftStatus(s,u.uid)==='paid'||!s.workers?.includes(u.uid));
+    const reviewing=myS.filter(s=>getShiftStatus(s,uid)==='reviewing');
+    const approvedPay=approved.reduce((sum,s)=>sum+getApprovedPay(s,uid),0);
+    const paidPay=paid.reduce((sum,s)=>sum+getApprovedPay(s,uid),0);
+    const isPaid=myS.length>0&&myS.every(s=>getShiftStatus(s,uid)==='paid');
     return{...u,myS,approved,paid,reviewing,approvedPay,paidPay,isPaid};
-  }).filter(u=>u.myS.length>0);
+  });
   const totalSchuld=payData.reduce((s,u)=>s+u.approvedPay,0);
   const totalPaid=payData.reduce((s,u)=>s+u.paidPay,0);
   const totalReviewing=payData.reduce((s,u)=>s+u.reviewing.length,0);
@@ -3302,6 +3320,17 @@ function renderProfile(){
         <div style="color:var(--text3)">›</div>
       </div>
     </div>
+
+    ${isDev?`<div class="section-label">⚠️ Gevarenzone</div>
+    <div class="card" style="margin-bottom:16px;border:1px solid var(--red)">
+      <div class="card-row" style="cursor:pointer" onclick="openHardResetGate()">
+        <div style="flex:1;padding-right:12px">
+          <div class="card-row-label" style="color:var(--red)">🗑 Harde reset</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Wist alle diensten, chat, privéberichten, meldingen, aankondigingen, beschikbaarheid, ruilverzoeken en betalingen. Gebruikers, logboek en de statistieken op ieders profiel blijven staan. Kan niet ongedaan worden gemaakt.</div>
+        </div>
+        <div style="color:var(--red)">›</div>
+      </div>
+    </div>`:''}
 
     <div class="section-label">Beveiliging</div>
     <div class="card">
@@ -4377,6 +4406,59 @@ async function loadAnnouncements(){
 }
 
 // ═══════════════════════════════════════════
+// HARDE RESET (alleen dev) — wist shifts/availability/notifications/chat/swapRequests/
+// dms/announcements/payments volledig. Blijft bewust met rust: users, publicProfiles
+// (= "de gebruikers zelf"), loginLogs (= logboek), settings, invites.
+// ═══════════════════════════════════════════
+const HARD_RESET_COLLECTIONS=['shifts','availability','notifications','chat','swapRequests','dms','announcements','payments'];
+function openHardResetGate(){
+  modal(`
+    <div class="modal-title" style="color:var(--red)">🗑 Harde reset</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin:-4px 0 14px">
+      Dit verwijdert <b>permanent en onomkeerbaar</b> alle documenten uit:<br>
+      diensten, beschikbaarheid, meldingen, groepschat, ruilverzoeken, privéberichten,
+      aankondigingen en betaalgeschiedenis.<br><br>
+      <b>Blijft staan:</b> alle gebruikersaccounts, het logboek, en de statistieken op ieders profiel.
+    </p>
+    <div class="form-section"><label class="form-label">Typ WISSEN om te bevestigen</label>
+      <input type="text" class="form-input" id="hardResetConfirmIn" placeholder="WISSEN" autocomplete="off"></div>
+    <button class="btn btn-full" style="margin-top:8px;background:var(--red);color:#fff" onclick="confirmHardReset()">Definitief alles wissen</button>
+  `);
+}
+async function confirmHardReset(){
+  const val=($('hardResetConfirmIn')?.value||'').trim();
+  if(val!=='WISSEN'){ toast('Typ precies "WISSEN" om te bevestigen','err'); return; }
+  closeModal();
+  // Nog één keer een aparte, expliciete laatste bevestiging — dit is onomkeerbaar en treft
+  // in één klap alle diensten/berichten van de hele vereniging.
+  const ok=await confirm2('Weet je het zeker?','Dit kan echt niet ongedaan gemaakt worden. Alle diensten en berichten van MHV verdwijnen definitief.','Ja, definitief wissen');
+  if(ok)runHardReset();
+}
+async function runHardReset(){
+  toast('Bezig met wissen…','ok');
+  const{db,collection,getDocs,writeBatch}=window._f;
+  let totalDeleted=0;
+  try{
+    for(const colName of HARD_RESET_COLLECTIONS){
+      const snap=await getDocs(collection(db,colName));
+      const docs=snap.docs;
+      for(let i=0;i<docs.length;i+=450){
+        const batch=writeBatch(db);
+        docs.slice(i,i+450).forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+        totalDeleted+=Math.min(450,docs.length-i);
+      }
+    }
+    allShifts=[]; allAvail=[]; allNotifs=[];
+    toast(`Klaar — ${totalDeleted} document(en) gewist`,'ok');
+    rerender();
+  }catch(e){
+    console.error('Harde reset mislukt:',e);
+    toast('Reset mislukt (halverwege gestopt) — check de console','err');
+  }
+}
+
+// ═══════════════════════════════════════════
 // IDLE-PAGINA (kiosk-weergave voor op een tablet)
 // Toont het rooster van vandaag met een live voortgangsbalk per dienst. Bewust géén eigen
 // Firestore-listener — leest gewoon uit het al bestaande, live gehouden `allShifts`
@@ -4507,6 +4589,8 @@ const _FN = {
   deleteShift: deleteShift,
   approveShift: approveShift,
   openReviewApprovals: openReviewApprovals,
+  openHardResetGate: openHardResetGate,
+  confirmHardReset: confirmHardReset,
   openEditShift: openEditShift,
   saveEditShift: saveEditShift,
   adminCorrect: adminCorrect,
