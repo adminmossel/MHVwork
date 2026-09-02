@@ -274,6 +274,21 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 .tab.active { color:var(--mhv-yellow); background:rgba(245,200,0,0.15); }
 .tab-label { font-size:9px; }
 
+/* Navigatievoorkeur "balk" — klassieke volle-breedte-balk i.p.v. het zwevende eiland */
+html.nav-bar-classic #scroll { padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom)); }
+html.nav-bar-classic #tabbar {
+  position:relative; left:auto; bottom:auto; transform:none;
+  width:100%; max-width:none; height:var(--tab-h);
+  border-radius:0; padding:8px 2px 0; align-items:flex-start;
+  background:rgba(0,0,0,0.85); border:none; border-top:1px solid var(--separator);
+  box-shadow:none; overflow-x:visible;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+html[data-theme="light"].nav-bar-classic #tabbar { background:rgba(242,242,247,0.92); }
+html.nav-bar-classic .tab { flex:1; width:auto; height:auto; border-radius:0; padding-top:4px; }
+html.nav-bar-classic .tab.active { background:none; }
+html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-inset-bottom)); }
+
 /* ── VIEWS ─── */
 .view { display:none; min-height:100%; padding:16px 16px 24px; animation:fadeSlide 0.25s ease; }
 .view.active { display:block; }
@@ -865,6 +880,7 @@ window.addEventListener('mhv:ready', async ()=>{
       document.querySelectorAll('.dev-only').forEach(t=>t.style.display='flex');
     }
     try { await loadUsers(); } catch(e){ allUsers=[]; }
+    try { applyNavStyle(U.navStyle); } catch(e){}
     try { await ensureOwnPublicProfile(); } catch(e){}
     if(U.role==='admin'||U.role==='software'){ try{ await ensureAllPublicProfiles(); }catch(e){} }
     try { await loadSettings(); } catch(e){}
@@ -1263,7 +1279,38 @@ async function saveAppSettings(){
 }
 
 // ═══════════════════════════════════════════
-// EXCEL-EXPORT VAN DIENSTEN
+// EXPORT NAAR BOEKHOUDING — nette grootboek-rijen (één regel per medewerker per dienst),
+// i.p.v. de matrix-vorm van de gewone dienstenexport. Bedoeld om zo in een boekhoudpakket
+// of bij de penningmeester aan te leveren.
+// ═══════════════════════════════════════════
+function exportBookkeeping(year,month){
+  const y=parseInt(year), m=parseInt(month);
+  const monthShifts=allShifts.filter(s=>{const d=toDate(s.date);return d.getFullYear()===y&&d.getMonth()===m;})
+    .sort((a,b)=>toDate(a.date)-toDate(b.date));
+  const rows=[];
+  monthShifts.forEach(s=>{
+    (s.workers||[]).forEach(uid=>{
+      const st=getShiftStatus(s,uid);
+      if(st!=='approved'&&st!=='paid')return; // alleen echt (goedgekeurde/uitbetaalde) verplichtingen, geen losse planning
+      const u=allUsers.find(x=>x.uid===uid)||{name:'Onbekend account'};
+      const{start,end}=getEffectiveTimes(s,uid);
+      const uren=calcH(start,end);
+      const bedrag=getApprovedPay(s,uid);
+      rows.push([dKey(s.date), u.name, start, dispTime(end), Number(uren.toFixed(2)), userWage(uid), Number(bedrag.toFixed(2)), st==='paid'?'Uitbetaald':'Goedgekeurd, nog te betalen']);
+    });
+  });
+  if(!rows.length){toast('Niets te exporteren — nog geen goedgekeurde diensten deze maand','err');return;}
+  const monthLabel=`${MO[m]} ${y}`;
+  const aoa=[['Datum','Naam','Begin','Eind','Uren','Uurloon (€)','Bedrag (€)','Status'],...rows];
+  const totalBedrag=rows.reduce((sum,r)=>sum+r[6],0);
+  aoa.push(['','','','','','Totaal',Number(totalBedrag.toFixed(2)),'']);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:20},{wch:8},{wch:8},{wch:8},{wch:12},{wch:12},{wch:24}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,monthLabel);
+  XLSX.writeFile(wb,`MHVwork-boekhouding_${y}-${String(m+1).padStart(2,'0')}.xlsx`);
+}
+
 // Layout: linksboven de periode, linkerkolom medewerkersnamen, bovenste rij elke datum met
 // een dienst in die periode, en per cel een kruisje + tijd(en) als die medewerker die dag werkt(e).
 // ═══════════════════════════════════════════
@@ -2352,6 +2399,13 @@ function openEditEmployee(uid){
       ${isMe?'<p style="font-size:12px;color:var(--text3);margin-top:6px">Je kunt je eigen rol niet aanpassen.</p>':''}
       ${U.role!=='software'?'<p style="font-size:12px;color:var(--text3);margin-top:6px">Alleen een dev-account kan de dev-rol toewijzen of intrekken.</p>':''}
     </div>
+    <label class="worker-check" style="margin-top:4px">
+      <input type="checkbox" id="eeCanServe" ${u.canServe?'checked':''}>
+      <div class="worker-check-info">
+        <div class="worker-check-name">🍺 Mag schenken</div>
+        <div class="worker-check-wage">Sociale-hygiëne-certificaat (IVA) aanwezig — zichtbaar voor iedereen bij "Andere gebruikers"</div>
+      </div>
+    </label>
     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
   `);
 }
@@ -2359,13 +2413,14 @@ async function saveEmployee(uid){
   const name=$('eeName').value.trim(), wage=parseFloat($('eeWage').value)||0;
   const roleEl=$('eeRole');
   const role=roleEl&&!roleEl.disabled?roleEl.value:undefined;
+  const canServe=!!$('eeCanServe')?.checked;
   if(!name){toast('Naam verplicht','err');return;}
   const{db,doc,updateDoc,setDoc}=window._f;
-  const payload={name,wage};
+  const payload={name,wage,canServe};
   if(role) payload.role=role;
   try{
     await updateDoc(doc(db,'users',uid),payload);
-    const pubPayload={name}; if(role) pubPayload.role=role;
+    const pubPayload={name,canServe}; if(role) pubPayload.role=role;
     await setDoc(doc(db,'publicProfiles',uid),pubPayload,{merge:true}).catch(()=>{});
     await loadUsers(); closeModal(); toast('Opgeslagen!','ok');
   }catch(e){
@@ -2675,6 +2730,7 @@ function renderUitbetaling(c){
       <div class="stat-tile red"><div class="stat-num red" style="font-size:22px">${fmtMoney(totalSchuld)}</div><div class="stat-lbl">Nog te betalen</div></div>
       <div class="stat-tile green"><div class="stat-num green" style="font-size:22px">${fmtMoney(totalPaid)}</div><div class="stat-lbl">Uitbetaald</div></div>
     </div>
+    ${payData.length?`<button class="btn btn-ghost btn-full" style="margin-bottom:14px" onclick="exportBookkeeping('${y}','${m}')">📊 Exporteren naar boekhouding</button>`:''}
     ${totalReviewing?`<div class="card" style="margin-bottom:12px;border:1px solid var(--orange)">
       <div class="card-row"><div style="flex:1">
         <div style="font-size:14px;font-weight:700;color:var(--orange)">⏳ ${totalReviewing} dienst(en) wachten nog op jouw goedkeuring</div>
@@ -3318,6 +3374,14 @@ function renderProfile(){
       </label>
     </div>
 
+    <div class="section-label">Team</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row" style="cursor:pointer" onclick="openColleaguesList()">
+        <div class="card-row-label">👥 Andere gebruikers</div>
+        <div style="color:var(--text3)">›</div>
+      </div>
+    </div>
+
     <div class="section-label">Weergave</div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-row">
@@ -3331,6 +3395,13 @@ function renderProfile(){
         </div>
       </div>
       ${!isApodUnlocked()?'<div style="padding:0 16px 12px;font-size:11px;color:var(--text3)">Psst… ergens in de app zit een verborgen thema verstopt 👀</div>':''}
+      <div class="card-row" style="border-top:1px solid var(--separator)">
+        <div class="card-row-label">🧭 Navigatiebalk</div>
+        <div style="display:flex;gap:4px;background:var(--bg3);border-radius:10px;padding:3px">
+          <button class="theme-opt ${(U.navStyle||'island')==='island'?'active':''}" onclick="setNavStyle('island')" title="Zwevend eiland">🏝️</button>
+          <button class="theme-opt ${U.navStyle==='bar'?'active':''}" onclick="setNavStyle('bar')" title="Klassieke balk">▭</button>
+        </div>
+      </div>
     </div>
 
     <div class="section-label">App</div>
@@ -3366,21 +3437,61 @@ function renderProfile(){
     </div>`:''}
 
     <div class="section-label">Beveiliging</div>
-    <div class="card">
-      <div style="padding:16px">
-        <div class="form-section"><label class="form-label">Huidig wachtwoord</label>
-          <input type="password" class="form-input" id="pwC" placeholder="••••••••"></div>
-        <div class="form-section"><label class="form-label">Nieuw wachtwoord</label>
-          <input type="password" class="form-input" id="pwN" placeholder="Minimaal 6 tekens"></div>
-        <div class="form-section"><label class="form-label">Herhaal nieuw</label>
-          <input type="password" class="form-input" id="pwN2" placeholder="••••••••"></div>
-        <button class="btn btn-ghost btn-full" onclick="changePw()">Wachtwoord wijzigen</button>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row" style="cursor:pointer" onclick="openPwChangePage()">
+        <div class="card-row-label">🔒 Wachtwoord wijzigen</div>
+        <div style="color:var(--text3)">›</div>
       </div>
     </div>
 
     <button class="btn btn-red btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
     <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931</p>
   `;
+}
+// ═══════════════════════════════════════════
+// WACHTWOORD WIJZIGEN — eigen "pagina" (als modal-sheet) met sterktemeter,
+// dezelfde score-logica als op de registratiepagina.
+// ═══════════════════════════════════════════
+function pwScore(pw){
+  let score=0; if(!pw)return 0;
+  if(pw.length>=6)score++;
+  if(pw.length>=10)score++;
+  if(/[A-Z]/.test(pw)&&/[a-z]/.test(pw))score++;
+  if(/[0-9]/.test(pw))score++;
+  if(/[^A-Za-z0-9]/.test(pw))score++;
+  return score;
+}
+function openPwChangePage(){
+  modal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">Wachtwoord wijzigen</div>
+    <div class="form-section"><label class="form-label">Huidig wachtwoord</label>
+      <input type="password" class="form-input" id="pwC" placeholder="••••••••"></div>
+    <div class="form-section"><label class="form-label">Nieuw wachtwoord</label>
+      <input type="password" class="form-input" id="pwN" placeholder="Minimaal 6 tekens" oninput="updatePwStrength()"></div>
+    <div id="pwStrengthBar" style="height:4px;border-radius:2px;background:var(--bg3);margin-top:-8px;margin-bottom:14px;overflow:hidden">
+      <div id="pwStrengthFill" style="height:100%;width:0%;border-radius:2px;transition:width .25s ease,background .25s ease"></div>
+    </div>
+    <div id="pwStrengthLabel" style="font-size:12px;color:var(--text3);margin:-12px 0 14px;min-height:16px"></div>
+    <div class="form-section"><label class="form-label">Herhaal nieuw</label>
+      <input type="password" class="form-input" id="pwN2" placeholder="••••••••"></div>
+    <button class="btn btn-yellow btn-full" style="margin-top:8px" onclick="changePw()">Wachtwoord wijzigen</button>
+  `);
+}
+function updatePwStrength(){
+  const pw=$('pwN')?.value||''; const score=pwScore(pw);
+  const fill=$('pwStrengthFill'), label=$('pwStrengthLabel'); if(!fill||!label)return;
+  const levels=[
+    {w:'0%',  c:'var(--bg3)', t:''},
+    {w:'20%', c:'var(--red)', t:'Zeer zwak'},
+    {w:'40%', c:'var(--orange)', t:'Zwak'},
+    {w:'60%', c:'var(--mhv-yellow)', t:'Redelijk'},
+    {w:'80%', c:'var(--green)', t:'Sterk'},
+    {w:'100%',c:'var(--green)', t:'Zeer sterk'},
+  ];
+  const lvl=levels[score];
+  fill.style.width=lvl.w; fill.style.background=lvl.c;
+  label.textContent=lvl.t; label.style.color=lvl.c;
 }
 async function changePw(){
   const cur=$('pwC').value, nw=$('pwN').value, nw2=$('pwN2').value;
@@ -3392,12 +3503,61 @@ async function changePw(){
     const cred=EmailAuthProvider.credential(auth.currentUser.email,cur);
     await reauthenticateWithCredential(auth.currentUser,cred);
     await updatePassword(auth.currentUser,nw);
+    closeModal();
     toast('Wachtwoord gewijzigd!','ok');
-    $('pwC').value=''; $('pwN').value=''; $('pwN2').value='';
   }catch(e){
     if(e.code?.includes('wrong-password')||e.code?.includes('invalid-credential'))toast('Huidig wachtwoord klopt niet','err');
     else toast('Er ging iets mis','err');
   }
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATIESTIJL (eiland/zwevend vs. klassieke balk) — persoonlijke voorkeur per account
+// ═══════════════════════════════════════════
+function applyNavStyle(style){
+  document.documentElement.classList.toggle('nav-bar-classic', style==='bar');
+}
+async function setNavStyle(style){
+  U.navStyle=style;
+  applyNavStyle(style);
+  renderProfile();
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'users',U.uid),{navStyle:style});
+  }catch(e){ console.warn('navStyle opslaan mislukt:',e); }
+}
+
+// ═══════════════════════════════════════════
+// COLLEGA-LIJST — voor iedereen zichtbaar, puur ter herkenning (naam/foto/of iemand mag
+// schenken). Geen e-mail, loon of andere gevoelige info — dat blijft achter isStaff().
+// ═══════════════════════════════════════════
+function openColleaguesList(){
+  const others=allUsers.filter(u=>u.uid!==U.uid&&u.role!=='software').sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  modal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">Andere gebruikers</div>
+    ${others.length?others.map(u=>`
+      <div class="card-row" style="cursor:pointer" onclick="openColleagueDetail('${u.uid}')">
+        <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
+        <div style="flex:1"><div style="font-size:15px;font-weight:600">${u.name}${isUserVerified(u.uid)?VERIFIED_BADGE:''}</div></div>
+        <div style="color:var(--text3)">›</div>
+      </div>
+    `).join(''):'<p style="color:var(--text3);font-size:13px">Nog geen andere gebruikers.</p>'}
+  `);
+}
+function openColleagueDetail(uid){
+  const u=allUsers.find(x=>x.uid===uid); if(!u)return;
+  modal(`
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 16px">
+      <div class="avatar" style="width:80px;height:80px;font-size:28px;margin:0 auto 14px">${userAvatarHtml(uid)}</div>
+      <div style="font-size:19px;font-weight:800">${u.name}${isUserVerified(uid)?VERIFIED_BADGE:''}</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:2px">${u.role==='admin'?'👑 Beheerder':'Medewerker'}</div>
+      <div style="margin-top:14px">
+        <span class="badge ${u.canServe?'badge-green':'badge-orange'}">${u.canServe?'🍺 Mag schenken':'Niet gecertificeerd om te schenken'}</span>
+      </div>
+    </div>
+  `);
 }
 async function doLogout(){
   const ok=await confirm2('Uitloggen','Weet je zeker dat je wilt uitloggen?','Uitloggen');
@@ -4609,6 +4769,12 @@ const _FN = {
   toggleNotif: toggleNotif,
   handleModalClick: handleModalClick,
   changePw: changePw,
+  openColleaguesList: openColleaguesList,
+  openColleagueDetail: openColleagueDetail,
+  setNavStyle: setNavStyle,
+  openPwChangePage: openPwChangePage,
+  updatePwStrength: updatePwStrength,
+  exportBookkeeping: exportBookkeeping,
   openAvailModal: openAvailModal,
   saveAvail: saveAvail,
   deleteAvail: deleteAvail,
