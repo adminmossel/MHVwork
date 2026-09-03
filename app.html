@@ -236,7 +236,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
   display:flex; align-items:center; padding:8px 10px 8px 14px; gap:10px;
   z-index:50;
 }
-#topbar img { width:26px; height:26px; border-radius:6px; object-fit:contain; }
+#topbar img { width:28px; height:28px; border-radius:9px; object-fit:contain; }
 #topbar .app-name { font-size:16px; font-weight:700; flex:1; letter-spacing:-0.3px; }
 #topbar .app-name span { color:var(--mhv-yellow); }
 html[data-theme="light"] #topbar { background:rgba(255,255,255,0.75); border-color:rgba(0,0,0,0.08); }
@@ -256,6 +256,9 @@ html[data-theme="light"] #topbar { background:rgba(255,255,255,0.75); border-col
   padding-top:calc(var(--nav-h) + 22px + env(safe-area-inset-top));
   padding-bottom:calc(var(--tab-h) + 28px + env(safe-area-inset-bottom)); }
 #scroll::-webkit-scrollbar { display:none; }
+.chat-view-height {
+  height:calc(100vh - (var(--nav-h) + 22px + env(safe-area-inset-top)) - (var(--tab-h) + 28px + env(safe-area-inset-bottom)));
+}
 
 /* ── TAB BAR — zwevende glazen pil (Apple-dock-stijl), los van de content-flow ─── */
 #tabbar {
@@ -417,7 +420,7 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
 .tag-admin    { background:rgba(245,200,0,.15);color:var(--mhv-yellow) }
 .tag-sw       { background:rgba(100,210,255,.15);color:#64d2ff }
 /* Input */
-.chat-input-wrap { padding:10px 12px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--separator);background:var(--bg2);flex-shrink:0 }
+.chat-input-wrap { padding:10px 12px calc(16px + env(safe-area-inset-bottom));background:none;border:none;flex-shrink:0 }
 .chat-input-row  { display:flex;align-items:flex-end;gap:6px }
 .chat-input-row textarea { flex:1;background:var(--bg3);border:1.5px solid var(--separator);border-radius:20px;padding:9px 13px;font-size:16px;color:var(--text);font-family:inherit;resize:none;max-height:100px;outline:none;transition:border-color .2s }
 .chat-input-row textarea:focus { border-color:var(--mhv-yellow) }
@@ -751,14 +754,14 @@ select.form-input option { background:var(--bg3); }
     <!-- PROFIEL -->
     <div class="view" id="view-profile"></div>
     <!-- CHAT -->
-    <div class="view" id="view-chat" style="padding:0;flex-direction:column;height:calc(100vh - 116px)"></div>
+    <div class="view chat-view-height" id="view-chat" style="padding:0;flex-direction:column"></div>
     <!-- DEV DASHBOARD — eigen pagina's, geen Home; een dev is geen medewerker -->
     <div class="view" id="view-devacc" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
     <div class="view" id="view-devann" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
     <div class="view" id="view-devlog" style="overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)"></div>
     <!-- MELDINGEN (volledige pagina: systeemberichten + privéberichten) -->
     <div class="view" id="view-meldingen"></div>
-    <div class="view" id="view-dmthread" style="padding:0;flex-direction:column;height:calc(100vh - 116px)"></div>
+    <div class="view chat-view-height" id="view-dmthread" style="padding:0;flex-direction:column"></div>
 
   </div>
 
@@ -1660,7 +1663,7 @@ async function renderAdminHome(c){
       ${U.name?.split(' ')[0]||'Admin'} ${WAVE_ICON}
     </div>
     <div id="announceArea" style="margin-bottom:4px"></div>
-    <button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)">📢 Aankondiging plaatsen voor medewerkers</button>
+    ${restricted('announcements')?'':'<button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)">📢 Aankondiging plaatsen voor medewerkers</button>'}
 
     <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
       <div class="stat-tile yellow">
@@ -1699,7 +1702,7 @@ async function renderAdminHome(c){
               <div style="font-size:14px;font-weight:600">${userNameBadged(uid)}</div>
               <div style="font-size:12px;color:var(--text3)">Doorgestuurd: ${start} – ${dispTime(end)}</div>
             </div>
-            <button class="btn btn-green btn-sm" onclick="approveShift('${s.id}','${uid}')">✓</button>
+            ${restricted('approve')?'':`<button class="btn btn-green btn-sm" onclick="approveShift('${s.id}','${uid}')">✓</button>`}
             <button class="btn btn-ghost btn-sm" onclick="adminCorrect('${s.id}','${uid}')">✏</button>
           </div>`;
         }).join('')}
@@ -1783,19 +1786,19 @@ async function renderEmployeeHome(c){
     </div>
 
     <div class="stats-grid">
-      <div class="stat-tile yellow"><span class="stat-tile-icon">📅</span>
+      <div class="stat-tile yellow"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
         <div class="stat-num yellow">${upcoming.length}</div>
         <div class="stat-lbl">Komende diensten</div>
       </div>
-      <div class="stat-tile ${toConfirm.length?'red':'green'}"><span class="stat-tile-icon">✅</span>
+      <div class="stat-tile ${toConfirm.length?'red':'green'}"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15 16 9"/></svg></span>
         <div class="stat-num ${toConfirm.length?'red':'green'}">${toConfirm.length}</div>
         <div class="stat-lbl">Te bevestigen</div>
       </div>
-      <div class="stat-tile yellow"><span class="stat-tile-icon">💰</span>
+      <div class="stat-tile yellow"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 15.2c.5.9 1.5 1.3 2.5 1.3 1.7 0 2.7-.9 2.7-2s-1-1.6-2.7-2c-1.7-.4-2.7-1-2.7-2.1s1-2 2.7-2c1 0 2 .4 2.5 1.3M12 7.5v1M12 15.5v1"/></svg></span>
         <div class="stat-num yellow" style="font-size:20px">${fmtMoney(thisMonthApproved)}</div>
         <div class="stat-lbl">Goedgekeurd</div>
       </div>
-      <div class="stat-tile green"><span class="stat-tile-icon">🏦</span>
+      <div class="stat-tile green"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 21V10M20 21V10M2 10l10-6 10 6M6 10v0M12 10v0M18 10v0M7 14v4M12 14v4M17 14v4"/></svg></span>
         <div class="stat-num green" style="font-size:20px">${fmtMoney(thisMonthPaid)}</div>
         <div class="stat-lbl">Uitbetaald</div>
       </div>
@@ -1987,7 +1990,7 @@ function renderAdminRoster(c){
   c.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <div class="page-title" style="margin:0">Rooster</div>
-      <button class="btn btn-yellow btn-sm" onclick="openAddShift()">+ Dienst</button>
+      <button class="btn btn-yellow btn-sm" onclick="openAddShift()" ${restricted('editShift')?'style="display:none"':''}>+ Dienst</button>
     </div>
     ${tabs}
     ${totalDebt>0?`<div class="stat-tile red" style="margin-bottom:14px"><div class="stat-num" style="color:var(--red);font-size:22px">${fmtMoney(totalDebt)}</div><div class="stat-lbl">Openstaande schuld</div></div>`:''}
@@ -2006,7 +2009,7 @@ function renderAdminRoster(c){
               <div class="roster-time">${start}–${dispTime(end)}</div>
               <div class="roster-name">${userNameBadged(uid)}</div>
               ${pay!==null?`<div class="roster-pay">${fmtMoney(pay)}</div>`:`<div class="roster-pay" style="color:var(--text4)">—</div>`}
-              ${st==='confirmed'?`<button class="btn btn-green" style="padding:4px 8px;font-size:11px" onclick="approveShift('${s.id}','${uid}')">✓</button><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="adminCorrect('${s.id}','${uid}')">✏</button>`
+              ${st==='confirmed'?`${restricted('approve')?'':`<button class="btn btn-green" style="padding:4px 8px;font-size:11px" onclick="approveShift('${s.id}','${uid}')">✓</button>`}<button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="adminCorrect('${s.id}','${uid}')">✏</button>`
                 :`<span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'❗':'⏳'}</span>`}
             </div>`;
           }).join('');
@@ -2014,7 +2017,7 @@ function renderAdminRoster(c){
             <div style="padding:12px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center">
               <div style="font-size:15px;font-weight:700;color:var(--mhv-yellow)">${s.startTime} – ${dispTime(s.endTime)}</div>
               <div style="display:flex;gap:6px">
-                ${isShiftLocked(s)?'<span class="badge badge-gray" style="font-size:10px" title="Geweest en volledig uitbetaald — niet meer te bewerken">🔒 Afgehandeld</span>':`<button class="btn btn-ghost btn-sm" onclick="openEditShift('${s.id}')">✏</button>${(U.role==='admin'&&U.restrictions?.deleteShift)?'':`<button class="btn btn-red btn-sm" onclick="deleteShift('${s.id}')">🗑</button>`}`}
+                ${isShiftLocked(s)?'<span class="badge badge-gray" style="font-size:10px" title="Geweest en volledig uitbetaald — niet meer te bewerken">🔒 Afgehandeld</span>':`${restricted('editShift')?'':`<button class="btn btn-ghost btn-sm" onclick="openEditShift('${s.id}')">✏</button>`}${restricted('deleteShift')?'':`<button class="btn btn-red btn-sm" onclick="deleteShift('${s.id}')">🗑</button>`}`}
               </div>
             </div>
             ${workers}
@@ -2318,9 +2321,8 @@ function renderAdminSettings(c){
 // MEDEWERKERS
 function renderMedewerkers(c){
   const emp=employees();
-  const restrictedAdd=U.role==='admin'&&U.restrictions?.addEmployee;
   c.innerHTML=`
-    ${restrictedAdd?'<div class="card" style="margin-bottom:14px;padding:12px 14px;font-size:13px;color:var(--text3);text-align:center">Je bevoegdheid om medewerkers toe te voegen is door de dev ingetrokken.</div>'
+    ${restricted('addEmployee')?'<div class="card" style="margin-bottom:14px;padding:12px 14px;font-size:13px;color:var(--text3);text-align:center">Je bevoegdheid om medewerkers toe te voegen is door de dev ingetrokken.</div>'
       :'<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Medewerker uitnodigen</button>'}
     ${emp.map(u=>`
       <div class="card" style="margin-bottom:10px">
@@ -2334,12 +2336,12 @@ function renderMedewerkers(c){
             <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(u.wage||0)}<span style="font-size:11px;color:var(--text3)">/u</span></div>
           </div>
         </div>
-        <div class="card-row" style="gap:6px;flex-wrap:wrap">
+        ${restricted('manageEmployees')?'':`<div class="card-row" style="gap:6px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="openEditEmployee('${u.uid}')">✏ Bewerken</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="resetPwAdmin('${u.uid}','${u.name}','${u.email}')">🔑 Reset ww</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')">👑 Admin</button>
           <button class="btn btn-red btn-sm" style="flex:1;min-width:80px" onclick="deleteEmployee('${u.uid}','${u.name}')">🗑 Verwijder</button>
-        </div>
+        </div>`}
       </div>`).join('')}
     ${!emp.length?`<div class="empty"><div class="empty-icon">👥</div><p>Geen medewerkers</p></div>`:''}
   `;
@@ -2432,10 +2434,27 @@ function openEditEmployee(uid){
     <label class="worker-check">
       <input type="checkbox" id="eeRestrictPayout" ${u.restrictions?.payout?'checked':''}>
       <div class="worker-check-info"><div class="worker-check-name">Niet mogen uitbetalen</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictEditShift" ${u.restrictions?.editShift?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Geen diensten aanmaken/bewerken</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictApprove" ${u.restrictions?.approve?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Diensten niet mogen goedkeuren</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictAnnouncements" ${u.restrictions?.announcements?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Geen aankondigingen plaatsen</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictManageEmployees" ${u.restrictions?.manageEmployees?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Medewerkers niet mogen bewerken/schorsen/verwijderen</div></div>
     </label>`:''}
     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
   `);
 }
+function restricted(key){ return U.role==='admin' && !!U.restrictions?.[key]; }
 async function saveEmployee(uid){
   const name=$('eeName').value.trim(), wage=parseFloat($('eeWage').value)||0;
   const roleEl=$('eeRole');
@@ -2451,6 +2470,10 @@ async function saveEmployee(uid){
       addEmployee:!!$('eeRestrictAddEmployee').checked,
       deleteShift:!!$('eeRestrictDeleteShift').checked,
       payout:!!$('eeRestrictPayout').checked,
+      editShift:!!$('eeRestrictEditShift').checked,
+      approve:!!$('eeRestrictApprove').checked,
+      announcements:!!$('eeRestrictAnnouncements').checked,
+      manageEmployees:!!$('eeRestrictManageEmployees').checked,
     };
   }
   try{
@@ -2785,12 +2808,12 @@ function renderUitbetaling(c){
             ${u.paidPay>0?`<div style="font-size:13px;color:var(--green)">${fmtMoney(u.paidPay)} betaald</div>`:''}
           </div>
         </div>
-        ${u.reviewing.length?`<div class="card-row" style="background:var(--orange-dim)">
+        ${(u.reviewing.length&&!restricted('approve'))?`<div class="card-row" style="background:var(--orange-dim)">
           <div style="flex:1;font-size:13px;color:var(--orange)">⏳ ${u.reviewing.length} nog goed te keuren</div>
           <button class="btn btn-sm" style="background:var(--orange);color:#1a0f00" onclick="openReviewApprovals('${u.uid}','${y}','${m}')">Bekijken</button>
         </div>`:''}
         <div class="card-row" style="gap:8px">
-          ${(u.approvedPay>0&&!(U.role==='admin'&&U.restrictions?.payout))?`<button class="btn btn-green btn-sm" style="flex:1" onclick="markPaid('${u.uid}','${y}','${m}','${u.name}','${u.approvedPay.toFixed(2)}')">✓ Uitbetaald</button>`:''}
+          ${(u.approvedPay>0&&!restricted('payout'))?`<button class="btn btn-green btn-sm" style="flex:1" onclick="markPaid('${u.uid}','${y}','${m}','${u.name}','${u.approvedPay.toFixed(2)}')">✓ Uitbetaald</button>`:''}
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showPayDetail('${u.uid}','${y}','${m}')">Details</button>
         </div>
       </div>`).join('')
@@ -3750,8 +3773,8 @@ function renderChat(){
     +'<div class="chat-input-wrap" id="chatDropZone" style="margin-top:auto">'
     +'<div class="mention-list" id="mentionList"></div>'
     +'<div class="chat-input-row">'
-    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);flex-shrink:0;font-size:16px" onclick="insertAtSign()">@</button>'
-    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--separator);flex-shrink:0;font-size:16px" onclick="document.getElementById(\'chatImgInput\').click()" title="Foto versturen">📷</button>'
+    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="insertAtSign()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg></button>'
+    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="document.getElementById(\'chatImgInput\').click()" title="Foto versturen"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>'
     +'<input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="handleChatImageFile(this.files[0])">'
     +'<textarea id="chatTa" placeholder="Typ een bericht..." rows="1"'
     +' oninput="chatInputHandler(this)"'

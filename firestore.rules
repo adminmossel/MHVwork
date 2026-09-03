@@ -30,11 +30,11 @@ service cloud.firestore {
         || (isAdmin() && request.resource.data.role != 'software')
         || (isAuth() && request.auth.uid == uid);
       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']))
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']) && !restr('manageEmployees'))
         || isSoftware()
         || (isAuth() && request.auth.uid == uid
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified']));
-      allow delete: if isStaff();
+      allow delete: if isStaff() && !restr('manageEmployees');
     }
 
     // Publieke, bewust minimale profielgegevens: alleen wat nodig is om iemand herkenbaar te
@@ -50,9 +50,12 @@ service cloud.firestore {
 
     match /shifts/{id} {
       allow read: if isAuth();
-      allow create: if isAdmin();
+      allow create: if isAdmin() && !restr('editShift');
       allow delete: if isStaff() && !restr('deleteShift');
-      allow update: if (isAdmin() && !(restr('payout') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidFor'])))
+      allow update: if (isAdmin()
+            && !(restr('payout') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidFor']))
+            && !(restr('approve') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['workerConfirmations']))
+            && !(restr('editShift') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['startTime','endTime','workers','date','note'])))
         || (isAuth() && request.resource.data.diff(resource.data)
               .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']));
     }
@@ -123,7 +126,7 @@ service cloud.firestore {
     // Aankondigingen (homepage + dev "special" aankondigingen)
     match /announcements/{id} {
       allow read: if isAuth();
-      allow create: if isStaff();
+      allow create: if isStaff() && !restr('announcements');
       allow update: if isStaff();
       // Een beheerder mag geen 'speciale' (dev-only) aankondiging verwijderen — alleen dev zelf.
       allow delete: if isSoftware() || (isAdmin() && resource.data.special != true);
