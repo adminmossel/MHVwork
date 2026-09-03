@@ -142,7 +142,6 @@ html[data-theme="light"] {
   --green-dim:rgba(30,140,64,0.12); --red-dim:rgba(214,45,38,0.12); --orange-dim:rgba(191,110,0,0.12);
   --green:#1E8C40; --red:#D62D26; --orange:#BF6E00;
 }
-html[data-theme="light"] #topbar { background:rgba(242,242,247,0.92); }
 html[data-theme="light"] #tabbar { background:rgba(242,242,247,0.92); border-color:rgba(0,0,0,0.08); }
 html[data-theme="light"] .tab { color:rgba(0,0,0,0.4); }
 html[data-theme="light"] .notif-dot { border-color:var(--bg); }
@@ -212,28 +211,35 @@ input, textarea { -webkit-user-select:text; user-select:text; }
   width:100%; position:relative; overflow:hidden;
 }
 @media(min-width:700px){
-  body { background:var(--bg3); display:flex; align-items:stretch; justify-content:center; }
-  #app { max-width:520px; box-shadow:0 0 0 1px var(--separator), 0 32px 80px rgba(0,0,0,0.4); }
+  body { background:var(--bg); display:flex; align-items:stretch; justify-content:center; }
+  #app { max-width:640px; box-shadow:0 0 0 1px rgba(255,255,255,0.08); }
+  #topbar { max-width:calc(640px - 24px); }
+  #tabbar { max-width:calc(640px - 24px); }
 }
 @media(min-width:1100px){
-  #app { max-width:680px; }
+  #app { max-width:900px; }
+  #topbar { max-width:calc(900px - 24px); }
+  #tabbar { max-width:calc(900px - 24px); }
   .page-title { font-size:36px !important; }
   .stats-grid { grid-template-columns:repeat(3,1fr) !important; }
 }
 
-/* ── TOPBAR ─── */
+/* ── TOPBAR — zwevende glazen pil, zelfde stijl als de onderste navigatiebalk ─── */
 #topbar {
-  height:var(--nav-h); flex-shrink:0;
-  background:rgba(0,0,0,0.8); backdrop-filter:blur(20px) saturate(180%);
-  -webkit-backdrop-filter:blur(20px) saturate(180%);
-  border-bottom:1px solid var(--separator);
-  display:flex; align-items:center; padding:0 16px; gap:10px;
-  position:relative; z-index:50;
-  padding-top:env(safe-area-inset-top); height:calc(var(--nav-h) + env(safe-area-inset-top));
+  position:fixed; top:calc(12px + env(safe-area-inset-top)); left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 24px); height:auto;
+  background:rgba(28,28,32,0.6); backdrop-filter:blur(26px) saturate(180%);
+  -webkit-backdrop-filter:blur(26px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.12); border-radius:999px;
+  box-shadow:0 14px 34px -12px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  display:flex; align-items:center; padding:8px 10px 8px 14px; gap:10px;
+  z-index:50;
 }
-#topbar img { width:28px; height:28px; border-radius:6px; object-fit:contain; }
-#topbar .app-name { font-size:17px; font-weight:700; flex:1; letter-spacing:-0.3px; }
+#topbar img { width:26px; height:26px; border-radius:6px; object-fit:contain; }
+#topbar .app-name { font-size:16px; font-weight:700; flex:1; letter-spacing:-0.3px; }
 #topbar .app-name span { color:var(--mhv-yellow); }
+html[data-theme="light"] #topbar { background:rgba(255,255,255,0.75); border-color:rgba(0,0,0,0.08); }
 .notif-pill {
   position:relative; width:34px; height:34px; border-radius:50%;
   background:var(--glass2); display:flex; align-items:center; justify-content:center;
@@ -247,6 +253,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 
 /* ── SCROLL AREA ─── */
 #scroll { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+  padding-top:calc(var(--nav-h) + 22px + env(safe-area-inset-top));
   padding-bottom:calc(var(--tab-h) + 28px + env(safe-area-inset-bottom)); }
 #scroll::-webkit-scrollbar { display:none; }
 
@@ -321,10 +328,11 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
   background:var(--bg2); border-radius:var(--radius); padding:16px;
   border:1px solid var(--separator);
 }
-.stat-tile.yellow { background:var(--mhv-yellow-dim); border-color:rgba(245,200,0,0.2); }
-.stat-tile.blue   { background:var(--mhv-blue-dim);   border-color:rgba(29,63,187,0.25); }
-.stat-tile.green  { background:var(--green-dim);       border-color:rgba(48,209,88,0.2); }
-.stat-tile.red    { background:var(--red-dim);         border-color:rgba(255,69,58,0.2); }
+.stat-tile.yellow { background:var(--mhv-yellow-dim); border-color:rgba(245,200,0,0.2); position:relative; }
+.stat-tile.blue   { background:var(--mhv-blue-dim);   border-color:rgba(29,63,187,0.25); position:relative; }
+.stat-tile.green  { background:var(--green-dim);       border-color:rgba(48,209,88,0.2); position:relative; }
+.stat-tile.red    { background:var(--red-dim);         border-color:rgba(255,69,58,0.2); position:relative; }
+.stat-tile-icon   { position:absolute; top:12px; right:14px; font-size:18px; opacity:0.35; }
 .stat-num { font-size:30px; font-weight:800; letter-spacing:-1px; line-height:1; }
 .stat-num.yellow { color:var(--mhv-yellow); }
 .stat-num.blue   { color:#6B8EFF; }
@@ -537,7 +545,7 @@ select.form-input option { background:var(--bg3); }
 
 /* ── NOTIF PANEL ─── */
 #notif-panel {
-  position:absolute; top:calc(var(--nav-h) + 8px); right:12px;
+  position:absolute; top:calc(var(--nav-h) + 22px + env(safe-area-inset-top)); right:12px;
   width:min(340px, calc(100vw - 32px)); max-width:360px;
   background:var(--bg2); border:1px solid var(--separator);
   border-radius:var(--radius); z-index:200;
@@ -1112,6 +1120,8 @@ function subAvail(){
 
 // ── HELPERS ──────────────────────────────────
 const $ = id => document.getElementById(id);
+// Eigen zwaai-icoon i.p.v. de generieke 👋-emoji, in de merkkleur, zelfde lijnstijl als de rest.
+const WAVE_ICON='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--mhv-yellow)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-6px;margin-left:2px"><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/><path d="M18 11V6a2 2 0 0 0-4 0v.5"/><path d="M14 10.5V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8.5"/><path d="M2 3c1.4 1.4 1.4 3.6 0 5" opacity=".55"/></svg>';
 function toast(m,t=''){const el=$('toast');el.textContent=m;el.className='show '+t;clearTimeout(el._t);el._t=setTimeout(()=>el.className='',2800);}
 function fmtMoney(n){return '€\u202F'+Number(n||0).toFixed(2).replace('.',',');}
 function fmtDate(d){const dt=toDate(d);return dt.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});}
@@ -1647,7 +1657,7 @@ async function renderAdminHome(c){
   c.innerHTML=`
     <div class="page-title">
       <span class="hi">Goedemorgen,</span>
-      ${U.name?.split(' ')[0]||'Admin'} 👋
+      ${U.name?.split(' ')[0]||'Admin'} ${WAVE_ICON}
     </div>
     <div id="announceArea" style="margin-bottom:4px"></div>
     <button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)">📢 Aankondiging plaatsen voor medewerkers</button>
@@ -1769,23 +1779,23 @@ async function renderEmployeeHome(c){
     <div class="page-title">
       <span class="hi">Welkom terug,</span>
     <div id="announceArea" style="margin-bottom:4px"></div>
-      ${U.name?.split(' ')[0]||'—'}
+      ${U.name?.split(' ')[0]||'—'} ${WAVE_ICON}
     </div>
 
     <div class="stats-grid">
-      <div class="stat-tile yellow">
+      <div class="stat-tile yellow"><span class="stat-tile-icon">📅</span>
         <div class="stat-num yellow">${upcoming.length}</div>
         <div class="stat-lbl">Komende diensten</div>
       </div>
-      <div class="stat-tile ${toConfirm.length?'red':'green'}">
+      <div class="stat-tile ${toConfirm.length?'red':'green'}"><span class="stat-tile-icon">✅</span>
         <div class="stat-num ${toConfirm.length?'red':'green'}">${toConfirm.length}</div>
         <div class="stat-lbl">Te bevestigen</div>
       </div>
-      <div class="stat-tile yellow">
+      <div class="stat-tile yellow"><span class="stat-tile-icon">💰</span>
         <div class="stat-num yellow" style="font-size:20px">${fmtMoney(thisMonthApproved)}</div>
         <div class="stat-lbl">Goedgekeurd</div>
       </div>
-      <div class="stat-tile green">
+      <div class="stat-tile green"><span class="stat-tile-icon">🏦</span>
         <div class="stat-num green" style="font-size:20px">${fmtMoney(thisMonthPaid)}</div>
         <div class="stat-lbl">Uitbetaald</div>
       </div>
@@ -2004,7 +2014,7 @@ function renderAdminRoster(c){
             <div style="padding:12px 16px;border-bottom:1px solid var(--separator);display:flex;justify-content:space-between;align-items:center">
               <div style="font-size:15px;font-weight:700;color:var(--mhv-yellow)">${s.startTime} – ${dispTime(s.endTime)}</div>
               <div style="display:flex;gap:6px">
-                ${isShiftLocked(s)?'<span class="badge badge-gray" style="font-size:10px" title="Geweest en volledig uitbetaald — niet meer te bewerken">🔒 Afgehandeld</span>':`<button class="btn btn-ghost btn-sm" onclick="openEditShift('${s.id}')">✏</button><button class="btn btn-red btn-sm" onclick="deleteShift('${s.id}')">🗑</button>`}
+                ${isShiftLocked(s)?'<span class="badge badge-gray" style="font-size:10px" title="Geweest en volledig uitbetaald — niet meer te bewerken">🔒 Afgehandeld</span>':`<button class="btn btn-ghost btn-sm" onclick="openEditShift('${s.id}')">✏</button>${(U.role==='admin'&&U.restrictions?.deleteShift)?'':`<button class="btn btn-red btn-sm" onclick="deleteShift('${s.id}')">🗑</button>`}`}
               </div>
             </div>
             ${workers}
@@ -2308,8 +2318,10 @@ function renderAdminSettings(c){
 // MEDEWERKERS
 function renderMedewerkers(c){
   const emp=employees();
+  const restrictedAdd=U.role==='admin'&&U.restrictions?.addEmployee;
   c.innerHTML=`
-    <button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Medewerker uitnodigen</button>
+    ${restrictedAdd?'<div class="card" style="margin-bottom:14px;padding:12px 14px;font-size:13px;color:var(--text3);text-align:center">Je bevoegdheid om medewerkers toe te voegen is door de dev ingetrokken.</div>'
+      :'<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Medewerker uitnodigen</button>'}
     ${emp.map(u=>`
       <div class="card" style="margin-bottom:10px">
         <div class="card-row">
@@ -2406,6 +2418,21 @@ function openEditEmployee(uid){
         <div class="worker-check-wage">Sociale-hygiëne-certificaat (IVA) aanwezig — zichtbaar voor iedereen bij "Andere gebruikers"</div>
       </div>
     </label>
+    ${(U.role==='software'&&u.role==='admin')?`
+    <div class="section-label" style="margin-top:16px">Bevoegdheden intrekken (alleen dev)</div>
+    <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Het account blijft gewoon werken — dit blokkeert alleen specifieke acties, in plaats van het hele account te schorsen.</p>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictAddEmployee" ${u.restrictions?.addEmployee?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Geen medewerkers toevoegen</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictDeleteShift" ${u.restrictions?.deleteShift?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Geen diensten verwijderen</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictPayout" ${u.restrictions?.payout?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Niet mogen uitbetalen</div></div>
+    </label>`:''}
     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
   `);
 }
@@ -2418,6 +2445,14 @@ async function saveEmployee(uid){
   const{db,doc,updateDoc,setDoc}=window._f;
   const payload={name,wage,canServe};
   if(role) payload.role=role;
+  // Bevoegdheden-restricties (alleen door dev in te stellen, alleen relevant voor een beheerder-account)
+  if($('eeRestrictAddEmployee')){
+    payload.restrictions={
+      addEmployee:!!$('eeRestrictAddEmployee').checked,
+      deleteShift:!!$('eeRestrictDeleteShift').checked,
+      payout:!!$('eeRestrictPayout').checked,
+    };
+  }
   try{
     await updateDoc(doc(db,'users',uid),payload);
     const pubPayload={name,canServe}; if(role) pubPayload.role=role;
@@ -2755,7 +2790,7 @@ function renderUitbetaling(c){
           <button class="btn btn-sm" style="background:var(--orange);color:#1a0f00" onclick="openReviewApprovals('${u.uid}','${y}','${m}')">Bekijken</button>
         </div>`:''}
         <div class="card-row" style="gap:8px">
-          ${u.approvedPay>0?`<button class="btn btn-green btn-sm" style="flex:1" onclick="markPaid('${u.uid}','${y}','${m}','${u.name}','${u.approvedPay.toFixed(2)}')">✓ Uitbetaald</button>`:''}
+          ${(u.approvedPay>0&&!(U.role==='admin'&&U.restrictions?.payout))?`<button class="btn btn-green btn-sm" style="flex:1" onclick="markPaid('${u.uid}','${y}','${m}','${u.name}','${u.approvedPay.toFixed(2)}')">✓ Uitbetaald</button>`:''}
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showPayDetail('${u.uid}','${y}','${m}')">Details</button>
         </div>
       </div>`).join('')
@@ -3061,20 +3096,42 @@ function _renderDMMessages(t){
   const c=document.getElementById('dmMsgs'); if(!c)return;
   const msgs=t.messages||[];
   if(!msgs.length){ c.innerHTML='<p style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">Nog geen berichten — zeg hallo!</p>'; return; }
-  c.innerHTML=msgs.map((m,i)=>{
+  let html='', lastDay='', lastFrom=null, lastTs=0;
+  msgs.forEach((m,i)=>{
     const mine=m.from===U.uid;
+    const day=m.ts?dKey(new Date(m.ts)):'';
+    if(day&&day!==lastDay){
+      html+=`<div style="align-self:center;font-size:11px;font-weight:700;color:var(--text3);background:var(--bg3);padding:4px 12px;border-radius:99px;margin:10px 0 4px">${fmtDayDivider(new Date(m.ts))}</div>`;
+      lastDay=day; lastFrom=null;
+    }
+    const sameGroup=m.from===lastFrom && m.ts && (m.ts-lastTs)<5*60*1000 && m.type!=='logRequest';
+    const time=m.ts?new Date(m.ts).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';
     if(m.type==='logRequest'){
-      return `<div style="align-self:center;max-width:90%;background:var(--bg3);border:1px solid var(--separator);border-radius:14px;padding:12px 14px;font-size:13px;text-align:center">
+      html+=`<div style="align-self:center;max-width:90%;background:var(--bg3);border:1px solid var(--separator);border-radius:14px;padding:12px 14px;font-size:13px;text-align:center;margin:6px 0">
         <div style="font-weight:700;margin-bottom:4px">🔒 Logboek aangevraagd</div>
         ${m.status==='pending'?
           (U.role==='software'?`<button class="btn btn-yellow btn-sm" style="margin-top:6px" onclick="openLogRequestReview('${t.id}',${i})">Bekijk & keur goed</button>`:'<div style="color:var(--text3)">Wacht op goedkeuring van dev…</div>')
           :m.status==='approved'?`<div style="color:var(--green);margin-bottom:6px">✓ Goedgekeurd</div><button class="btn btn-green btn-sm" onclick="downloadApprovedLog('${t.id}',${i})">📥 Download logboek.xlsx</button>`
           :`<div style="color:var(--red)">✕ Afgewezen</div>`}
       </div>`;
+      lastFrom=null;
+    }else{
+      html+=`<div style="align-self:${mine?'flex-end':'flex-start'};max-width:80%;margin-top:${sameGroup?'2px':'10px'}">
+        <div style="background:${mine?'var(--mhv-blue)':'var(--bg3)'};color:${mine?'#fff':'var(--text1)'};padding:9px 13px;border-radius:16px;${mine?'border-bottom-right-radius:5px':'border-bottom-left-radius:5px'};font-size:14.5px;line-height:1.4">${(m.text||'').replace(/</g,'&lt;')}</div>
+        ${time?`<div style="font-size:10px;color:var(--text3);margin-top:3px;text-align:${mine?'right':'left'};padding:0 4px">${time}</div>`:''}
+      </div>`;
+      lastFrom=m.from; lastTs=m.ts||0;
     }
-    return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:80%;background:${mine?'var(--mhv-blue)':'var(--bg3)'};color:${mine?'#fff':'var(--text1)'};padding:8px 12px;border-radius:14px;font-size:14px">${(m.text||'').replace(/</g,'&lt;')}</div>`;
-  }).join('');
+  });
+  c.innerHTML=html;
   c.scrollTop=c.scrollHeight;
+}
+function fmtDayDivider(d){
+  const today=nowKey(), y=new Date(); y.setDate(y.getDate()-1);
+  const dk=dKey(d);
+  if(dk===today)return 'Vandaag';
+  if(dk===dKey(y))return 'Gisteren';
+  return d.toLocaleDateString('nl-NL',{day:'numeric',month:'long'});
 }
 // Beheerder vraagt een logboek-export op bij de dev, via het gesprek zelf
 async function requestLogbook(devUid,devName){
@@ -3185,7 +3242,7 @@ function openSendToAdmin(){
 // APP-TOUR — automatisch bij de allereerste login ooit, of handmatig via Profiel
 // ═══════════════════════════════════════════
 const TOUR_STEPS_BASE = [
-  {icon:'👋', title:'Welkom bij MHVwork!', body:'Even in een paar stappen laten zien wat je hier allemaal kan. Dit duurt maar een minuutje.'},
+  {icon:'<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="var(--mhv-yellow)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/><path d="M18 11V6a2 2 0 0 0-4 0v.5"/><path d="M14 10.5V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8.5"/><path d="M2 3c1.4 1.4 1.4 3.6 0 5" opacity=".55"/></svg>', title:'Welkom bij MHVwork!', body:'Even in een paar stappen laten zien wat je hier allemaal kan. Dit duurt maar een minuutje.'},
   {icon:'🏠', title:'Home', body:'Je startpagina met je komende diensten, verdiensten en eventuele aankondigingen.'},
   {icon:'📅', title:'Rooster', body:'Hier zie je al je diensten. Tik op een dag in de kalender voor de details, of exporteer een dienst naar je eigen agenda.'},
   {icon:'🚫', title:'Beschikbaarheid', body:'Geef hier aan wanneer je niet kunt werken — ook voor een hele periode in één keer, bijvoorbeeld je vakantie.'},

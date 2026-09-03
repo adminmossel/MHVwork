@@ -7,6 +7,12 @@ service cloud.firestore {
     function isAdmin()   { return isAuth() && getRole() == 'admin'; }
     function isSoftware(){ return isAuth() && getRole() == 'software'; }
     function isStaff()   { return isAdmin() || isSoftware(); }
+    // Door dev ingetrokken bevoegdheden van een beheerder-account (blokkeert specifieke acties
+    // zonder het hele account te schorsen) — leeg/ontbrekend veld = geen restricties.
+    function restr(key) {
+      return isAdmin()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('restrictions',{}).get(key,false) == true;
+    }
 
     match /users/{uid} {
       // Vroeger: elke ingelogde gebruiker mocht ALLE volledige profielen lezen (naam, e-mail,
@@ -24,7 +30,7 @@ service cloud.firestore {
         || (isAdmin() && request.resource.data.role != 'software')
         || (isAuth() && request.auth.uid == uid);
       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified']))
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']))
         || isSoftware()
         || (isAuth() && request.auth.uid == uid
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified']));
@@ -45,8 +51,8 @@ service cloud.firestore {
     match /shifts/{id} {
       allow read: if isAuth();
       allow create: if isAdmin();
-      allow delete: if isStaff();
-      allow update: if isAdmin()
+      allow delete: if isStaff() && !restr('deleteShift');
+      allow update: if (isAdmin() && !(restr('payout') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidFor'])))
         || (isAuth() && request.resource.data.diff(resource.data)
               .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']));
     }
@@ -94,7 +100,7 @@ service cloud.firestore {
       // alle openstaande uitnodigingen (naam, e-mail, loon) in één keer uitlezen.
       allow get: if true;
       allow list: if isStaff();
-      allow create: if isSoftware() || (isAdmin() && request.resource.data.role != 'software');
+      allow create: if isSoftware() || (isAdmin() && request.resource.data.role != 'software' && !restr('addEmployee'));
       // Alleen het 'used' veld mag gezet worden, en alleen zolang die nog niet gebruikt is
       // (voorkomt dat een link twee keer geclaimd kan worden, of dat iemand anders data wijzigt).
       allow update: if !resource.data.used
@@ -105,7 +111,7 @@ service cloud.firestore {
     match /payments/{id} {
       allow read: if isAuth()
         && (resource.data.uid == request.auth.uid || isAdmin());
-      allow write: if isStaff();
+      allow write: if isStaff() && !restr('payout');
     }
 
     // Legacy collectie — niet meer gebruikt sinds wachtwoord-reset via Firebase Auth verloopt.
