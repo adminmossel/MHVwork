@@ -212,7 +212,7 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 }
 @media(min-width:700px){
   body { background:var(--bg); display:flex; align-items:stretch; justify-content:center; }
-  #app { max-width:640px; box-shadow:0 0 0 1px rgba(255,255,255,0.08); }
+  #app { max-width:640px; }
   #topbar { max-width:calc(640px - 24px); }
   #tabbar { max-width:calc(640px - 24px); }
 }
@@ -1861,6 +1861,11 @@ async function renderEmployeeHome(c){
 
 // Gedeelde renderer voor aankondigingen — gebruikt door zowel medewerker- als beheerder-homepage.
 // 'special' aankondigingen (alleen door dev te plaatsen) krijgen een eigen kleur en tonen 1x een popup.
+let lastAnnouncements=[];
+function escAnn(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Simpele opmaak: **vet** wordt <b>, tabs/enters blijven gewoon staan dankzij white-space:pre-wrap.
+function renderRichText(text){ return escAnn(text).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+function fmtFileSize(b){ if(!b)return ''; if(b<1024)return b+' B'; if(b<1024*1024)return Math.round(b/1024)+' KB'; return (b/1024/1024).toFixed(1)+' MB'; }
 function renderAnnouncementArea(area, announcements, showAll){
   if(!area)return;
   const visibleAnn = showAll ? announcements : announcements.filter(function(ann){
@@ -1870,24 +1875,19 @@ function renderAnnouncementArea(area, announcements, showAll){
     if(aud==='admin') return (U.role==='admin'||U.role==='software');
     return true;
   });
+  lastAnnouncements=announcements;
   if(!visibleAnn.length){ area.innerHTML=''; return; }
   area.innerHTML = '<div class="section-label" style="margin-top:0;margin-bottom:8px">📢 Aankondigingen</div>'
     + visibleAnn.map(function(ann){
-        // Alleen dev mag een 'speciale' (dev-only) aankondiging verwijderen — een beheerder mag
-        // wél gewone aankondigingen verwijderen (ook die van andere beheerders), maar niet die
-        // van de dev-rol specifiek.
-        const canDel = U.role==='software' || (U.role==='admin' && !ann.special);
         const isSpecial = !!ann.special;
         const borderColor = isSpecial ? 'var(--red)' : 'var(--mhv-yellow)';
         const bg = isSpecial ? 'rgba(255,69,58,.06)' : '';
-        return '<div class="card" style="margin-bottom:10px;border-left:3px solid '+borderColor+';padding:14px 16px'+(bg?';background:'+bg:'')+'">'
-          +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-          +'<div style="font-size:15px;font-weight:700;line-height:1.3">'+(isSpecial?'🚨 ':'')+ann.title+'</div>'
-          +(canDel?'<button onclick="deleteAnnouncement(&quot;'+ann.id+'&quot;)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;flex-shrink:0;line-height:1">✕</button>':'')
+        return '<div class="card-row" style="cursor:pointer;margin-bottom:8px;border-radius:var(--radius);border-left:3px solid '+borderColor+(bg?';background:'+bg:'')+'" onclick="openAnnouncementDetail(\''+ann.id+'\')">'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:14.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(isSpecial?'🚨 ':'')+escAnn(ann.title)+'</div>'
+          +'<div style="font-size:11px;color:var(--text3);margin-top:3px">— '+escAnn(ann.authorName)+(isSpecial?' · Dev':'')+(ann.imageData||((ann.attachments||[]).length)?' · 📎':'')+'</div>'
           +'</div>'
-          +(ann.imageData?'<img src="'+ann.imageData+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin:10px 0">':'')
-          +(ann.text?'<div style="font-size:14px;color:var(--text2);line-height:1.55;margin-top:6px">'+ann.text+'</div>':'')
-          +'<div style="font-size:11px;color:var(--text3);margin-top:8px">— '+ann.authorName+(isSpecial?' · Dev':'')+'</div>'
+          +'<span style="color:var(--text3);flex-shrink:0">›</span>'
           +'</div>';
       }).join('');
   // In-app popup voor NIEUWE 'special' aankondigingen — 1x per aankondiging per gebruiker
@@ -1897,19 +1897,33 @@ function renderAnnouncementArea(area, announcements, showAll){
     const unseen=specials.filter(a=>!seen.includes(a.id));
     if(unseen.length){
       const a=unseen[0];
-      setTimeout(()=>{
-        modal('<div class="modal-handle"></div>'
-          +'<div style="text-align:center;padding:6px 0 4px">'
-          +'<div style="font-size:40px;margin-bottom:8px">🚨</div>'
-          +'<div class="modal-title" style="text-align:center;color:var(--red)">'+a.title+'</div>'
-          +(a.imageData?'<img src="'+a.imageData+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin:12px 0">':'')
-          +(a.text?'<p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0">'+a.text+'</p>':'')
-          +'<button class="btn btn-yellow btn-full" style="margin-top:10px" onclick="closeModal()">Begrepen</button>'
-          +'</div>');
-      },600);
+      setTimeout(()=>openAnnouncementDetail(a.id),600);
       try{localStorage.setItem('mhv_seen_special',JSON.stringify([...seen,...unseen.map(x=>x.id)]));}catch(e){}
     }
   }
+}
+// Detailpagina van een aankondiging (als modal-'pagina'): afbeelding, opgemaakte tekst, bijlages.
+function openAnnouncementDetail(id){
+  const ann=lastAnnouncements.find(a=>a.id===id); if(!ann)return;
+  const canDel = U.role==='software' || (U.role==='admin' && !ann.special);
+  const dateStr = ann.createdAt?.toDate ? fmtDate(dKey(ann.createdAt.toDate())) : '';
+  modal(`
+    <div class="modal-handle"></div>
+    ${ann.imageData?`<img src="${ann.imageData}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:14px">`:''}
+    <div class="modal-title" style="${ann.special?'color:var(--red)':''}">${ann.special?'🚨 ':''}${escAnn(ann.title)}</div>
+    <div style="font-size:11px;color:var(--text3);margin:-10px 0 14px">— ${escAnn(ann.authorName)}${ann.special?' · Dev':''}${dateStr?' · '+dateStr:''}</div>
+    ${ann.text?`<div style="font-size:14.5px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${renderRichText(ann.text)}</div>`:''}
+    ${(ann.attachments&&ann.attachments.length)?`<div class="section-label" style="margin-top:16px">Bijlages</div>`
+      +ann.attachments.map((f,i)=>`<div class="card-row" style="cursor:pointer" onclick="downloadAnnAttachment('${ann.id}',${i})">
+        <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📎 ${escAnn(f.name)}</div><div style="font-size:11px;color:var(--text3)">${fmtFileSize(f.size)}</div></div>
+        <div style="color:var(--text3)">⬇</div>
+      </div>`).join(''):''}
+    ${canDel?`<button class="btn btn-red btn-full" style="margin-top:18px" onclick="deleteAnnouncement('${ann.id}');closeModal()">Verwijderen</button>`:''}
+  `);
+}
+function downloadAnnAttachment(annId,idx){
+  const ann=lastAnnouncements.find(a=>a.id===annId); const f=ann?.attachments?.[idx]; if(!f)return;
+  const a=document.createElement('a'); a.href=f.dataUrl; a.download=f.name; a.click();
 }
 
 // Confirm shift functions
@@ -2768,10 +2782,11 @@ function renderUitbetaling(c){
     // goedkeuren voor 'ie meetelt als schuldig loon. Zonder deze apart te tonen leek een
     // bevestigde dienst hier gewoon te verdwijnen (0,00 schuldig, geen enkele aanwijzing waarom).
     const reviewing=myS.filter(s=>getShiftStatus(s,uid)==='reviewing');
+    const reviewingPay=reviewing.reduce((sum,s)=>{const{start,end}=getEffectiveTimes(s,uid);return sum+calcPay(start,end,u.wage||0);},0);
     const approvedPay=approved.reduce((sum,s)=>sum+getApprovedPay(s,uid),0);
     const paidPay=paid.reduce((sum,s)=>sum+getApprovedPay(s,uid),0);
     const isPaid=myS.length>0&&myS.every(s=>getShiftStatus(s,uid)==='paid');
-    return{...u,myS,approved,paid,reviewing,approvedPay,paidPay,isPaid};
+    return{...u,myS,approved,paid,reviewing,reviewingPay,approvedPay,paidPay,isPaid};
   });
   const totalSchuld=payData.reduce((s,u)=>s+u.approvedPay,0);
   const totalPaid=payData.reduce((s,u)=>s+u.paidPay,0);
@@ -2809,7 +2824,10 @@ function renderUitbetaling(c){
           </div>
         </div>
         ${(u.reviewing.length&&!restricted('approve'))?`<div class="card-row" style="background:var(--orange-dim)">
-          <div style="flex:1;font-size:13px;color:var(--orange)">⏳ ${u.reviewing.length} nog goed te keuren</div>
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--orange)">⏳ ${u.reviewing.length} nog goed te keuren</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">Verwacht: ${fmtMoney(u.reviewingPay)} (telt pas mee na goedkeuring)</div>
+          </div>
           <button class="btn btn-sm" style="background:var(--orange);color:#1a0f00" onclick="openReviewApprovals('${u.uid}','${y}','${m}')">Bekijken</button>
         </div>`:''}
         <div class="card-row" style="gap:8px">
@@ -3454,6 +3472,23 @@ function renderProfile(){
       </label>
     </div>
 
+    ${(U.role==='admin'&&U.restrictions&&Object.values(U.restrictions).some(Boolean))?`
+    <div class="section-label">Bevoegdheden</div>
+    <div class="card" style="margin-bottom:16px;border:1px solid var(--orange)">
+      <div style="padding:14px 16px">
+        <div style="font-size:14px;font-weight:700;color:var(--orange);margin-bottom:8px">⚠️ De dev heeft het volgende ingetrokken</div>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.9">
+          ${U.restrictions.addEmployee?'<li>Medewerkers toevoegen</li>':''}
+          ${U.restrictions.deleteShift?'<li>Diensten verwijderen</li>':''}
+          ${U.restrictions.editShift?'<li>Diensten aanmaken/bewerken</li>':''}
+          ${U.restrictions.approve?'<li>Diensten goedkeuren</li>':''}
+          ${U.restrictions.payout?'<li>Uitbetalen</li>':''}
+          ${U.restrictions.announcements?'<li>Aankondigingen plaatsen</li>':''}
+          ${U.restrictions.manageEmployees?'<li>Medewerkers bewerken/schorsen/verwijderen</li>':''}
+        </ul>
+      </div>
+    </div>`:''}
+
     <div class="section-label">Team</div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-row" style="cursor:pointer" onclick="openColleaguesList()">
@@ -3875,7 +3910,7 @@ function _renderChatMsgs(){
     const delBtn=canDel?'<button class="chat-del-btn" onclick="delChatMsg(&quot;'+msg.id+'&quot;)" title="Verwijder" style="right:'+(canPin?'30px':'8px')+'">✕</button>':'';
     const pinBtn=canPin?'<button class="chat-del-btn" onclick="pinChatMsg(&quot;'+msg.id+'&quot;,'+(!!msg.pinned)+')" title="'+(msg.pinned?'Losmaken':'Vastpinnen')+'" style="right:8px;background:'+(msg.pinned?'var(--mhv-yellow)':'rgba(255,255,255,.12)')+';color:'+(msg.pinned?'#000':'#fff')+'">📌</button>':'';
     const txt=msg.text?_formatMentions(msg.text):'';
-    const imgHtml=msg.imageData?'<img src="'+msg.imageData+'" style="max-width:100%;border-radius:10px;margin-top:'+(txt?'6px':'0')+';display:block;cursor:pointer" onclick="openImageLightbox(this.src)">':'';
+    const imgHtml=msg.imageData?'<img src="'+msg.imageData+'" style="max-width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-top:'+(txt?'6px':'0')+';display:block;cursor:pointer" onclick="openImageLightbox(this.src)">':'';
     const swapHtml=msg.type==='swap'?_renderSwapCard(msg):'';
     const payHtml=msg.type==='payment'?'<div style="font-size:13px;color:var(--green);font-weight:700;margin-top:4px">💶 '+msg.amount+'</div>':'';
     const avClass='chat-av'+(msg.role==='admin'?' admin':msg.role==='software'?' software':'');
@@ -4580,10 +4615,17 @@ function openAnnouncementModal(){
     +'<div class="form-section"><label class="form-label">Titel</label>'
     +'<input type="text" class="form-input" id="annTitle" placeholder="Bijv. Let op: buffet zaterdag eerder!"></div>'
     +'<div class="form-section"><label class="form-label">Tekst</label>'
-    +'<textarea class="form-input" id="annText" rows="3" style="resize:none" placeholder="Meer details..."></textarea></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+    +'<button type="button" onclick="annWrapSelection(\'**\')" title="Vet" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--separator);font-weight:800;cursor:pointer;color:var(--text)">B</button>'
+    +'<span style="font-size:11px;color:var(--text3)">Selecteer tekst + B voor vet. Tab en Enter werken gewoon.</span>'
+    +'</div>'
+    +'<textarea class="form-input" id="annText" rows="4" style="resize:none;font-family:inherit;white-space:pre-wrap" placeholder="Meer details..." onkeydown="annTextareaTab(event)"></textarea></div>'
     +'<div class="form-section"><label class="form-label">Afbeelding (optioneel)</label>'
     +'<input type="file" id="annImg" accept="image/*" class="form-input" style="padding:8px">'
     +'<div id="annImgPreview" style="margin-top:8px"></div></div>'
+    +'<div class="form-section"><label class="form-label">Bijlages (optioneel, max ~700KB per bestand)</label>'
+    +'<input type="file" id="annFiles" multiple class="form-input" style="padding:8px">'
+    +'<div id="annFilesPreview" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div></div>'
     +(isDev?'<label style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:6px">'
       +'<input type="checkbox" id="annSpecial" style="width:18px;height:18px;accent-color:var(--red)">'
       +'<span style="font-size:13px"><b>🚨 Speciale aankondiging</b><br><span style="color:var(--text3);font-size:12px">Andere kleur op de homepage en verschijnt als pop-up.</span></span>'
@@ -4615,6 +4657,46 @@ function openAnnouncementModal(){
     };
     reader.readAsDataURL(file);
   };
+  window._annAttachments = window._annAttachments||[];
+  renderAnnFilesPreview();
+  const filesInput = document.getElementById('annFiles');
+  if(filesInput) filesInput.onchange = function(){
+    [...this.files].forEach(file=>{
+      if(file.size>700*1024){ toast(file.name+' is te groot (max 700KB)','err'); return; }
+      const reader=new FileReader();
+      reader.onload=e=>{
+        window._annAttachments.push({name:file.name,type:file.type,size:file.size,dataUrl:e.target.result});
+        renderAnnFilesPreview();
+      };
+      reader.readAsDataURL(file);
+    });
+    this.value='';
+  };
+}
+function renderAnnFilesPreview(){
+  const wrap=document.getElementById('annFilesPreview'); if(!wrap)return;
+  wrap.innerHTML=(window._annAttachments||[]).map((f,i)=>
+    '<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:8px;padding:6px 10px">'
+    +'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 '+f.name+'</span>'
+    +'<button onclick="removeAnnAttachment('+i+')" style="background:none;border:none;color:var(--text3);cursor:pointer">✕</button>'
+    +'</div>').join('');
+}
+function removeAnnAttachment(i){ window._annAttachments.splice(i,1); renderAnnFilesPreview(); }
+function annWrapSelection(marker){
+  const ta=$('annText'); if(!ta)return;
+  const s=ta.selectionStart, e=ta.selectionEnd;
+  const val=ta.value;
+  const sel=val.slice(s,e)||'tekst';
+  ta.value=val.slice(0,s)+marker+sel+marker+val.slice(e);
+  ta.focus(); ta.selectionStart=s+marker.length; ta.selectionEnd=s+marker.length+sel.length;
+}
+function annTextareaTab(e){
+  if(e.key==='Tab'){
+    e.preventDefault();
+    const ta=e.target, s=ta.selectionStart, en=ta.selectionEnd;
+    ta.value=ta.value.slice(0,s)+'\t'+ta.value.slice(en);
+    ta.selectionStart=ta.selectionEnd=s+1;
+  }
 }
 
 async function saveAnnouncement(){
@@ -4624,6 +4706,9 @@ async function saveAnnouncement(){
   const special = !!(document.getElementById('annSpecial')||{}).checked;
   const wantsEmail = (document.getElementById('annEmail')||{}).checked!==false;
   if(!title.trim()){toast('Vul een titel in','err');return;}
+  const attachments = window._annAttachments||[];
+  const totalBytes = (window._annImgData?window._annImgData.length*0.75:0) + attachments.reduce((s,f)=>s+f.size,0);
+  if(totalBytes > 900*1024){ toast('Afbeelding + bijlages samen te groot (max ~900KB) — verwijder er iets','err'); return; }
   const{db,collection,addDoc,serverTimestamp}=window._f;
   const payload = {
     title: title.trim(),
@@ -4634,8 +4719,10 @@ async function saveAnnouncement(){
     authorName: U.name,
     createdAt: serverTimestamp(),
     imageData: window._annImgData||null,
+    attachments: attachments,
   };
   window._annImgData = null;
+  window._annAttachments = [];
   try{
     await addDoc(collection(db,'announcements'), payload);
     closeModal();
@@ -4905,6 +4992,11 @@ const _FN = {
   switchEmpTab: switchEmpTab,
   maybeShowFirstTimeHelp: maybeShowFirstTimeHelp,
   openAnnouncementModal: openAnnouncementModal,
+  openAnnouncementDetail: openAnnouncementDetail,
+  downloadAnnAttachment: downloadAnnAttachment,
+  removeAnnAttachment: removeAnnAttachment,
+  annWrapSelection: annWrapSelection,
+  annTextareaTab: annTextareaTab,
   pinChatMsg: pinChatMsg,
   saveAnnouncement: saveAnnouncement,
   deleteAnnouncement: deleteAnnouncement,
