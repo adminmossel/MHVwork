@@ -415,6 +415,8 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
 .chat-row.me .chat-mention { color:#F5C800 }
 .chat-del-btn { position:absolute;top:-8px;width:20px;height:20px;background:#FF453A;border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.85;z-index:2 }
 .chat-bubble:hover .chat-del-btn { display:flex }
+.chat-more-btn { position:absolute;top:6px;right:6px;width:20px;height:20px;background:rgba(255,255,255,.1);border:none;border-radius:50%;color:var(--text3);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2 }
+.chat-bubble.admin-msg .chat-more-btn, .chat-bubble.software-msg .chat-more-btn { background:rgba(255,255,255,.15); }
 .chat-date-sep{ text-align:center;font-size:11px;color:var(--text3);margin:8px 0;font-weight:600;letter-spacing:.04em }
 .chat-role-tag{ font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle }
 .tag-admin    { background:rgba(245,200,0,.15);color:var(--mhv-yellow) }
@@ -841,7 +843,7 @@ const MO   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus
 const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
 
 let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[];
-let idleExitCode=null, idleTimer=null;
+let idleExitCode=null, idleTimer=null, appVersion='';
 let allChat=[]; let unsubChat;
 let allDMs=[]; let unsubDMs; let activeDMThread=null;
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
@@ -892,6 +894,11 @@ window.addEventListener('mhv:ready', async ()=>{
     }
     try { await loadUsers(); } catch(e){ allUsers=[]; }
     try { applyNavStyle(U.navStyle); } catch(e){}
+    try {
+      const{db,doc,getDoc}=window._f;
+      const vSnap=await getDoc(doc(db,'settings','app'));
+      appVersion=vSnap.exists()?(vSnap.data().version||''):'';
+    } catch(e){ appVersion=''; }
     try { await ensureOwnPublicProfile(); } catch(e){}
     if(U.role==='admin'||U.role==='software'){ try{ await ensureAllPublicProfiles(); }catch(e){} }
     try { await loadSettings(); } catch(e){}
@@ -3416,6 +3423,24 @@ async function logLogoutEvent(){
   }catch(e){}
 }
 
+function openSetVersion(){
+  modal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">Versienummer</div>
+    <p style="font-size:13px;color:var(--text3);margin:-4px 0 14px">Zichtbaar onderaan Profiel bij alle gebruikers.</p>
+    <div class="form-section"><label class="form-label">Versie</label>
+      <input type="text" class="form-input" id="verIn" placeholder="v1.0.0" value="${appVersion}"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveVersion()">Opslaan</button>
+  `);
+}
+async function saveVersion(){
+  const v=($('verIn')?.value||'').trim();
+  try{
+    const{db,doc,setDoc}=window._f;
+    await setDoc(doc(db,'settings','app'),{version:v},{merge:true});
+    appVersion=v; closeModal(); toast('Versienummer bijgewerkt!','ok'); renderProfile();
+  }catch(e){ toast('Opslaan mislukt','err'); }
+}
 function renderProfile(){
   const c=$('view-profile'); if(!c)return;
   const isDev=U.role==='software';
@@ -3560,7 +3585,7 @@ function renderProfile(){
     </div>
 
     <button class="btn btn-red btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork · MHV 1931</p>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork${appVersion?' '+appVersion:''} · MHV 1931${isDev?' <span onclick="openSetVersion()" style="cursor:pointer;text-decoration:underline">✏</span>':''}</p>
   `;
 }
 // ═══════════════════════════════════════════
@@ -3808,8 +3833,8 @@ function renderChat(){
     +'<div class="chat-input-wrap" id="chatDropZone" style="margin-top:auto">'
     +'<div class="mention-list" id="mentionList"></div>'
     +'<div class="chat-input-row">'
-    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="insertAtSign()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg></button>'
-    +'<button class="btn" style="width:36px;height:36px;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="document.getElementById(\'chatImgInput\').click()" title="Foto versturen"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>'
+    +'<button class="btn" style="width:36px;height:36px;padding:0;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="insertAtSign()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg></button>'
+    +'<button class="btn" style="width:36px;height:36px;padding:0;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="document.getElementById(\'chatImgInput\').click()" title="Foto versturen"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>'
     +'<input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="handleChatImageFile(this.files[0])">'
     +'<textarea id="chatTa" placeholder="Typ een bericht..." rows="1"'
     +' oninput="chatInputHandler(this)"'
@@ -3888,6 +3913,13 @@ function _userPhoto(uid){
   const u=allUsers.find(x=>x.uid===uid);
   return u&&u.photoData?u.photoData:null;
 }
+function openChatMsgActions(msgId,isPinned,canPin,canDel){
+  modal(`
+    <div class="modal-handle"></div>
+    ${canPin?`<button class="btn btn-ghost btn-full" style="margin-bottom:8px" onclick="pinChatMsg('${msgId}',${isPinned});closeModal()">${isPinned?'📌 Losmaken':'📌 Vastpinnen'}</button>`:''}
+    ${canDel?`<button class="btn btn-red btn-full" onclick="delChatMsg('${msgId}');closeModal()">🗑 Verwijderen</button>`:''}
+  `);
+}
 function _renderChatMsgs(){
   const c=document.getElementById('chatMsgs'); if(!c)return;
   if(!allChat.length){
@@ -3907,8 +3939,9 @@ function _renderChatMsgs(){
     const roleTag=msg.role==='admin'?'<span class="chat-role-tag tag-admin">Beheerder</span>'
       :msg.role==='software'?'<span class="chat-role-tag tag-sw">Dev</span>':'';
     const canDel=(U.role==='admin'||U.role==='software'||mine);
-    const delBtn=canDel?'<button class="chat-del-btn" onclick="delChatMsg(&quot;'+msg.id+'&quot;)" title="Verwijder" style="right:'+(canPin?'30px':'8px')+'">✕</button>':'';
-    const pinBtn=canPin?'<button class="chat-del-btn" onclick="pinChatMsg(&quot;'+msg.id+'&quot;,'+(!!msg.pinned)+')" title="'+(msg.pinned?'Losmaken':'Vastpinnen')+'" style="right:8px;background:'+(msg.pinned?'var(--mhv-yellow)':'rgba(255,255,255,.12)')+';color:'+(msg.pinned?'#000':'#fff')+'">📌</button>':'';
+    const hasActions=canDel||canPin;
+    const moreBtn=hasActions?'<button class="chat-more-btn" onclick="openChatMsgActions(&quot;'+msg.id+'&quot;,'+(!!msg.pinned)+','+canPin+','+canDel+')" title="Meer opties">⋯</button>':'';
+    const pinTag=msg.pinned?'<span style="font-size:10px;color:var(--mhv-yellow);font-weight:700;display:block;margin-bottom:2px">📌 Vastgepind</span>':'';
     const txt=msg.text?_formatMentions(msg.text):'';
     const imgHtml=msg.imageData?'<img src="'+msg.imageData+'" style="max-width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-top:'+(txt?'6px':'0')+';display:block;cursor:pointer" onclick="openImageLightbox(this.src)">':'';
     const swapHtml=msg.type==='swap'?_renderSwapCard(msg):'';
@@ -3918,8 +3951,8 @@ function _renderChatMsgs(){
       +(mine?'':'<div class="'+avClass+'">'+av+'</div>')
       +'<div class="chat-col">'
       +(mine?'<div class="chat-meta">'+ts+'</div>':'<div class="chat-meta">'+msg.name+(verified?VERIFIED_BADGE:'')+roleTag+' · '+ts+'</div>')
-      +'<div class="chat-bubble'+(mine?'':msg.role==='admin'?' admin-msg':msg.role==='software'?' software-msg':'')+'" style="position:relative;padding-right:'+((canDel?28:0)+(canPin?28:0)+14)+'px">'
-      +delBtn+pinBtn+txt+imgHtml+payHtml+swapHtml
+      +'<div class="chat-bubble'+(mine?'':msg.role==='admin'?' admin-msg':msg.role==='software'?' software-msg':'')+'" style="position:relative;padding-right:'+(hasActions?26:0)+'px">'
+      +moreBtn+pinTag+txt+imgHtml+payHtml+swapHtml
       +'</div>'
       +'</div>'
       +(mine?'<div class="'+avClass+'">'+av+'</div>':'')
@@ -4978,6 +5011,9 @@ const _FN = {
   sendMsg: sendMsg,
   sendChat: sendChat,
   delChatMsg: delChatMsg,
+  openChatMsgActions: openChatMsgActions,
+  openSetVersion: openSetVersion,
+  saveVersion: saveVersion,
   chatInputHandler: chatInputHandler,
   insertMention: insertMention,
   insertAtSign: insertAtSign,
