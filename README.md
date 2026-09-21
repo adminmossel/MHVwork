@@ -4,7 +4,7 @@
 
 # 🍺 MHVwork
 
-**Roosterbeheer voor MHV 1931 — gebouwd vóór en dóór de barhulp**
+**Roosterbeheer voor MHV — gebouwd vóór en dóór de barhulp**
 
 [![PWA](https://img.shields.io/badge/PWA-installeerbaar-1A3BB5?style=flat-square)](#-installeren)
 [![Hosting](https://img.shields.io/badge/hosting-GitHub%20Pages-181717?style=flat-square&logo=github)](#-technologie)
@@ -178,7 +178,7 @@ MHVwork is zelf geschreven zonder framework, maar leunt op de volgende diensten 
 
 ## 📄 Licentie
 
-Deze applicatie is gebouwd voor en het interne gebruik van **MHV 1931**. De broncode mag vrij
+Deze applicatie is gebouwd voor en het interne gebruik van **MHV**. De broncode mag vrij
 bekeken, aangepast en hergebruikt worden voor gelijksoortige vrijwilligersorganisaties; gebruik
 op eigen risico en zonder enige garantie. Bovenstaande externe diensten en bibliotheken vallen
 onder hún eigen licentievoorwaarden (zie tabel hierboven) — check die zelf even als je deze app

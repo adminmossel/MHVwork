@@ -83,6 +83,7 @@ input[type=password]:focus{border-color:#1D3FBB;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loader{text-align:center;padding:8px 0;}
 </style>
+<script src="icons.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -93,7 +94,7 @@ input[type=password]:focus{border-color:#1D3FBB;}
   <div class="card">
     <div id="loader"><div class="spin"></div><p style="font-size:13px;color:#8E8E93">Even laden…</p></div>
     <div id="errPage" style="display:none;text-align:center;padding:8px 0">
-      <div style="font-size:40px;margin-bottom:12px">🔒</div>
+      <div style="font-size:40px;margin-bottom:12px"><span class="ic" data-icon="lock"></span></div>
       <div class="greeting">Ongeldige link</div>
       <p class="sub" id="errPageText"></p>
       <a href="index.html" class="back">← Terug naar inloggen</a>
@@ -138,7 +139,7 @@ async function doReset(){
     await confirmPasswordReset(auth, window._resetCode, pw1);
     document.getElementById('formWrap').innerHTML=`
       <div style="text-align:center;padding:12px 0">
-        <div style="font-size:48px;margin-bottom:16px">✅</div>
+        <div style="font-size:48px;margin-bottom:16px"><span class="ic" data-icon="check-circle"></span></div>
         <div class="greeting" style="margin-bottom:8px">Klaar!</div>
         <p class="sub">Je wachtwoord is succesvol ingesteld.<br>Je kunt nu inloggen.</p>
         <a href="index.html" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1D3FBB;color:white;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">→ Inloggen</a>

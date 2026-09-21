@@ -40,12 +40,12 @@ function buildTransport(user, pass) {
 
 // Eigen "template" per soort mail — pas de teksten hieronder gerust aan naar jullie huisstijl.
 const TEMPLATES = {
-  general:  (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">${t}</h2><p style="white-space:pre-wrap">${b}</p><hr><p style="color:#999;font-size:12px">MHVwork — MHV 1931</p></div>` }),
-  tag:      (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">💬 Nieuw bericht in de chat</h2><p>${b}</p></div>` }),
-  announce: (t, b) => ({ subject: "📢 " + t, html: `<div style="font-family:sans-serif;padding:20px;background:#FFF8E1"><h2 style="color:#F5C800">📢 ${t}</h2><p>${b}</p></div>` }),
-  swap:     (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">🔄 ${t}</h2><p>${b}</p></div>` }),
-  payment:  (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px;background:#E8F5E9"><h2 style="color:#2E7D32">💶 ${t}</h2><p>${b}</p></div>` }),
-  message:  (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">✉️ ${t}</h2><p>${b}</p></div>` }),
+  general:  (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">${t}</h2><p style="white-space:pre-wrap">${b}</p><hr><p style="color:#999;font-size:12px">MHVwork — MHV</p></div>` }),
+  tag:      (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">Nieuw bericht in de chat</h2><p>${b}</p></div>` }),
+  announce: (t, b) => ({ subject: "" + t, html: `<div style="font-family:sans-serif;padding:20px;background:#FFF8E1"><h2 style="color:#F5C800">${t}</h2><p>${b}</p></div>` }),
+  swap:     (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">${t}</h2><p>${b}</p></div>` }),
+  payment:  (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px;background:#E8F5E9"><h2 style="color:#2E7D32">${t}</h2><p>${b}</p></div>` }),
+  message:  (t, b) => ({ subject: t, html: `<div style="font-family:sans-serif;padding:20px"><h2 style="color:#1D3FBB">${t}</h2><p>${b}</p></div>` }),
 };
 
 /**

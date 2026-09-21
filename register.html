@@ -110,6 +110,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
 @keyframes spin{to{transform:rotate(360deg);}}
 .loader-wrap p{font-size:13px;color:var(--text3);}
 </style>
+<script src="icons.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -126,7 +127,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
 
   <!-- Error page -->
   <div id="errPage" style="display:none" class="err-card">
-    <div class="icon">🔒</div>
+    <div class="icon"><span class="ic" data-icon="lock"></span></div>
     <h2>Ongeldige link</h2>
     <p id="errText">Deze uitnodigingslink is niet geldig of al gebruikt.</p>
     <a href="index.html">← Terug naar inloggen</a>
@@ -145,7 +146,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
         <label class="field-label">Kies een wachtwoord</label>
         <div style="position:relative">
           <input type="password" class="field-input" id="pw1" placeholder="Minimaal 6 tekens" autocomplete="new-password" oninput="updatePwStrength()" style="padding-right:44px">
-          <button type="button" onclick="togglePwVisibility('pw1',this)" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:8px 10px;color:#8E8E93">👁️</button>
+          <button type="button" onclick="togglePwVisibility('pw1',this)" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:8px 10px;color:#8E8E93"><span class="ic" data-icon="eye"></span></button>
         </div>
         <div id="pwStrengthBar" style="height:4px;border-radius:2px;background:#E5E5EA;margin-top:8px;overflow:hidden">
           <div id="pwStrengthFill" style="height:100%;width:0%;border-radius:2px;transition:width .25s ease,background .25s ease"></div>
@@ -156,7 +157,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
         <label class="field-label">Herhaal wachtwoord</label>
         <div style="position:relative">
           <input type="password" class="field-input" id="pw2" placeholder="Zelfde wachtwoord" autocomplete="new-password" style="padding-right:44px">
-          <button type="button" onclick="togglePwVisibility('pw2',this)" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:8px 10px;color:#8E8E93">👁️</button>
+          <button type="button" onclick="togglePwVisibility('pw2',this)" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:8px 10px;color:#8E8E93"><span class="ic" data-icon="eye"></span></button>
         </div>
       </div>
       <p class="hint" style="margin-bottom:12px">Je beheert dit wachtwoord zelf — beheerders kunnen het niet zien.</p>
@@ -175,7 +176,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
 function togglePwVisibility(id,btn){
   const inp=document.getElementById(id);
   inp.type = inp.type==='password' ? 'text' : 'password';
-  btn.textContent = inp.type==='password' ? '👁️' : '🙈';
+  btn.innerHTML = inp.type==='password' ? '<span class="ic" data-icon="eye"></span>' : '<span class="ic" data-icon="eye-off"></span>';
 }
 function pwScore(pw){
   let score=0;

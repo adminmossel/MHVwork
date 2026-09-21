@@ -26,6 +26,7 @@ p{font-size:14px;color:rgba(255,255,255,0.4);line-height:1.6;margin-bottom:24px;
 .spin{width:20px;height:20px;border:2.5px solid rgba(0,0,0,0.2);border-top-color:#000;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
+<script src="icons.js"></script>
 </head>
 <body>
 <div class="card">
@@ -148,7 +149,7 @@ window.setup = async function() {
   btn.textContent = '✓ Klaar!';
   msg.style.display = 'block';
   msg.className = 'msg ok';
-  msg.innerHTML = '✅ Accounts aangemaakt!<br><br>'
+  msg.innerHTML = '<span class="ic" data-icon="check-circle"></span> Accounts aangemaakt!<br><br>'
     + '<strong>Beheerder:</strong> ' + ADMIN_EMAIL + ' / ' + ADMIN_PW + '<br>'
     + '<strong>Dev:</strong> tyg01132@gmail.com / TygoDaan11<br><br>'
     + 'Even wachten, je wordt doorgestuurd…';

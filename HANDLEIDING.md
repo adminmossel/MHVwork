@@ -444,4 +444,4 @@ De app werkt als Progressive Web App (PWA) — je kunt hem als een echte app ins
 
 ---
 
-*MHVwork v1.0 — Gebouwd voor MHV 1931*
+*MHVwork v1.0 — Gebouwd voor MHV*

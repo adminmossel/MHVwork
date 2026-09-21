@@ -157,6 +157,7 @@ body{position:relative;}
 .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;transition:all .3s ease;}
 .dot.active{background:#F5C800;width:22px;border-radius:4px;}
 </style>
+<script src="icons.js"></script>
 </head>
 <body>
 <div class="frame">
@@ -175,29 +176,29 @@ body{position:relative;}
       </svg>
     </div>
     <div class="s1-title">MHV<span>work</span></div>
-    <div class="s1-sub">Roosterbeheer voor de barhulp van MHV 1931</div>
+    <div class="s1-sub">Roosterbeheer voor de barhulp van MHV</div>
   </div>
 </div>
 
 <div class="scene" id="s2">
   <div class="s2-head">Alles in <span>één app</span></div>
   <div class="feat-grid" id="featGrid">
-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">📅</div><div class="feat-title">Roosters</div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="calendar"></span></div><div class="feat-title">Roosters</div></div>
       <div class="feat-expand"><div class="feat-desc">Diensten aanmaken en toewijzen. Bevestigen, tijden aanpassen, overzicht per week.</div>
       <div class="feat-visual">Kalenderweergave · Bevestigen · Tijden aanpassen</div></div></div>
-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">💬</div><div class="feat-title">Groepschat</div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="chat"></span></div><div class="feat-title">Groepschat</div></div>
       <div class="feat-expand"><div class="feat-desc">Live berichten voor iedereen. Tag collega's, deel foto's, ruil diensten direct in de chat.</div>
       <div class="feat-visual">@tags · Afbeeldingen · Dienst ruilen</div></div></div>
-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">🔄</div><div class="feat-title">Dienst ruilen</div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="swap"></span></div><div class="feat-title">Dienst ruilen</div></div>
       <div class="feat-expand"><div class="feat-desc">Verzoek plaatsen, collega reageert, beheerder keurt goed. Automatisch overgezet.</div>
       <div class="feat-visual">Aanvraag → Reactie → Goedkeuring</div></div></div>
-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">💶</div><div class="feat-title">Uitbetalingen</div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="euro"></span></div><div class="feat-title">Uitbetalingen</div></div>
       <div class="feat-expand"><div class="feat-desc">Overzicht per maand. Bij uitbetaling krijgt de medewerker automatisch een e-mail.</div>
       <div class="feat-visual">Salaris overzicht · Automatische mail</div></div></div>
-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">🔔</div><div class="feat-title">Push meldingen</div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="bell"></span></div><div class="feat-title">Push meldingen</div></div>
       <div class="feat-expand"><div class="feat-desc">In-app, e-mail én browser push. Bij berichten, tags en uitbetalingen.</div>
       <div class="feat-visual">In-app · E-mail · Browser push</div></div></div>
-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap">📆</div><div class="feat-title">Agenda export</div></div>
+    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="calendar"></span></div><div class="feat-title">Agenda export</div></div>
       <div class="feat-expand"><div class="feat-desc">Exporteer elke dienst met één tik naar je telefoonagenda.</div>
       <div class="feat-visual">iPhone · Android · Outlook · Google</div></div></div>
   </div>
@@ -226,7 +227,7 @@ body{position:relative;}
         </div>
         <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:2px 0 2px">Volgende dienst</div>
         <div class="shift-item"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Zaterdag 21 juni</div></div>
-        <div class="mock-btns"><div class="mock-btn">📆 Agenda</div><div class="mock-btn">🔄 Ruilen</div></div>
+        <div class="mock-btns"><div class="mock-btn"><span class="ic" data-icon="calendar"></span> Agenda</div><div class="mock-btn"><span class="ic" data-icon="swap"></span> Ruilen</div></div>
         <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:2px 0 2px">Uitbetaald</div>
         <div style="background:#2C2C2E;border-radius:11px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:11.5px;color:rgba(255,255,255,.5)">Mei 2026</span>
@@ -243,9 +244,9 @@ body{position:relative;}
     <div class="s4-title">Alles in<br><span>één gesprek</span></div>
     <div>
       <div class="s4-feat"><div class="sf-icon">@</div><div class="sf-text"><strong>Tag iedereen of één persoon</strong><br>direct een pushmelding</div></div>
-      <div class="s4-feat"><div class="sf-icon">🔄</div><div class="sf-text"><strong>Dienst ruilen in de chat</strong><br>verzoek, reactie, goedkeuring</div></div>
-      <div class="s4-feat"><div class="sf-icon">💶</div><div class="sf-text"><strong>Uitbetaling aankondigen</strong><br>iedereen krijgt mail én melding</div></div>
-      <div class="s4-feat"><div class="sf-icon">📸</div><div class="sf-text"><strong>Afbeeldingen delen</strong><br>automatisch gecomprimeerd</div></div>
+      <div class="s4-feat"><div class="sf-icon"><span class="ic" data-icon="swap"></span></div><div class="sf-text"><strong>Dienst ruilen in de chat</strong><br>verzoek, reactie, goedkeuring</div></div>
+      <div class="s4-feat"><div class="sf-icon"><span class="ic" data-icon="euro"></span></div><div class="sf-text"><strong>Uitbetaling aankondigen</strong><br>iedereen krijgt mail én melding</div></div>
+      <div class="s4-feat"><div class="sf-icon"><span class="ic" data-icon="camera"></span></div><div class="sf-text"><strong>Afbeeldingen delen</strong><br>automatisch gecomprimeerd</div></div>
     </div>
   </div>
   <div class="chat-phone">
@@ -278,7 +279,7 @@ body{position:relative;}
         </svg>
       </div>
       <div class="s5-phone-name">MHV<span>work</span></div>
-      <div style="font-size:10.5px;color:rgba(255,255,255,.3)">MHV 1931</div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.3)">MHV</div>
     </div>
   </div>
 </div>

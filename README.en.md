@@ -2,7 +2,7 @@
 
 # 🍺 MHVwork
 
-### Modern workforce & shift management for MHV 1931
+### Modern workforce & shift management for MHV
 
 **Plan. Work. Communicate. Manage. — all from one platform.**
 
@@ -30,7 +30,7 @@
 
 ## 📖 About MHVwork
 
-**MHVwork** is a modern Progressive Web App for organizing volunteer bar staff at **MHV 1931**.
+**MHVwork** is a modern Progressive Web App for organizing volunteer bar staff at **MHV**.
 
 The application brings scheduling, staff management, shift exchanges, communication, notifications and payments together in one central platform.
 
@@ -510,7 +510,7 @@ The license of MHVwork must always match the actual `LICENSE` file in the reposi
 
 ### MIT License
 
-Copyright © MHVwork / MHV 1931
+Copyright © MHVwork / MHV
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction, subject to the conditions of the MIT License.
 
@@ -547,7 +547,7 @@ For technical questions, bugs or support:
 
 **One roster. One team. One place.**
 
-Built for **MHV 1931**.
+Built for **MHV**.
 
 <br>
 
@@ -556,6 +556,6 @@ Built for **MHV 1931**.
 
 <br><br>
 
-<sub>© MHVwork — MHV 1931</sub>
+<sub>© MHVwork — MHV</sub>
 
 </div>
