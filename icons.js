@@ -65,6 +65,7 @@
     'clock': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
     'hourglass': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M6 3.5h12M6 20.5h12"/><path d="M7 3.5v3.3a5 5 0 0 0 2.2 4.2l1.3.9-1.3.9A5 5 0 0 0 7 17V20.5"/><path d="M17 3.5v3.3a5 5 0 0 1-2.2 4.2l-1.3.9 1.3.9a5 5 0 0 1 2.2 4.2V20.5"/></svg>',
     'bulb': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M9 18.5h6"/><path d="M9.3 21h5.4"/><path d="M7 10.5A5 5 0 1 1 15.8 14c-.7.8-1.3 1.6-1.3 2.7H9.5c0-1.1-.6-1.9-1.3-2.7A5 5 0 0 1 7 10.5z"/><path d="M12 3v1.5"/></svg>',
+    'thumbsup': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l3.5-7a1.8 1.8 0 0 1 3.3 1.4L12.5 9H18a2 2 0 0 1 1.9 2.7l-2.2 6.3A2 2 0 0 1 15.8 19.5H7v-8.5z" stroke-linejoin="round"/></svg>',
     'more': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>',
     'swap': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M4 8h12.5l-3-3M20 16H7.5l3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };

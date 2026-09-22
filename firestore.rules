@@ -77,13 +77,20 @@ service cloud.firestore {
       allow delete: if isStaff();
     }
 
+    // "Gezien door"-status voor de groepschat: alleen het eigen leesmoment mag je wegschrijven,
+    // maar iedereen mag zien wie de chat tot wanneer gelezen heeft (nodig voor de vinkjes).
+    match /chatReads/{uid} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == uid;
+    }
+
     match /chat/{id} {
       allow read: if isAuth();
       allow create: if isAuth()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasAll(['uid','name','text','createdAt']);
       allow update: if isAuth()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','pinned','swapStatus','acceptedByName','interestedName']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','pinned','swapStatus','acceptedByName','interestedName','reactions']);
       allow delete: if isStaff();
     }
 
