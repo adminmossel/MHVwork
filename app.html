@@ -398,8 +398,10 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
 
 /* ─── Chat ───────────────────────────────────── */
 .chat-wrap    { display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--bg) }
-.chat-msgs    { flex:1;overflow-y:auto;padding:10px 12px 6px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth }
+.chat-msgs    { flex:1;overflow-y:auto;padding:10px 12px 6px;display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth }
 .chat-row     { display:flex;gap:8px;align-items:flex-end }
+.chat-row:not(.grouped) { margin-top:8px }
+.chat-row.grouped .chat-av { visibility:hidden }
 .chat-row.me  { flex-direction:row-reverse }
 .chat-av      { width:28px;height:28px;border-radius:50%;background:var(--mhv-blue);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
 .chat-av.admin{ background:var(--mhv-yellow);color:#000 }
@@ -407,6 +409,7 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
 .chat-col     { max-width:75%;display:flex;flex-direction:column;gap:2px }
 .chat-row.me .chat-col { align-items:flex-end }
 .chat-meta    { font-size:10px;color:var(--text3);padding:0 4px }
+.chat-meta-grouped { opacity:.55;font-size:9.5px }
 .chat-bubble  { background:var(--bg3);border-radius:18px 18px 18px 4px;padding:9px 13px;font-size:14px;line-height:1.5;color:var(--text);word-break:break-word;position:relative }
 .chat-row.me .chat-bubble { background:var(--mhv-blue);color:#fff;border-radius:18px 18px 4px 18px }
 .chat-bubble.admin-msg { background:rgba(245,200,0,.12);border:1px solid rgba(245,200,0,.2) }
@@ -415,9 +418,11 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
 .chat-row.me .chat-mention { color:#F5C800 }
 .chat-del-btn { position:absolute;top:-8px;width:20px;height:20px;background:#FF453A;border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.85;z-index:2 }
 .chat-bubble:hover .chat-del-btn { display:flex }
-.chat-more-btn { position:absolute;top:6px;right:6px;width:20px;height:20px;background:rgba(255,255,255,.1);border:none;border-radius:50%;color:var(--text3);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2 }
-.chat-bubble.admin-msg .chat-more-btn, .chat-bubble.software-msg .chat-more-btn { background:rgba(255,255,255,.15); }
-.chat-date-sep{ text-align:center;font-size:11px;color:var(--text3);margin:8px 0;font-weight:600;letter-spacing:.04em }
+.chat-more-btn { position:absolute;top:6px;right:6px;width:22px;height:22px;background:rgba(255,255,255,.16);border:none;border-radius:50%;color:var(--text1);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2 }
+.chat-more-btn .ic-svg{width:.72em;height:.72em}
+.chat-bubble.admin-msg .chat-more-btn, .chat-bubble.software-msg .chat-more-btn { background:rgba(255,255,255,.22); }
+.chat-more-btn:hover, .chat-more-btn:active { background:rgba(255,255,255,.3); }
+.chat-date-sep{ align-self:center;text-align:center;font-size:11px;font-weight:700;color:var(--text3);background:var(--bg3);padding:4px 12px;border-radius:99px;margin:10px 0 4px;letter-spacing:.02em }
 .chat-role-tag{ font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle }
 .tag-admin    { background:rgba(245,200,0,.15);color:var(--mhv-yellow) }
 .tag-sw       { background:rgba(100,210,255,.15);color:#64d2ff }
@@ -1282,7 +1287,18 @@ function blockedOn(key){
 // ═══════════════════════════════════════════
 // GLOBALE INSTELLINGEN (bv. na hoeveel uur een reminder verstuurd wordt)
 // ═══════════════════════════════════════════
-let APP_SETTINGS={reminderHours:30};
+let APP_SETTINGS={reminderHours:30, disabledFeatures:{}, disabledMsg:{}};
+// Functies die (tijdelijk) uitgezet kunnen worden, algemeen of per profiel.
+const TOGGLABLE_FEATURES={roster:'Rooster',avail:'Beschikbaarheid',chat:'Chat'};
+function featureOn(key){
+  if(APP_SETTINGS.disabledFeatures?.[key]) return false;
+  if(U?.disabledFeatures?.includes(key)) return false;
+  return true;
+}
+function _featureOffCard(key){
+  const msg = APP_SETTINGS.disabledMsg?.[key] || 'Deze functie is tijdelijk buiten gebruik.';
+  return '<div class="empty"><div class="empty-icon"><span class="ic" data-icon="tools"></span></div><p>'+escAnn(msg)+'</p></div>';
+}
 async function loadSettings(){
   try{
     const{db,doc,getDoc}=window._f;
@@ -1621,11 +1637,11 @@ function rerender(){
 }
 function render(v){
   if(v==='home')    renderHome();
-  if(v==='roster')  renderRoster();
-  if(v==='avail')   renderAvail();
+  if(v==='roster')  { if(featureOn('roster')) renderRoster(); else $('view-roster').innerHTML=_featureOffCard('roster'); }
+  if(v==='avail')   { if(featureOn('avail'))  renderAvail();  else $('view-avail').innerHTML=_featureOffCard('avail'); }
   if(v==='admin')   renderAdmin();
   if(v==='profile') renderProfile();
-  if(v==='chat')    renderChat();
+  if(v==='chat')    { if(featureOn('chat'))   renderChat();   else $('view-chat').innerHTML=_featureOffCard('chat'); }
   if(v==='devacc')  renderDevAcc();
   if(v==='devann')  renderDevAnn();
   if(v==='devlog')  renderDevLog();
@@ -1874,6 +1890,24 @@ function escAnn(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 // Simpele opmaak: **vet** wordt <b>, tabs/enters blijven gewoon staan dankzij white-space:pre-wrap.
 function renderRichText(text){ return escAnn(text).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
 function fmtFileSize(b){ if(!b)return ''; if(b<1024)return b+' B'; if(b<1024*1024)return Math.round(b/1024)+' KB'; return (b/1024/1024).toFixed(1)+' MB'; }
+function _annTimeAgo(d){
+  const diffMin = Math.round((Date.now()-d.getTime())/60000);
+  if(diffMin < 1) return 'zojuist';
+  if(diffMin < 60) return diffMin+' min geleden';
+  const diffH = Math.round(diffMin/60);
+  if(diffH < 24) return diffH+' uur geleden';
+  const diffD = Math.round(diffH/24);
+  if(diffD < 7) return diffD+' dag'+(diffD===1?'':'en')+' geleden';
+  return fmtDate(dKey(d));
+}
+function _annAuthorTag(ann){
+  // Rolbadge bij aankondigingen: gebruikt authorRole indien opgeslagen,
+  // anders (oudere aankondigingen) opzoeken via allUsers.
+  const role = ann.authorRole || (allUsers.find(u=>u.uid===ann.authorUid)||{}).role;
+  if(role==='software') return '<span class="chat-role-tag tag-sw"><span class="ic" data-icon="tools"></span> Dev</span>';
+  if(role==='admin') return '<span class="chat-role-tag tag-admin"><span class="ic" data-icon="crown"></span> Beheerder</span>';
+  return '';
+}
 function renderAnnouncementArea(area, announcements, showAll){
   if(!area)return;
   const visibleAnn = showAll ? announcements : announcements.filter(function(ann){
@@ -1893,7 +1927,7 @@ function renderAnnouncementArea(area, announcements, showAll){
         return '<div class="card-row" style="cursor:pointer;margin-bottom:8px;border-radius:var(--radius);border-left:3px solid '+borderColor+(bg?';background:'+bg:'')+'" onclick="openAnnouncementDetail(\''+ann.id+'\')">'
           +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:14.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(isSpecial?'<span class="ic" data-icon="siren"></span> ':'')+escAnn(ann.title)+'</div>'
-          +'<div style="font-size:11px;color:var(--text3);margin-top:3px">— '+escAnn(ann.authorName)+(isSpecial?' · Dev':'')+(ann.imageData||((ann.attachments||[]).length)?' · <span class="ic" data-icon="paperclip"></span>':'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+escAnn(ann.authorName)+_annAuthorTag(ann)+(ann.createdAt?.toDate?' · '+_annTimeAgo(ann.createdAt.toDate()):'')+(ann.imageData||((ann.attachments||[]).length)?' · <span class="ic" data-icon="paperclip"></span>':'')+'</div>'
           +'</div>'
           +'<span style="color:var(--text3);flex-shrink:0">›</span>'
           +'</div>';
@@ -1919,7 +1953,7 @@ function openAnnouncementDetail(id){
     <div class="modal-handle"></div>
     ${ann.imageData?`<img src="${ann.imageData}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:14px">`:''}
     <div class="modal-title" style="${ann.special?'color:var(--red)':''}">${ann.special?'<span class="ic" data-icon="siren"></span> ':''}${escAnn(ann.title)}</div>
-    <div style="font-size:11px;color:var(--text3);margin:-10px 0 14px">— ${escAnn(ann.authorName)}${ann.special?' · Dev':''}${dateStr?' · '+dateStr:''}</div>
+    <div style="font-size:11px;color:var(--text3);margin:-10px 0 14px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${escAnn(ann.authorName)}${_annAuthorTag(ann)}${dateStr?' · '+dateStr:''}</div>
     ${ann.text?`<div style="font-size:14.5px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${renderRichText(ann.text)}</div>`:''}
     ${(ann.attachments&&ann.attachments.length)?`<div class="section-label" style="margin-top:16px">Bijlages</div>`
       +ann.attachments.map((f,i)=>`<div class="card-row" style="cursor:pointer" onclick="downloadAnnAttachment('${ann.id}',${i})">
@@ -2337,7 +2371,32 @@ function renderAdminSettings(c){
       <div class="form-section"><label class="form-label">Reminder na (uren)</label>
         <input type="number" class="form-input" id="setReminderHours" min="1" value="${APP_SETTINGS.reminderHours}"></div>
       <button class="btn btn-yellow btn-full" onclick="saveAppSettings()">Opslaan</button>
+    </div></div>
+    <div class="section-label">Functies tijdelijk uitzetten</div>
+    <div class="card" style="margin-bottom:16px"><div style="padding:16px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Werkt iets niet, of is er onderhoud? Zet een functie hier uit voor <b>alle</b> gebruikers. Ze zien dan netjes "tijdelijk buiten gebruik" i.p.v. een kapot scherm. Voor één persoon: ga naar die medewerker → Functies uitzetten voor deze persoon.</p>
+      ${Object.entries(TOGGLABLE_FEATURES).map(([key,label])=>`
+      <label class="worker-check" style="margin-bottom:10px">
+        <input type="checkbox" id="ff_${key}" ${APP_SETTINGS.disabledFeatures?.[key]?'checked':''}>
+        <div class="worker-check-info"><div class="worker-check-name">${label} uitzetten</div></div>
+      </label>
+      <input type="text" class="form-input" id="ffmsg_${key}" placeholder="Eigen bericht (optioneel), bv. '${label} is tijdelijk buiten gebruik i.v.m. onderhoud.'" value="${escAnn(APP_SETTINGS.disabledMsg?.[key]||'')}" style="margin:-6px 0 14px">
+      `).join('')}
+      <button class="btn btn-yellow btn-full" onclick="saveFeatureFlags()">Opslaan</button>
     </div></div>`;
+}
+async function saveFeatureFlags(){
+  const disabledFeatures={}, disabledMsg={};
+  Object.keys(TOGGLABLE_FEATURES).forEach(key=>{
+    disabledFeatures[key]=!!$('ff_'+key)?.checked;
+    const m=($('ffmsg_'+key)?.value||'').trim();
+    if(m) disabledMsg[key]=m;
+  });
+  const{db,doc,setDoc}=window._f;
+  await setDoc(doc(db,'settings','general'),{disabledFeatures,disabledMsg},{merge:true});
+  APP_SETTINGS.disabledFeatures=disabledFeatures;
+  APP_SETTINGS.disabledMsg=disabledMsg;
+  toast('Instelling opgeslagen!','ok');
 }
 
 // MEDEWERKERS
@@ -2442,6 +2501,13 @@ function openEditEmployee(uid){
         <div class="worker-check-wage">Sociale-hygiëne-certificaat (IVA) aanwezig — zichtbaar voor iedereen bij "Andere gebruikers"</div>
       </div>
     </label>
+    <div class="section-label" style="margin-top:16px">Functies uitzetten voor deze persoon</div>
+    <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Bijvoorbeeld als iets voor deze persoon (nog) niet moet werken. Voor iedereen tegelijk: Instellingen → Functies tijdelijk uitzetten.</p>
+    ${Object.entries(TOGGLABLE_FEATURES).map(([key,label])=>`
+    <label class="worker-check">
+      <input type="checkbox" id="eeFeature_${key}" ${u.disabledFeatures?.includes(key)?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">${label} uitzetten</div></div>
+    </label>`).join('')}
     ${(U.role==='software'&&u.role==='admin')?`
     <div class="section-label" style="margin-top:16px">Bevoegdheden intrekken (alleen dev)</div>
     <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Het account blijft gewoon werken — dit blokkeert alleen specifieke acties, in plaats van het hele account te schorsen.</p>
@@ -2484,7 +2550,8 @@ async function saveEmployee(uid){
   const canServe=!!$('eeCanServe')?.checked;
   if(!name){toast('Naam verplicht','err');return;}
   const{db,doc,updateDoc,setDoc}=window._f;
-  const payload={name,wage,canServe};
+  const disabledFeatures=Object.keys(TOGGLABLE_FEATURES).filter(key=>!!$('eeFeature_'+key)?.checked);
+  const payload={name,wage,canServe,disabledFeatures};
   if(role) payload.role=role;
   // Bevoegdheden-restricties (alleen door dev in te stellen, alleen relevant voor een beheerder-account)
   if($('eeRestrictAddEmployee')){
@@ -3930,7 +3997,7 @@ function _renderChatMsgs(){
   const canPin=(U.role==='admin'||U.role==='software');
   const rest=allChat; // pinned berichten staan nu in de vaste #pinnedBar, niet meer dubbel hierin
 
-  function renderMsg(msg,idx){
+  function renderMsg(msg,idx,grouped){
     const t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
     const mine=msg.uid===U.uid;
     const verified=isUserVerified(msg.uid);
@@ -3941,17 +4008,22 @@ function _renderChatMsgs(){
       :msg.role==='software'?'<span class="chat-role-tag tag-sw">Dev</span>':'';
     const canDel=(U.role==='admin'||U.role==='software'||mine);
     const hasActions=canDel||canPin;
-    const moreBtn=hasActions?'<button class="chat-more-btn" onclick="openChatMsgActions(&quot;'+msg.id+'&quot;,'+(!!msg.pinned)+','+canPin+','+canDel+')" title="Meer opties">⋯</button>':'';
+    const moreBtn=hasActions?'<button class="chat-more-btn" onclick="openChatMsgActions(&quot;'+msg.id+'&quot;,'+(!!msg.pinned)+','+canPin+','+canDel+')" title="Meer opties"><span class="ic" data-icon="more"></span></button>':'';
     const pinTag=msg.pinned?'<span style="font-size:10px;color:var(--mhv-yellow);font-weight:700;display:block;margin-bottom:2px"><span class="ic" data-icon="pin"></span> Vastgepind</span>':'';
     const txt=msg.text?_formatMentions(msg.text):'';
     const imgHtml=msg.imageData?'<img src="'+msg.imageData+'" style="max-width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-top:'+(txt?'6px':'0')+';display:block;cursor:pointer" onclick="openImageLightbox(this.src)">':'';
     const swapHtml=msg.type==='swap'?_renderSwapCard(msg):'';
     const payHtml=msg.type==='payment'?'<div style="font-size:13px;color:var(--green);font-weight:700;margin-top:4px"><span class="ic" data-icon="euro"></span> '+msg.amount+'</div>':'';
     const avClass='chat-av'+(msg.role==='admin'?' admin':msg.role==='software'?' software':'');
-    return '<div class="chat-row'+(mine?' me':'')+' anim-up" style="animation-delay:'+(idx*.02)+'s">'
+    // Bij een gegroepeerd bericht (zelfde afzender, kort na elkaar) laten we de naam/avatar
+    // weg en tonen we alleen het tijdstip, klein en subtiel — net als bij het privégesprek.
+    const metaHtml = grouped
+      ? '<div class="chat-meta chat-meta-grouped">'+ts+'</div>'
+      : (mine?'<div class="chat-meta">'+ts+'</div>':'<div class="chat-meta">'+msg.name+(verified?VERIFIED_BADGE:'')+roleTag+' · '+ts+'</div>');
+    return '<div class="chat-row'+(mine?' me':'')+(grouped?' grouped':'')+' anim-up" style="animation-delay:'+(idx*.02)+'s">'
       +(mine?'':'<div class="'+avClass+'">'+av+'</div>')
       +'<div class="chat-col">'
-      +(mine?'<div class="chat-meta">'+ts+'</div>':'<div class="chat-meta">'+msg.name+(verified?VERIFIED_BADGE:'')+roleTag+' · '+ts+'</div>')
+      +metaHtml
       +'<div class="chat-bubble'+(mine?'':msg.role==='admin'?' admin-msg':msg.role==='software'?' software-msg':'')+'" style="position:relative;padding-right:'+(hasActions?26:0)+'px">'
       +moreBtn+pinTag+txt+imgHtml+payHtml+swapHtml
       +'</div>'
@@ -3962,11 +4034,16 @@ function _renderChatMsgs(){
 
   let html='';
   let lastDate='';
+  let lastUid=null, lastTs=0;
   rest.forEach(function(msg,idx){
     const t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
     const ds=t.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-    if(ds!==lastDate){ html+='<div class="chat-date-sep anim-in">'+ds+'</div>'; lastDate=ds; }
-    html+=renderMsg(msg,idx);
+    let resetGroup=false;
+    if(ds!==lastDate){ html+='<div class="chat-date-sep anim-in">'+ds+'</div>'; lastDate=ds; resetGroup=true; }
+    const ts=t.getTime();
+    const grouped = !resetGroup && msg.uid===lastUid && msg.type!=='swap' && msg.type!=='payment' && (ts-lastTs)<4*60*1000;
+    html+=renderMsg(msg,idx,grouped);
+    lastUid=msg.uid; lastTs=ts;
   });
   c.innerHTML=html;
   c.scrollTop=c.scrollHeight;
@@ -4751,6 +4828,7 @@ async function saveAnnouncement(){
     special: special,
     authorUid: U.uid,
     authorName: U.name,
+    authorRole: U.role,
     createdAt: serverTimestamp(),
     imageData: window._annImgData||null,
     attachments: attachments,
