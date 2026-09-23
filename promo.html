@@ -132,8 +132,8 @@ body{position:relative;}
 .cp-ta{flex:1;background:#2C2C2E;border-radius:16px;padding:7px 12px;font-size:10.5px;color:rgba(255,255,255,.4);}
 .cp-send{width:28px;height:28px;border-radius:50%;background:#F5C800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
-/* ── S5: Einde ── */
-#s5{background:radial-gradient(circle at 30% 50%,#102a8a 0%,#040712 55%,#000 100%);justify-content:center;gap:90px;}
+/* ── S8: Einde ── */
+#s8{background:radial-gradient(circle at 30% 50%,#102a8a 0%,#040712 55%,#000 100%);justify-content:center;gap:90px;}
 .s5-left{opacity:0;transform:translateX(-30px);transition:all .9s cubic-bezier(.22,.68,0,1.2) .15s;text-align:right;}
 .scene.active .s5-left{opacity:1;transform:translateX(0);}
 .s5-big{font-size:84px;font-weight:800;letter-spacing:-3px;line-height:1;}
@@ -152,6 +152,80 @@ body{position:relative;}
   box-shadow:0 0 36px rgba(29,63,187,.6);}
 .s5-phone-name{font-size:17px;font-weight:800;}
 .s5-phone-name span{color:#F5C800;}
+
+/* ── S5(new): Beheerder ── */
+#s5{background:#080808;flex-direction:row;padding:0 70px;gap:50px;}
+.s5b-tag{display:inline-block;background:rgba(245,200,0,.12);border:1px solid rgba(245,200,0,.3);color:#F5C800;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+  opacity:0;transform:translateX(-20px);transition:all .6s ease .15s;}
+.scene.active .s5b-tag{opacity:1;transform:translateX(0);}
+.s5b-title{font-size:48px;font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px;
+  opacity:0;transform:translateX(-24px);transition:all .7s ease .3s;}
+.scene.active .s5b-title{opacity:1;transform:translateX(0);}
+.s5b-title span{color:#F5C800;}
+.admin-phone{width:250px;height:480px;background:#1C1C1E;border-radius:34px;border:2.5px solid rgba(255,255,255,.1);overflow:hidden;
+  box-shadow:0 40px 80px rgba(0,0,0,.7);opacity:0;transform:translateX(30px) rotate(-3deg);transition:all .9s cubic-bezier(.22,.68,0,1.2) .4s;}
+.scene.active .admin-phone{opacity:1;transform:translateX(0) rotate(-3deg);}
+.ap-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;}
+.ap-stat{background:#2C2C2E;border-radius:10px;padding:8px 5px;text-align:center;}
+.ap-stat .n{font-size:15px;font-weight:800;}
+.ap-stat .l{font-size:8px;color:rgba(255,255,255,.4);margin-top:2px;}
+.ap-ann{background:linear-gradient(90deg,rgba(255,159,10,.14),rgba(255,159,10,.03));border-left:3px solid #FF9F0A;border-radius:9px;padding:9px 11px;margin-top:10px;}
+.ap-ann .t{font-size:10.5px;font-weight:700;}
+.ap-ann .s{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
+
+/* ── S6: Exporteren & rollen ── */
+#s6{background:#080808;flex-direction:column;gap:30px;}
+.s6-head{font-size:40px;font-weight:800;letter-spacing:-1.5px;text-align:center;opacity:0;transform:translateY(-16px);transition:all .7s ease .1s;}
+.scene.active .s6-head{opacity:1;transform:translateY(0);}
+.s6-head span{color:#F5C800;}
+.s6-row{display:flex;gap:20px;}
+.exp-card{width:220px;background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px 18px;text-align:center;
+  opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,0,1.1);}
+.scene.active .exp-card{opacity:1;transform:translateY(0);}
+.scene.active .exp-card:nth-child(1){transition-delay:.2s;}
+.scene.active .exp-card:nth-child(2){transition-delay:.35s;}
+.exp-icon{width:46px;height:46px;border-radius:13px;background:rgba(48,209,88,.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 12px;color:#30D158;}
+.exp-card:nth-child(2) .exp-icon{background:rgba(255,69,58,.12);color:#FF453A;}
+.exp-title{font-size:14.5px;font-weight:700;margin-bottom:5px;}
+.exp-desc{font-size:11.5px;color:rgba(255,255,255,.5);line-height:1.5;}
+.role-row{display:flex;gap:16px;}
+.role-card{width:180px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;text-align:center;
+  opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,0,1.1);}
+.scene.active .role-card{opacity:1;transform:translateY(0);}
+.scene.active .role-card:nth-child(1){transition-delay:.5s;}
+.scene.active .role-card:nth-child(2){transition-delay:.62s;}
+.scene.active .role-card:nth-child(3){transition-delay:.74s;}
+.role-icon{width:38px;height:38px;border-radius:50%;background:rgba(245,200,0,.12);color:#F5C800;display:flex;align-items:center;justify-content:center;font-size:17px;margin:0 auto 10px;}
+.role-name{font-size:13px;font-weight:700;}
+.role-desc{font-size:10.5px;color:rgba(255,255,255,.45);margin-top:4px;line-height:1.4;}
+
+/* ── S7: Persoonlijk & flexibel ── */
+#s7{background:#080808;flex-direction:row;padding:0 70px;gap:60px;}
+.s7-left{width:400px;flex-shrink:0;}
+.s7-tag{display:inline-block;background:rgba(123,155,255,.14);border:1px solid rgba(123,155,255,.35);color:#7b9bff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+  opacity:0;transition:all .6s ease .15s;}
+.scene.active .s7-tag{opacity:1;}
+.s7-title{font-size:42px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:22px;opacity:0;transition:all .7s ease .3s;}
+.scene.active .s7-title{opacity:1;}
+.s7-title span{color:#F5C800;}
+.theme-row{display:flex;gap:10px;margin-bottom:22px;}
+.theme-swatch{width:56px;height:56px;border-radius:13px;border:1.5px solid rgba(255,255,255,.12);opacity:0;transform:scale(.8);transition:all .5s cubic-bezier(.34,1.56,.64,1);}
+.scene.active .theme-swatch{opacity:1;transform:scale(1);}
+.scene.active .theme-swatch:nth-child(1){transition-delay:.5s;}
+.scene.active .theme-swatch:nth-child(2){transition-delay:.6s;}
+.scene.active .theme-swatch:nth-child(3){transition-delay:.7s;}
+.scene.active .theme-swatch:nth-child(4){transition-delay:.8s;}
+.s7-toggle-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:13px 16px;opacity:0;}
+.scene.active .s7-toggle-row{animation:si .6s ease .9s both;}
+.tgl{width:38px;height:22px;border-radius:99px;background:#F5C800;position:relative;flex-shrink:0;}
+.tgl i{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#000;}
+.s7-toggle-text{font-size:12.5px;color:rgba(255,255,255,.65);}
+.s7-toggle-text strong{color:#fff;display:block;font-size:13.5px;margin-bottom:1px;}
+.s7-right{position:relative;flex-shrink:0;opacity:0;transform:scale(.9);transition:all .9s cubic-bezier(.22,.68,0,1.2) .35s;}
+.scene.active .s7-right{opacity:1;transform:scale(1);}
+.s7-photo-ring{width:230px;height:230px;border-radius:50%;background:conic-gradient(from 0deg,#F5C800,#1A3BB5,#F5C800);display:flex;align-items:center;justify-content:center;animation:s7spin 6s linear infinite;}
+@keyframes s7spin{to{transform:rotate(360deg)}}
+.s7-photo-inner{width:214px;height:214px;border-radius:50%;background:#1C1C1E;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800;color:#F5C800;}
 
 .progress{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;}
 .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;transition:all .3s ease;}
@@ -260,6 +334,68 @@ body{position:relative;}
 </div>
 
 <div class="scene" id="s5">
+  <div class="s5b-left" style="width:430px;flex-shrink:0">
+    <div class="s5b-tag">Beheerder</div>
+    <div class="s5b-title">Overzicht in<br><span>één oogopslag</span></div>
+    <div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Diensten van vandaag</strong> — wie werkt, wie ontbreekt nog</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Openstaand & uitbetaald</strong> in één cijfer, per maand</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Aankondigingen plaatsen</strong> — altijd zichtbaar wie en wanneer</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Medewerkers beheren</strong> — rollen, lonen, IVA-certificaat</div></div>
+      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Ruilverzoeken goedkeuren</strong> met één tik</div></div>
+    </div>
+  </div>
+  <div class="admin-phone">
+    <div class="mock-header"><div class="mock-logo">MHV<span>work</span></div></div>
+    <div class="mock-body">
+      <div class="mock-title">Goedemorgen, Beheerder</div>
+      <div class="ap-stats">
+        <div class="ap-stat"><div class="n" style="color:#F5C800">4</div><div class="l">Vandaag</div></div>
+        <div class="ap-stat"><div class="n" style="color:#FF453A">€0</div><div class="l">Schuldig</div></div>
+        <div class="ap-stat"><div class="n" style="color:#30D158">€1.240</div><div class="l">Uitbetaald</div></div>
+      </div>
+      <div class="ap-ann"><div class="t">Zomerrooster is open!</div><div class="s">— Beheerder · 2 uur geleden</div></div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:6px 0 2px">Diensten vandaag</div>
+      <div class="shift-item"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Tygo, Sara</div></div>
+      <div class="shift-item" style="margin-top:6px"><div class="shift-time">18:00 – 23:00</div><div class="shift-date">Milan</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="scene" id="s6">
+  <div class="s6-head">Exporteren <span>en overzicht</span></div>
+  <div class="s6-row">
+    <div class="exp-card"><div class="exp-icon"><span class="ic" data-icon="chart"></span></div><div class="exp-title">Excel-export</div><div class="exp-desc">Boekhoudklaar bestand, per maand, per medewerker.</div></div>
+    <div class="exp-card"><div class="exp-icon"><span class="ic" data-icon="clipboard"></span></div><div class="exp-title">PDF-overzicht</div><div class="exp-desc">Netjes opgemaakt maandrapport om te delen met het bestuur.</div></div>
+  </div>
+  <div class="role-row">
+    <div class="role-card"><div class="role-icon"><span class="ic" data-icon="user"></span></div><div class="role-name">Medewerker</div><div class="role-desc">Eigen rooster, beschikbaarheid en chat</div></div>
+    <div class="role-card"><div class="role-icon"><span class="ic" data-icon="crown"></span></div><div class="role-name">Beheerder</div><div class="role-desc">Rooster maken, goedkeuren, uitbetalen</div></div>
+    <div class="role-card"><div class="role-icon"><span class="ic" data-icon="tools"></span></div><div class="role-name">Dev</div><div class="role-desc">Volledig beheer & technisch onderhoud</div></div>
+  </div>
+</div>
+
+<div class="scene" id="s7">
+  <div class="s7-left">
+    <div class="s7-tag">Persoonlijk</div>
+    <div class="s7-title">Jouw app,<br><span>jouw smaak</span></div>
+    <div class="theme-row">
+      <div class="theme-swatch" style="background:#fff"></div>
+      <div class="theme-swatch" style="background:#000"></div>
+      <div class="theme-swatch" style="background:linear-gradient(135deg,#2a2a3a,#1a1a28)"></div>
+      <div class="theme-swatch" style="background:radial-gradient(circle at 30% 30%,#1a1a4a,#000)"></div>
+    </div>
+    <div class="s7-toggle-row">
+      <div class="tgl"><i></i></div>
+      <div class="s7-toggle-text"><strong>Functies tijdelijk uitzetten</strong>Onderhoud? Zet een onderdeel netjes op pauze — voor iedereen of voor één persoon.</div>
+    </div>
+  </div>
+  <div class="s7-right">
+    <div class="s7-photo-ring"><div class="s7-photo-inner">T</div></div>
+  </div>
+</div>
+
+<div class="scene" id="s8">
   <div class="s5-glow"></div>
   <div class="s5-left">
     <div class="s5-big">MHV<span>work</span></div>
@@ -288,8 +424,8 @@ body{position:relative;}
 <div class="progress" id="progress"></div>
 
 <script>
-const SCENES = ['s1','s2','s3','s4','s5'];
-const DURATIONS = [4200, 9000, 8500, 8500, 5000];
+const SCENES = ['s1','s2','s3','s4','s5','s6','s7','s8'];
+const DURATIONS = [4200, 9000, 8500, 8500, 7500, 7000, 6500, 5000];
 let cur = 0, timer, featTimer, featIdx = 0;
 
 const prog = document.getElementById('progress');

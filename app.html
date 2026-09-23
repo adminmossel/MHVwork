@@ -699,7 +699,8 @@ select.form-input option { background:var(--bg3); }
 
 /* ── EMPTY STATE ─── */
 .empty { text-align:center; padding:40px 20px; color:var(--text3); }
-.empty-icon { font-size:36px; margin-bottom:10px; opacity:0.6; }
+.empty-icon { font-size:36px; margin-bottom:10px; opacity:0.6; animation:emptyFloat 2.6s ease-in-out infinite; }
+@keyframes emptyFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
 .empty p { font-size:14px; line-height:1.6; }
 
 /* ── WORKER CHECK ─── */
@@ -878,7 +879,7 @@ let idleExitCode=null, idleTimer=null, appVersion='';
 let allChat=[]; let unsubChat; let allChatReads={}; let unsubChatReads;
 let allDMs=[]; let unsubDMs; let activeDMThread=null;
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
-let rosterTab='mine', adminTab='medewerkers', adminRTab='all', payMonth=0;
+let rosterTab='mine', adminTab='medewerkers', adminRTab='all', payMonth=0, exportFormat='excel';
 let unsubShifts, unsubNotifs, unsubAvail;
 
 // ── INIT ──────────────────────────────────────
@@ -1708,6 +1709,19 @@ function applyHolidayTheme(){
   }catch(e){}
 }
 
+// Telt een statistiek-getal soepel op van 0 naar de echte waarde bij het openen van Home.
+function animateCountUp(elId){
+  const el=document.getElementById(elId); if(!el) return;
+  const target=parseInt(el.dataset.count||el.textContent,10); if(isNaN(target)) return;
+  const dur=600, start=performance.now();
+  function step(now){
+    const p=Math.min(1,(now-start)/dur);
+    const eased=1-Math.pow(1-p,3);
+    el.textContent=Math.round(eased*target);
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 function playPopAnimation(el){
   if(!el||!el.animate)return;
   try{
@@ -1806,15 +1820,15 @@ async function renderAdminHome(c){
     ${restricted('announcements')?'':'<button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)"><span class="ic" data-icon="megaphone"></span> Aankondiging plaatsen voor medewerkers</button>'}
 
     <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
-      <div class="stat-tile yellow">
-        <div class="stat-num yellow">${todayShifts.length}</div>
+      <div class="stat-tile yellow anim-pop" style="animation-delay:.03s">
+        <div class="stat-num yellow" id="statTodayCount" data-count="${todayShifts.length}">0</div>
         <div class="stat-lbl">Diensten vandaag</div>
       </div>
-      <div class="stat-tile red">
+      <div class="stat-tile red anim-pop" style="animation-delay:.09s">
         <div class="stat-num" style="color:var(--red);font-size:22px">${fmtMoney(schuldig)}</div>
         <div class="stat-lbl">Schuldig</div>
       </div>
-      <div class="stat-tile green">
+      <div class="stat-tile green anim-pop" style="animation-delay:.15s">
         <div class="stat-num green" style="font-size:22px">${fmtMoney(uitbetaald)}</div>
         <div class="stat-lbl">Uitbetaald</div>
       </div>
@@ -1855,6 +1869,7 @@ async function renderAdminHome(c){
   `;
   const announcements = await loadAnnouncements();
   renderAnnouncementArea(document.getElementById('announceArea'), announcements);
+  animateCountUp('statTodayCount');
 }
 
 function renderAdminShiftCard(s){
@@ -1926,11 +1941,11 @@ async function renderEmployeeHome(c){
     </div>
 
     <div class="stats-grid">
-      <div class="stat-tile yellow"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      <div class="stat-tile yellow anim-pop" style="animation-delay:.03s"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
         <div class="stat-num yellow">${upcoming.length}</div>
         <div class="stat-lbl">Komende diensten</div>
       </div>
-      <div class="stat-tile ${toConfirm.length?'red':'green'}"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15 16 9"/></svg></span>
+      <div class="stat-tile ${toConfirm.length?'red':'green'} anim-pop" style="animation-delay:.09s"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15 16 9"/></svg></span>
         <div class="stat-num ${toConfirm.length?'red':'green'}">${toConfirm.length}</div>
         <div class="stat-lbl">Te bevestigen</div>
       </div>
@@ -2463,6 +2478,7 @@ function renderAdmin(){
   renderAdminTab();
 }
 window.setAdminTab=(t,btn)=>{adminTab=t;document.querySelectorAll('#view-admin .pill-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderAdminTab();};
+window.setExportFormat=(fmt)=>{exportFormat=fmt;renderAdminTab();};
 function renderAdminTab(){
   const c=$('adminTabContent'); if(!c)return;
   if(adminTab==='medewerkers') renderMedewerkers(c);
@@ -2994,8 +3010,11 @@ function renderUitbetaling(c){
       <div class="stat-tile red"><div class="stat-num red" style="font-size:22px">${fmtMoney(totalSchuld)}</div><div class="stat-lbl">Nog te betalen</div></div>
       <div class="stat-tile green"><div class="stat-num green" style="font-size:22px">${fmtMoney(totalPaid)}</div><div class="stat-lbl">Uitbetaald</div></div>
     </div>
-    ${payData.length?`<button class="btn btn-ghost btn-full" style="margin-bottom:8px" onclick="exportBookkeeping('${y}','${m}')"><span class="ic" data-icon="chart"></span> Exporteren naar boekhouding (Excel)</button>
-    <button class="btn btn-ghost btn-full" style="margin-bottom:14px" onclick="exportMonthPDF('${y}','${m}')"><span class="ic" data-icon="clipboard"></span> Maandoverzicht als PDF</button>`:''}
+    ${payData.length?`<div class="pill-tabs" style="margin-bottom:10px">
+      <button class="pill-tab ${exportFormat==='excel'?'active':''}" onclick="setExportFormat('excel')">Excel</button>
+      <button class="pill-tab ${exportFormat==='pdf'?'active':''}" onclick="setExportFormat('pdf')">PDF</button>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-bottom:14px" onclick="${exportFormat==='pdf'?`exportMonthPDF('${y}','${m}')`:`exportBookkeeping('${y}','${m}')`}"><span class="ic" data-icon="${exportFormat==='pdf'?'clipboard':'chart'}"></span> Maandoverzicht exporteren als ${exportFormat==='pdf'?'PDF':'Excel'}</button>`:''}
     ${totalReviewing?`<div class="card" style="margin-bottom:12px;border:1px solid var(--orange)">
       <div class="card-row"><div style="flex:1">
         <div style="font-size:14px;font-weight:700;color:var(--orange)"><span class="ic" data-icon="hourglass"></span> ${totalReviewing} dienst(en) wachten nog op jouw goedkeuring</div>
