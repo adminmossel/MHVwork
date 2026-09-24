@@ -1,31 +1,50 @@
 <div align="center">
-
 <img src="icon.svg" width="88" height="88" alt="MHVwork logo">
 
 # 🍺 MHVwork
 
-**Roosterbeheer voor MHV — gebouwd vóór en dóór de barhulp**
+### Het rooster van de MHV-kantine — gebouwd vóór en dóór de barhulp
 
-[![PWA](https://img.shields.io/badge/PWA-installeerbaar-1A3BB5?style=flat-square)](#-installeren)
-[![Hosting](https://img.shields.io/badge/hosting-GitHub%20Pages-181717?style=flat-square&logo=github)](#-technologie)
-[![Database](https://img.shields.io/badge/database-Firebase%20Firestore-FFCA28?style=flat-square&logo=firebase&logoColor=black)](#-technologie)
-[![License](https://img.shields.io/badge/licentie-intern%20gebruik-lightgrey?style=flat-square)](#-licentie)
+**Geen rooster-appje uit de store. Geen abonnement. Geen WhatsApp-chaos meer.**
 
-Geen rooster-appje uit de store, geen abonnement, geen WhatsApp-chaos meer. Eén gratis, op maat
-gebouwde app die precies doet wat een bar met vrijwilligers nodig heeft — en niks anders.
+<br>
+
+**🇳🇱 Nederlands** · [🇬🇧 English](./README.en.md)
+
+<br>
+
+[![PWA](https://img.shields.io/badge/PWA-installeerbaar-1A3BB5?style=for-the-badge)](#-installeren)
+[![Hosting](https://img.shields.io/badge/hosting-GitHub%20Pages-181717?style=for-the-badge&logo=github)](#-technologie)
+[![Database](https://img.shields.io/badge/database-Firebase%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](#-technologie)
+[![Licentie](https://img.shields.io/badge/licentie-intern%20gebruik-lightgrey?style=for-the-badge)](#-licentie)
+
+<br>
+
+[🌐 Open de app](https://adminmossel.github.io/MHVwork/) ·
+[📖 Handleiding](./HANDLEIDING.md) ·
+[📝 Changelog](./CHANGELOG.md) ·
+[🎨 Promopagina](./promo.html)
 
 </div>
 
 ---
 
+Eén gratis, op maat gebouwde app die precies doet wat een kantine met vrijwilligers nodig heeft —
+en verder niks. Geen los WhatsApp-groepje waarin het laatste rooster ligt te verstoffen, geen
+Excel-bestand dat maar op één laptop staat: iedereen ziet zijn eigen diensten, geeft
+beschikbaarheid door en ruilt met een collega. De beheerder keurt goed, betaalt uit en heeft
+altijd een actueel overzicht.
+
 ## 📋 Inhoud
 
 - [Wat kan MHVwork?](#-wat-kan-mhvwork)
-- [Rollen](#-rollen)
+- [Rollen & bevoegdheden](#-rollen--bevoegdheden)
 - [Technologie](#-technologie)
+- [Installeren als app](#-installeren)
 - [Aan de slag](#-aan-de-slag)
 - [Projectstructuur](#-projectstructuur)
 - [Beveiliging](#-beveiliging)
+- [Dank aan](#-dank-aan)
 - [Gebruikte bibliotheken & licenties](#-gebruikte-bibliotheken--licenties)
 - [Licentie](#-licentie)
 
@@ -33,69 +52,113 @@ gebouwde app die precies doet wat een bar met vrijwilligers nodig heeft — en n
 
 ## ✨ Wat kan MHVwork?
 
+<table>
+<tr>
+<td width="50%" valign="top">
+
 ### 📅 Rooster & diensten
-- Diensten aanmaken (ook zónder direct iemand toe te wijzen), medewerkers toewijzen
-- Eindtijd "Sluit" voor diensten met een onbekende sluitingstijd — telt pas mee zodra de
+- Diensten aanmaken — ook zónder direct iemand toe te wijzen
+- Eindtijd "Sluit" voor diensten met een onbekende sluitingstijd, telt pas mee zodra de
   medewerker de werkelijke tijd doorgeeft
-- Medewerkers bevestigen hun diensten of melden een afwijkende gewerkte tijd
-- Notities + foto per dienst
-- Live voortgangsbalk + countdown op Home zodra een dienst daadwerkelijk bezig is
-- Automatische pushmeldingen: een dag van tevoren, een uur van tevoren, direct na afloop, en een
-  vervolgherinnering als een dienst na een instelbaar aantal uren nog niet bevestigd is
-- Diensten exporteren naar de eigen telefoonagenda (`.ics`) of Excel (medewerkers × datums)
+- Bevestigen, of een afwijkende gewerkte tijd melden
+- Notitie + foto per dienst
+- Live voortgangsbalk en countdown op Home zodra een dienst bezig is
+- Export naar de eigen agenda (`.ics`) of Excel
 
-### 🍺 Sociale hygiëne
-- Per medewerker bij te houden of iemand mag schenken (IVA-certificaat), zichtbaar voor
-  iedereen via "Andere gebruikers" bij Profiel
-
-### 📺 Idle-modus
-- Kiosk-weergave voor op een tablet achter de bar: rooster van vandaag, live tijdbalk per
-  dienst, losse blokken als er meerdere diensten tegelijk lopen
-- Start met een zelfgekozen 4-cijferige code, alleen geldig voor die sessie — nergens opgeslagen
+</td>
+<td width="50%" valign="top">
 
 ### 🔄 Dienst ruilen
-- Medewerker plaatst een ruilverzoek via de groepschat, collega's tonen interesse, beheerder
-  keurt goed → dienst wordt automatisch overgezet, beide partijen krijgen een melding
+- Medewerker plaatst een ruilverzoek in de groepschat
+- Collega's tonen interesse
+- Beheerder keurt goed
+- Dienst wordt automatisch overgezet, beide partijen krijgen een melding
+
+</td>
+</tr>
+<tr>
+<td valign="top">
 
 ### 💬 Groepschat & privéberichten
-- Eén groepschat met `@naam`, `@iedereen`, `@beheerder`, `@dev`, foto's (automatisch
-  gecomprimeerd), berichten vastpinnen of verwijderen
-- Privéberichten (DM) tussen medewerker en beheerder/dev, met dagscheiding en tijdstempels
+- `@naam`, `@iedereen`, `@beheerder`, `@dev` — direct een pushmelding
+- Foto's, automatisch gecomprimeerd
+- Berichten vastpinnen of verwijderen
+- Privéberichten (DM) tussen medewerker en beheerder/dev
+
+</td>
+<td valign="top">
 
 ### 📢 Aankondigingen
-- Op Home alleen de titel — pas bij aantikken zie je de volledige aankondiging (afbeelding,
-  opgemaakte tekst, bijlages) op een eigen pagina
-- Basisopmaak bij het aanmaken (vet, tabs, witregels blijven gewoon staan)
-- Speciale aankondigingen met eigen kleur en directe in-app pop-up
+- Op Home alleen de titel, volledige tekst pas na aantikken
+- Basisopmaak (vet, tabs, witregels) bij het aanmaken
+- Speciale aankondigingen met eigen kleur en directe pop-up
+
+</td>
+</tr>
+<tr>
+<td valign="top">
 
 ### 💶 Uitbetalingen
-- Bevestigd → goedgekeurd → uitbetaald, met een apart overzicht van wat nog goedgekeurd moet
-  worden zodat niks stil blijft hangen
-- Export naar boekhouding: nette grootboekregels per medewerker per dienst, los van de
-  matrix-vormige planningsexport
+- Bevestigd → goedgekeurd → uitbetaald
+- Apart overzicht van wat nog goedgekeurd moet worden
+- Export naar boekhouding: nette grootboekregels per medewerker per dienst
 
-### 🔒 Rollen & bevoegdheden
-- Dev kan een beheerder-account specifieke bevoegdheden ontnemen (medewerkers toevoegen,
-  diensten aanmaken/verwijderen/goedkeuren, uitbetalen, aankondigingen plaatsen, medewerkers
-  beheren) zonder het hele account te schorsen — afgedwongen in zowel de app als de
-  databaseregels zelf, en zichtbaar voor de betrokken beheerder in het eigen profiel
-- Harde reset (alleen dev): wist in één keer alle diensten, chat, meldingen en betaalhistorie,
-  met dubbele bevestiging — accounts en logboek blijven altijd staan
+</td>
+<td valign="top">
+
+### 🔔 Meldingen
+- In-app, e-mail én browser push
+- Een dag van tevoren, een uur van tevoren, direct na afloop
+- Vervolgherinnering als een dienst na verloop van tijd nog niet bevestigd is
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🍺 Sociale hygiëne
+- Per medewerker bijhouden of iemand mag schenken (IVA-certificaat)
+- Zichtbaar voor iedereen via "Andere gebruikers" bij Profiel
+
+</td>
+<td valign="top">
+
+### 📺 Idle-modus
+- Kiosk-weergave voor een tablet achter de bar
+- Rooster van vandaag met live tijdbalk per dienst
+- Start met een zelfgekozen 4-cijferige code, nergens opgeslagen
+
+</td>
+</tr>
+</table>
 
 ### 🎨 Weergave
-- Zwevende, glazen navigatie — of de klassieke volle-breedte-balk, naar keuze per account
-- Licht/donker thema, los van de systeeminstelling, plus een verborgen NASA-APOD-thema
-- Wachtwoord-sterktemeter bij aanmaken én wijzigen
+Zwevende, glazen navigatie of de klassieke volle-breedte-balk — naar keuze per account. Licht,
+donker of een verborgen NASA-APOD-thema, los van de systeeminstelling. Wachtwoord-sterktemeter
+bij aanmaken én wijzigen.
 
 ---
 
-## 👤 Rollen
+## 👤 Rollen & bevoegdheden
 
 | Rol | Toegang |
 |---|---|
-| **Medewerker** | Eigen rooster, beschikbaarheid, chat, profiel, agenda-export, dienst ruilen |
-| **Beheerder** | Alles van medewerker + roosters beheren, medewerkers uitnodigen, uitbetalingen, aankondigingen — tenzij dev specifieke bevoegdheden heeft ingetrokken |
-| **Dev** | Eigen omgeving: accountbeheer, bevoegdheden per beheerder, aankondigingen, logboek, harde reset — géén toegang tot financiële gegevens |
+| 👤 **Medewerker** | Eigen rooster, beschikbaarheid, chat, profiel, agenda-export, dienst ruilen |
+| 🛠️ **Beheerder** | Alles van medewerker + roosters beheren, medewerkers uitnodigen, uitbetalingen, aankondigingen, functies uitzetten voor één profiel — tenzij dev een specifieke bevoegdheid heeft ingetrokken |
+| 💻 **Dev** | Eigen omgeving: accountbeheer, bevoegdheden per beheerder, functies app-breed uitzetten, aankondigingen, logboek, harde reset — géén toegang tot financiële gegevens |
+
+Bevoegdheden zijn fijnmazig, niet alles-of-niets:
+
+- **Dev kan een beheerder-account specifieke bevoegdheden ontnemen** (medewerkers toevoegen,
+  diensten aanmaken/verwijderen/goedkeuren, uitbetalen, aankondigingen plaatsen, medewerkers
+  beheren, functies per profiel uitzetten) zonder het hele account te schorsen — afgedwongen in
+  zowel de app als de databaseregels zelf, en zichtbaar voor de betrokken beheerder in het eigen
+  profiel
+- **Een beheerder kan nooit een aankondiging van dev verwijderen**, en kan geen functie
+  app-breed uitzetten (zoals de chat) — dat blijft voorbehouden aan dev. Een beheerder kan wel
+  een functie uitzetten voor één profiel, bijvoorbeeld tijdens onboarding
+- **Harde reset (alleen dev)**: wist in één keer alle diensten, chat, meldingen en
+  betaalhistorie, met dubbele bevestiging — accounts en logboek blijven altijd staan
 
 ---
 
@@ -113,6 +176,37 @@ gebouwde app die precies doet wat een bar met vrijwilligers nodig heeft — en n
 | Excel-export | [SheetJS](https://sheetjs.com) (client-side, geen server nodig) |
 
 Geen build-stap, geen framework — puur HTML/CSS/JavaScript, direct leesbaar en aanpasbaar.
+
+---
+
+## 📲 Installeren
+
+MHVwork is een **Progressive Web App**: geen appstore nodig.
+
+<details>
+<summary><strong>🍎 iPhone / iPad</strong></summary>
+
+1. Open MHVwork in Safari
+2. Tik op **Deel**
+3. Kies **Zet op beginscherm**
+
+</details>
+
+<details>
+<summary><strong>🤖 Android</strong></summary>
+
+1. Open MHVwork in Chrome
+2. Open het browsermenu
+3. Kies **App installeren** of **Toevoegen aan startscherm**
+
+</details>
+
+<details>
+<summary><strong>💻 Desktop</strong></summary>
+
+Gebruik Chrome of Edge en klik op het installatie-icoon in de adresbalk.
+
+</details>
 
 ---
 
@@ -138,7 +232,7 @@ In het kort:
 ├── reset-pw.html         Wachtwoord opnieuw instellen
 ├── app.html              De volledige applicatie (alle rollen)
 ├── voorwaarden.html       Gebruiksvoorwaarden & privacyverklaring
-├── promo.html             Uitlegpagina "Wat is MHVwork?"
+├── promo.html             Presentatie "Wat is MHVwork?"
 ├── firestore.rules        Firestore security rules
 ├── manifest.json          PWA-manifest
 ├── sw.js                  Service worker
@@ -153,12 +247,27 @@ In het kort:
 ## 🔒 Beveiliging
 
 - Alle databasetoegang loopt via Firestore Security Rules — medewerkers kunnen alleen hun eigen
-  gegevens aanpassen, beheerders beheren roosters/uitbetalingen, en de dev-rol heeft geen toegang
-  tot financiële gegevens
+  gegevens aanpassen, beheerders beheren roosters/uitbetalingen binnen hun bevoegdheden, en de
+  dev-rol heeft geen toegang tot financiële gegevens
 - Alleen een dev-account kan de dev-rol toewijzen of intrekken, en alleen dev kan een beheerder
-  specifieke bevoegdheden ontnemen — allebei afgedwongen in zowel de app als de databaseregels
+  specifieke bevoegdheden ontnemen — of een app-brede functie uitzetten — allebei afgedwongen in
+  zowel de app als de databaseregels, niet alleen in het scherm
 - Wachtwoord-reset verloopt via Firebase's eigen, beveiligde flow
 - Geschorste accounts worden bij inloggen direct geweigerd
+
+> ⚠️ Controleer altijd de actuele `firestore.rules` voordat je naar een productieomgeving gaat.
+
+---
+
+## 🙏 Dank aan
+
+Met dank voor het testen en meedenken:
+
+- R. Massalt
+- I. Massalt
+- C. Koning
+- J. v Heun (dev)
+- Jou, als je meehelpt!
 
 ---
 
@@ -178,8 +287,21 @@ MHVwork is zelf geschreven zonder framework, maar leunt op de volgende diensten 
 
 ## 📄 Licentie
 
-Deze applicatie is gebouwd voor en het interne gebruik van **MHV**. De broncode mag vrij
-bekeken, aangepast en hergebruikt worden voor gelijksoortige vrijwilligersorganisaties; gebruik
-op eigen risico en zonder enige garantie. Bovenstaande externe diensten en bibliotheken vallen
-onder hún eigen licentievoorwaarden (zie tabel hierboven) — check die zelf even als je deze app
-elders wil inzetten of doorontwikkelen.
+Deze applicatie is gebouwd voor en het interne gebruik van **MHV**. De broncode mag vrij bekeken,
+aangepast en hergebruikt worden voor gelijksoortige vrijwilligersorganisaties; gebruik op eigen
+risico en zonder enige garantie. Bovenstaande externe diensten en bibliotheken vallen onder hún
+eigen licentievoorwaarden (zie tabel hierboven) — check die zelf even als je deze app elders wil
+inzetten of doorontwikkelen.
+
+<div align="center">
+<br>
+
+### 🍺 MHVwork
+
+**Eén rooster. Eén team. Eén plek.**
+
+Gebouwd voor **MHV**.
+
+<sub>Vragen, bugs of support: h.mhvwork@gmail.com</sub>
+
+</div>

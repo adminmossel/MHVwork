@@ -1,547 +1,302 @@
 <div align="center">
+<img src="icon.svg" width="88" height="88" alt="MHVwork logo">
 
 # 🍺 MHVwork
 
-### Modern workforce & shift management for MHV
+### The schedule for MHV's clubhouse bar — built by and for the volunteers
 
-**Plan. Work. Communicate. Manage. — all from one platform.**
-
-<br>
-
-[🇳🇱 Nederlands](./README.md) · 🇬🇧 **English**
-
-<br><br>
-
-[![Version](https://img.shields.io/github/package-json/v/adminmossel/MHVwork?style=for-the-badge)](https://github.com/adminmossel/MHVwork)
-[![License](https://img.shields.io/github/license/adminmossel/MHVwork?style=for-the-badge)](https://github.com/adminmossel/MHVwork)
-[![Issues](https://img.shields.io/github/issues/adminmossel/MHVwork?style=for-the-badge)](https://github.com/adminmossel/MHVwork/issues)
-[![Stars](https://img.shields.io/github/stars/adminmossel/MHVwork?style=for-the-badge)](https://github.com/adminmossel/MHVwork/stargazers)
+**No app-store roster app. No subscription. No more WhatsApp chaos.**
 
 <br>
 
-[🌐 Live application](https://adminmossel.github.io/MHVwork/) ·
-[📖 Documentation](./HANDLEIDING.md) ·
+[🇳🇱 Nederlands](./README.md) · **🇬🇧 English**
+
+<br>
+
+[![PWA](https://img.shields.io/badge/PWA-installable-1A3BB5?style=for-the-badge)](#-installing)
+[![Hosting](https://img.shields.io/badge/hosting-GitHub%20Pages-181717?style=for-the-badge&logo=github)](#-technology)
+[![Database](https://img.shields.io/badge/database-Firebase%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](#-technology)
+[![License](https://img.shields.io/badge/license-internal%20use-lightgrey?style=for-the-badge)](#-license)
+
+<br>
+
+[🌐 Open the app](https://adminmossel.github.io/MHVwork/) ·
+[📖 Setup guide](./HANDLEIDING.md) ·
 [📝 Changelog](./CHANGELOG.md) ·
-[🐛 Issues](https://github.com/adminmossel/MHVwork/issues)
+[🎨 Promo page](./promo.html)
 
 </div>
 
 ---
 
-## 📖 About MHVwork
+One free, purpose-built app that does exactly what a volunteer-run clubhouse bar needs — and
+nothing else. No more scattered WhatsApp group where the latest roster gets buried, no
+spreadsheet that only lives on one laptop: everyone sees their own shifts, submits their
+availability and swaps with a colleague. The admin approves, pays out, and always has an
+up-to-date overview.
 
-**MHVwork** is a modern Progressive Web App for organizing volunteer bar staff at **MHV**.
+> This is a translation of the Dutch original. If anything here ever reads differently from
+> [README.md](./README.md), the Dutch version is the source of truth.
 
-The application brings scheduling, staff management, shift exchanges, communication, notifications and payments together in one central platform.
+## 📋 Contents
 
-The goal is simple:
-
-> **Less administration. Less scattered communication. More control.**
-
-MHVwork is designed around the day-to-day needs of a club: fast, clear and accessible from phones, tablets and desktops.
+- [What can MHVwork do?](#-what-can-mhvwork-do)
+- [Roles & permissions](#-roles--permissions)
+- [Technology](#-technology)
+- [Installing as an app](#-installing)
+- [Getting started](#-getting-started)
+- [Project structure](#-project-structure)
+- [Security](#-security)
+- [Thanks to](#-thanks-to)
+- [Libraries & licenses used](#-libraries--licenses-used)
+- [License](#-license)
 
 ---
 
-## ✨ Features
+## ✨ What can MHVwork do?
 
 <table>
 <tr>
-<td width="50%">
+<td width="50%" valign="top">
 
-### 📅 Schedule Management
-
-- Create and schedule shifts
-- Assign staff members
-- Manage availability
-- Day, week and month views
-- Shift confirmations
-- Custom working hours
-- `.ics` calendar export
+### 📅 Schedule & shifts
+- Create shifts — even without assigning someone right away
+- A "Close" end time for shifts with an unknown closing time, only counted once the staff
+  member reports the actual time worked
+- Confirm a shift, or report a different time actually worked
+- Note + photo per shift
+- Live progress bar and countdown on Home while a shift is in progress
+- Export to your own calendar (`.ics`) or to Excel
 
 </td>
-<td width="50%">
+<td width="50%" valign="top">
 
-### 🔄 Shift Exchanges
-
-- Make shifts available
-- Show interest in a shift
-- Request a takeover
-- Administrator approval
-- Automatic schedule updates
-- Notifications for involved users
+### 🔄 Shift swaps
+- A staff member posts a swap request in the group chat
+- Colleagues show interest
+- The admin approves it
+- The shift is reassigned automatically, both people get a notification
 
 </td>
 </tr>
-
 <tr>
-<td>
+<td valign="top">
 
-### 💬 Communication
-
-- Central group chat
-- `@employee` mentions
-- `@everyone` notifications
-- `@dev` communication
-- Image sharing
-- Automatic image compression
-- Message management
+### 💬 Group chat & DMs
+- `@name`, `@everyone`, `@admin`, `@dev` — triggers an instant push notification
+- Photos, compressed automatically
+- Pin or delete messages
+- Direct messages between a staff member and an admin/dev
 
 </td>
-<td>
+<td valign="top">
 
-### 💶 Payments
-
-- Track working hours
-- Expected earnings
-- Approved amounts
-- Record payments
-- Personal financial overview
-- Monthly summaries
+### 📢 Announcements
+- Only the title shows on Home — the full text opens on its own page
+- Basic formatting (bold, tabs, line breaks) when writing one
+- Special announcements get their own colour and an instant in-app pop-up
 
 </td>
 </tr>
-
 <tr>
-<td>
+<td valign="top">
+
+### 💶 Payouts
+- Confirmed → approved → paid out
+- A separate view of what's still waiting for approval
+- Export to bookkeeping: clean ledger lines per staff member, per shift
+
+</td>
+<td valign="top">
 
 ### 🔔 Notifications
-
-- In-app notifications
-- Notification badges
-- Browser notifications
-- Push notifications
-- E-mail notifications
-- Shift exchange notifications
+- In-app, e-mail and browser push
+- A day ahead, an hour ahead, right after a shift ends
+- A follow-up reminder if a shift is still unconfirmed after a while
 
 </td>
-<td>
+</tr>
+<tr>
+<td valign="top">
 
-### 📱 Progressive Web App
+### 🍺 Serving certification
+- Track per staff member whether they're certified to serve alcohol (IVA certificate)
+- Visible to everyone under "Other users" in Profile
 
-- Installable on mobile
-- Installable on desktop
-- Service Worker
-- Offline caching
-- Web App Manifest
-- Native-like experience
+</td>
+<td valign="top">
+
+### 📺 Idle mode
+- A kiosk view for a tablet behind the bar
+- Today's schedule with a live time bar per shift
+- Starts with a self-chosen 4-digit code, never stored anywhere
 
 </td>
 </tr>
 </table>
 
+### 🎨 Look & feel
+A floating, glass-style navigation bar, or the classic full-width bar — a per-account choice.
+Light, dark, or a hidden NASA-APOD theme, independent of the system setting. A password
+strength meter when creating or changing a password.
+
 ---
 
-## 👥 Roles & Permissions
+## 👤 Roles & permissions
 
-MHVwork uses multiple roles to separate functionality and access.
-
-| Role | Description |
+| Role | Access |
 |---|---|
-| 👤 **Employee** | Personal schedule, availability, shifts, chat and financial information |
-| 🛠️ **Administrator** | Full management of staff, schedules, shifts, payments and communication |
-| 💻 **Developer** | Technical functionality and development-related communication |
+| 👤 **Staff member** | Own schedule, availability, chat, profile, calendar export, shift swaps |
+| 🛠️ **Admin** | Everything a staff member has, plus: manage schedules, invite staff, payouts, announcements, disabling a feature for a single profile — unless dev has revoked a specific permission |
+| 💻 **Dev** | Own area: account management, per-admin permissions, disabling features app-wide, announcements, audit log, hard reset — **no access to financial data** |
 
-Access is controlled through **Firebase Authentication** and **Firestore Security Rules**.
+Permissions are fine-grained, not all-or-nothing:
 
----
-
-## 🧭 Quick Navigation
-
-<details>
-<summary><strong>📚 Documentation</strong></summary>
-
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Architecture](#️-architecture)
-- [Security](#-security)
-- [PWA](#-progressive-web-app)
-- [Roadmap](#️-roadmap)
-- [Contributing](#-contributing)
-- [License](#-license)
-
-</details>
+- **Dev can revoke specific permissions from an admin account** (adding staff, creating/
+  deleting/approving shifts, paying out, posting announcements, managing staff, disabling
+  features on a profile) without suspending the whole account — enforced in both the app and
+  the database rules, and visible to the affected admin in their own profile
+- **An admin can never delete an announcement posted by dev**, and can't disable a feature
+  app-wide (like turning off chat for everyone) — that stays reserved for dev. An admin *can*
+  still disable a feature for a single profile, for example during onboarding
+- **Hard reset (dev only)**: wipes every shift, chat message, notification and payment record
+  at once, with double confirmation — accounts and the audit log are always kept
 
 ---
 
-## 📱 Progressive Web App
+## 🛠 Technology
 
-MHVwork is built as a **Progressive Web App (PWA)**.
+| Component | Technology |
+|---|---|
+| Hosting | GitHub Pages (free) |
+| Database | Firebase Firestore (Spark plan, free tier) |
+| Authentication | Firebase Authentication |
+| E-mail | EmailJS (optional: Gmail SMTP via Cloud Functions, see `index.js`) |
+| Push | Browser Notification API + Service Worker |
+| PWA | Web App Manifest + Service Worker |
+| Calendar export | `.ics` file (iPhone, Android, Windows, Mac) |
+| Excel export | [SheetJS](https://sheetjs.com) (client-side, no server needed) |
 
-Users can install the application without downloading a separate mobile application from an app store.
+No build step, no framework — plain HTML/CSS/JavaScript, readable and editable as-is.
+
+---
+
+## 📲 Installing
+
+MHVwork is a **Progressive Web App**: no app store required.
 
 <details>
 <summary><strong>🍎 iPhone / iPad</strong></summary>
 
-1. Open MHVwork in Safari.
-2. Tap **Share**.
-3. Select **Add to Home Screen**.
-4. Open MHVwork from your home screen.
+1. Open MHVwork in Safari
+2. Tap **Share**
+3. Choose **Add to Home Screen**
 
 </details>
 
 <details>
 <summary><strong>🤖 Android</strong></summary>
 
-1. Open MHVwork in Chrome.
-2. Open the browser menu.
-3. Select **Install app** or **Add to Home screen**.
-4. Open the installed application.
+1. Open MHVwork in Chrome
+2. Open the browser menu
+3. Choose **Install app** or **Add to Home screen**
 
 </details>
 
 <details>
 <summary><strong>💻 Desktop</strong></summary>
 
-Use Chrome or Edge and select the installation icon in the address bar when available.
+Use Chrome or Edge and click the install icon in the address bar.
 
 </details>
 
 ---
 
-## 🏗️ Architecture
+## 🚀 Getting started
 
-```text
-                           ┌─────────────────────┐
-                           │      MHVwork PWA    │
-                           │   HTML / CSS / JS   │
-                           └──────────┬──────────┘
-                                      │
-                ┌─────────────────────┼─────────────────────┐
-                │                     │                     │
-                ▼                     ▼                     ▼
-        ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-        │    Firebase  │      │   EmailJS    │      │    Browser   │
-        │     Auth     │      │    Email     │      │ Notifications│
-        └──────┬───────┘      └──────────────┘      └──────────────┘
-               │
-               ▼
-        ┌──────────────┐
-        │   Firestore  │
-        │   Database   │
-        └──────────────┘
+Full installation and update guide: see **[HANDLEIDING.md](./HANDLEIDING.md)** (Dutch).
+Overview of every change per version: see **[CHANGELOG.md](./CHANGELOG.md)** (Dutch).
+
+In short:
+1. Fork or clone this repository
+2. Create your own [Firebase](https://console.firebase.google.com) project (the Spark plan is enough)
+3. Fill in your Firebase config at the top of `app.html`, `index.html`, `register.html` and `reset-pw.html`
+4. Publish `firestore.rules` in the Firebase Console
+5. Turn on GitHub Pages for this repository
+
+---
+
+## 📁 Project structure
+
 ```
-
-### Technology
-
-| Component | Technology |
-|---|---|
-| Frontend | HTML5 / CSS3 / JavaScript |
-| Application model | Progressive Web App |
-| Database | Firebase Firestore |
-| Authentication | Firebase Authentication |
-| E-mail | EmailJS |
-| Notifications | Web Notification API |
-| Offline support | Service Worker |
-| Hosting | GitHub Pages |
-| Calendar | `.ics` |
+├── index.html          Login page
+├── register.html        Account registration (via invite link)
+├── reset-pw.html         Password reset
+├── app.html              The full application (all roles)
+├── voorwaarden.html       Terms of use & privacy policy (Dutch)
+├── promo.html             "What is MHVwork?" presentation
+├── firestore.rules        Firestore security rules
+├── manifest.json          PWA manifest
+├── sw.js                  Service worker
+├── index.js               Optional Cloud Functions (Gmail SMTP, account management)
+├── icon.svg / icon-*.png  App icons
+├── HANDLEIDING.md         Installation & update guide (Dutch)
+└── CHANGELOG.md           Changelog (Dutch)
+```
 
 ---
 
 ## 🔐 Security
 
-Security is a core part of MHVwork.
+- All database access goes through Firestore Security Rules — staff members can only edit their
+  own data, admins manage schedules/payouts within their granted permissions, and the dev role
+  has no access to financial data
+- Only a dev account can assign or revoke the dev role, and only dev can revoke a specific
+  permission from an admin — or disable a feature app-wide — both enforced in the app and in the
+  database rules, not just on screen
+- Password resets go through Firebase's own, secure flow
+- Suspended accounts are rejected immediately at login
 
-### Authentication
-
-Users authenticate through Firebase Authentication.
-
-### Authorization
-
-Firestore Security Rules determine which data users can read and modify.
-
-### Roles
-
-Application functionality is restricted according to the user's role.
-
-### Secrets
-
-Sensitive information such as:
-
-- passwords;
-- private keys;
-- API secrets;
-- service credentials;
-
-must **never** be committed directly to the repository.
-
-> ⚠️ Always review the current `firestore.rules` before deploying a production environment.
+> ⚠️ Always check the current `firestore.rules` before deploying to a production environment.
 
 ---
 
-## 📂 Project Structure
+## 🙏 Thanks to
 
-<details>
-<summary><strong>View project structure</strong></summary>
+For their help testing and shaping the app:
 
-```text
-MHVwork/
-│
-├── 📄 index.html
-├── 📄 app.html
-├── 📄 index.js
-│
-├── 🔐 firestore.rules
-│
-├── 📱 manifest.json
-├── ⚙️ sw.js
-│
-├── 👤 register.html
-├── 🔑 reset-pw.html
-├── 🛠️ seed-admin.html
-│
-├── 📖 HANDLEIDING.md
-├── 📝 CHANGELOG.md
-├── 📜 LICENSE
-│
-├── 🎨 promo.html
-├── 📄 voorwaarden.html
-│
-└── 🖼️ assets
-```
-
-</details>
-
----
-
-## ⚙️ Installation
-
-### Requirements
-
-- A modern web browser
-- A Firebase project
-- Firebase Authentication
-- Firebase Firestore
-- An EmailJS account if e-mail notifications are required
-
-### Clone the repository
-
-```bash
-git clone https://github.com/adminmossel/MHVwork.git
-cd MHVwork
-```
-
-### Local server
-
-For example, start a simple local server:
-
-```bash
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
-> See [`HANDLEIDING.md`](./HANDLEIDING.md) for complete installation and configuration instructions.
-
----
-
-## 🔧 Configuration
-
-MHVwork uses external services for several application features.
-
-### Firebase
-
-Configure:
-
-- Authentication
-- Firestore
-- Security Rules
-
-### EmailJS
-
-Configure EmailJS when e-mail notifications are enabled.
-
-### Production
-
-For production deployments, it is recommended to:
-
-- review security rules;
-- keep secrets outside the repository;
-- verify user roles;
-- monitor Firebase usage;
-- test notifications;
-- test PWA installation.
-
----
-
-## 📊 Project Status
-
-| Component | Status |
-|---|---|
-| 🔐 Authentication | ✅ Available |
-| 📅 Schedule management | ✅ Available |
-| 🔄 Shift exchanges | ✅ Available |
-| 💬 Group chat | ✅ Available |
-| 💶 Payments | ✅ Available |
-| 🔔 Notifications | ✅ Available |
-| 📱 PWA | ✅ Available |
-| 📆 Calendar export | ✅ Available |
-| 🛠️ Further development | 🚧 Active |
-
----
-
-## 🗺️ Roadmap
-
-<details>
-<summary><strong>✅ Completed</strong></summary>
-
-- [x] Basic schedule management
-- [x] Firebase Authentication
-- [x] Firestore integration
-- [x] Shift exchanges
-- [x] Group chat
-- [x] Payment tracking
-- [x] Push notifications
-- [x] E-mail notifications
-- [x] PWA support
-- [x] Calendar export
-
-</details>
-
-<details>
-<summary><strong>🚧 In Development</strong></summary>
-
-- [ ] Performance improvements
-- [ ] Improved mobile UX
-- [ ] Extended reporting
-- [ ] Improved notification settings
-
-</details>
-
-<details>
-<summary><strong>💡 Future</strong></summary>
-
-- [ ] Automated schedule generation
-- [ ] Advanced statistics
-- [ ] Audit logs
-- [ ] More administrative automation
-- [ ] Extended analytics
-
-</details>
-
----
-
-## 📝 Changelog
-
-All significant changes are documented in:
-
-**[`CHANGELOG.md`](./CHANGELOG.md)**
-
-The current application version is displayed through the version badge at the top of this README.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome when the project is open for them.
-We thank and praise the following people for helping with testing and developing.
 - R. Massalt
 - I. Massalt
 - C. Koning
 - J. v Heun (dev)
-- You!
-### Workflow
-
-```text
-Fork
-  │
-  ▼
-Branch
-  │
-  ▼
-Development
-  │
-  ▼
-Testing
-  │
-  ▼
-Pull Request
-  │
-  ▼
-Review
-  │
-  ▼
-Merge
-```
-
-### Pull Requests
-
-A good Pull Request should include:
-
-- a clear description;
-- the reason for the change;
-- relevant screenshots where appropriate;
-- testing information;
-- no secrets;
-- only relevant changes.
-
-For larger changes, opening an issue first is recommended.
+- You, if you pitch in!
 
 ---
 
-## 🐛 Bugs & Feature Requests
+## 📦 Libraries & licenses used
 
-Found a problem?
+MHVwork is hand-written without a framework, but relies on the following services and libraries:
 
-[Open an issue](https://github.com/adminmossel/MHVwork/issues/new)
-
-Please include:
-
-- browser;
-- device;
-- application version;
-- reproduction steps;
-- expected behavior;
-- actual behavior;
-- screenshots where relevant.
+| Library / service | Purpose | License |
+|---|---|---|
+| [Firebase](https://firebase.google.com) (Firestore, Auth, Cloud Functions) | Database, login, optional mail server | [Google APIs Terms of Service](https://developers.google.com/terms) |
+| [EmailJS](https://www.emailjs.com) | Sending e-mail from the browser | Own terms of service ([emailjs.com/legal](https://www.emailjs.com/legal/terms-of-service/)) |
+| [SheetJS (xlsx)](https://sheetjs.com) | Excel export in the browser | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+| [Nodemailer](https://nodemailer.com) | Gmail SMTP sending (optional, `index.js`) | MIT License |
+| [Outfit](https://fonts.google.com/specimen/Outfit) (Google Fonts) | Typeface | [SIL Open Font License 1.1](https://openfontlicense.org) |
 
 ---
 
-## 📜 License
+## 📄 License
 
-### ⚠️ Licensing Policy
-
-The license of MHVwork must always match the actual `LICENSE` file in the repository.
-
-**Only use the MIT section below if the repository is actually released under the MIT License.**
-
-### MIT License
-
-Copyright © MHVwork / MHV
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction, subject to the conditions of the MIT License.
-
-The complete legal text is available in:
-
-**[`LICENSE`](./LICENSE)**
-
-> If MHVwork is not intended for unrestricted reuse, replace this section with the actual proprietary/non-commercial license chosen for the project.
-
----
-
-## 🌐 Language
-
-| Language | Document |
-|---|---|
-| 🇳🇱 Nederlands | [README.md](./README.md) |
-| 🇬🇧 English | **Current page** |
-
----
-
-## 📞 Contact
-
-**MHVwork**
-
-For technical questions, bugs or support:
-
-📧 **h.mhvwork@gmail.com**
-
----
+This application was built for, and is for the internal use of, **MHV**. The source code may be
+freely viewed, adapted and reused by similar volunteer organisations; use it at your own risk and
+without any warranty. The external services and libraries listed above are governed by their own
+license terms (see the table above) — check those yourself before deploying or extending this app
+elsewhere.
 
 <div align="center">
+<br>
 
 ### 🍺 MHVwork
 
@@ -549,13 +304,6 @@ For technical questions, bugs or support:
 
 Built for **MHV**.
 
-<br>
-
-[🌐 Live App](https://adminmossel.github.io/MHVwork/) ·
-[💻 GitHub](https://github.com/adminmossel/MHVwork)
-
-<br><br>
-
-<sub>© MHVwork — MHV</sub>
+<sub>Questions, bugs or support: h.mhvwork@gmail.com</sub>
 
 </div>
