@@ -2078,7 +2078,11 @@ function renderAnnouncementArea(area, announcements, showAll){
 // Detailpagina van een aankondiging (als modal-'pagina'): afbeelding, opgemaakte tekst, bijlages.
 function openAnnouncementDetail(id){
   const ann=lastAnnouncements.find(a=>a.id===id); if(!ann)return;
-  const canDel = U.role==='software' || (U.role==='admin' && !ann.special);
+  // Verwijderrecht hangt af van wie de aankondiging heeft geplaatst — NIET van het 'special'-
+  // vlaggetje (dat is puur de rode opmaak/pop-up). Een beheerder mag nooit een aankondiging van
+  // een dev verwijderen, ook niet als die dev 'm niet als 'speciaal' heeft gemarkeerd.
+  const annAuthorRole = ann.authorRole || (allUsers.find(u=>u.uid===ann.authorUid)||{}).role;
+  const canDel = U.role==='software' || (U.role==='admin' && annAuthorRole!=='software');
   const dateStr = ann.createdAt?.toDate ? fmtDate(dKey(ann.createdAt.toDate())) : '';
   modal(`
     <div class="modal-handle"></div>
@@ -2503,7 +2507,13 @@ function renderAdminSettings(c){
       <div class="form-section"><label class="form-label">Reminder na (uren)</label>
         <input type="number" class="form-input" id="setReminderHours" min="1" value="${APP_SETTINGS.reminderHours}"></div>
       <button class="btn btn-yellow btn-full" onclick="saveAppSettings()">Opslaan</button>
-    </div></div>
+    </div></div>`;
+}
+// 'Functies tijdelijk uitzetten' (app-breed chat/rooster/beschikbaarheid uitzetten) staat expres
+// NIET meer in het beheerder-paneel — alleen dev mag dit (zie renderDevAcc). Een beheerder kan nog
+// altijd functies UIT ZETTEN VOOR ÉÉN PERSOON, bij die medewerker bewerken (eeFeature_-checkboxes).
+function renderFeatureFlagsPanel(){
+  return `
     <div class="section-label">Functies tijdelijk uitzetten</div>
     <div class="card" style="margin-bottom:16px"><div style="padding:16px">
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Werkt iets niet, of is er onderhoud? Zet een functie hier uit voor <b>alle</b> gebruikers. Ze zien dan netjes "tijdelijk buiten gebruik" i.p.v. een kapot scherm. Voor één persoon: ga naar die medewerker → Functies uitzetten voor deze persoon.</p>
@@ -2634,12 +2644,14 @@ function openEditEmployee(uid){
       </div>
     </label>
     <div class="section-label" style="margin-top:16px">Functies uitzetten voor deze persoon</div>
-    <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Bijvoorbeeld als iets voor deze persoon (nog) niet moet werken. Voor iedereen tegelijk: Instellingen → Functies tijdelijk uitzetten.</p>
+    ${restricted('toggleFeatures')?`
+    <p style="font-size:13px;color:var(--text3);text-align:center;padding:10px 0">Je bevoegdheid om functies bij een profiel uit te zetten is door de dev ingetrokken.</p>`:`
+    <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Bijvoorbeeld als iets voor deze persoon (nog) niet moet werken. Voor iedereen tegelijk (alleen dev): Beheer → Functies tijdelijk uitzetten.</p>
     ${Object.entries(TOGGLABLE_FEATURES).map(([key,label])=>`
     <label class="worker-check">
       <input type="checkbox" id="eeFeature_${key}" ${u.disabledFeatures?.includes(key)?'checked':''}>
       <div class="worker-check-info"><div class="worker-check-name">${label} uitzetten</div></div>
-    </label>`).join('')}
+    </label>`).join('')}`}
     ${(U.role==='software'&&u.role==='admin')?`
     <div class="section-label" style="margin-top:16px">Bevoegdheden intrekken (alleen dev)</div>
     <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Het account blijft gewoon werken — dit blokkeert alleen specifieke acties, in plaats van het hele account te schorsen.</p>
@@ -2670,6 +2682,10 @@ function openEditEmployee(uid){
     <label class="worker-check">
       <input type="checkbox" id="eeRestrictManageEmployees" ${u.restrictions?.manageEmployees?'checked':''}>
       <div class="worker-check-info"><div class="worker-check-name">Medewerkers niet mogen bewerken/schorsen/verwijderen</div></div>
+    </label>
+    <label class="worker-check">
+      <input type="checkbox" id="eeRestrictToggleFeatures" ${u.restrictions?.toggleFeatures?'checked':''}>
+      <div class="worker-check-info"><div class="worker-check-name">Geen functies mogen uitzetten bij een profiel</div></div>
     </label>`:''}
     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
   `);
@@ -2682,8 +2698,12 @@ async function saveEmployee(uid){
   const canServe=!!$('eeCanServe')?.checked;
   if(!name){toast('Naam verplicht','err');return;}
   const{db,doc,updateDoc,setDoc}=window._f;
-  const disabledFeatures=Object.keys(TOGGLABLE_FEATURES).filter(key=>!!$('eeFeature_'+key)?.checked);
-  const payload={name,wage,canServe,disabledFeatures};
+  const payload={name,wage,canServe};
+  // Functies uitzetten voor deze persoon — alleen meesturen als de checkboxes er zijn (ze staan er
+  // altijd, maar zijn uitgeschakeld voor een beheerder van wie de dev deze bevoegdheid introk).
+  if(!restricted('toggleFeatures')){
+    payload.disabledFeatures=Object.keys(TOGGLABLE_FEATURES).filter(key=>!!$('eeFeature_'+key)?.checked);
+  }
   if(role) payload.role=role;
   // Bevoegdheden-restricties (alleen door dev in te stellen, alleen relevant voor een beheerder-account)
   if($('eeRestrictAddEmployee')){
@@ -2695,6 +2715,7 @@ async function saveEmployee(uid){
       approve:!!$('eeRestrictApprove').checked,
       announcements:!!$('eeRestrictAnnouncements').checked,
       manageEmployees:!!$('eeRestrictManageEmployees').checked,
+      toggleFeatures:!!$('eeRestrictToggleFeatures').checked,
     };
   }
   try{
@@ -4656,7 +4677,8 @@ function renderDevAcc(){
     +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
     +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
     +'</div>'
-    +'</div>';
+    +'</div>'
+    +'<div style="padding:0 16px 16px">'+renderFeatureFlagsPanel()+'</div>';
 }
 
 // ═══════════════════════════════════════════

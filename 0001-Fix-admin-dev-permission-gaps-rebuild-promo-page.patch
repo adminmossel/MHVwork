@@ -1,0 +1,943 @@
+From 0ba520fc1e7c133262d7a38ab2b8a23f6dc2a2e4 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Wed, 23 Sep 2026 20:05:19 +0000
+Subject: [PATCH] Fix admin/dev permission gaps; rebuild promo page
+
+- Beheerder kan geen aankondiging van dev meer verwijderen (client + firestore.rules),
+  gebaseerd op wie 'm heeft geplaatst i.p.v. het 'special'-vlaggetje.
+- 'Functies tijdelijk uitzetten' (chat/rooster/beschikbaarheid app-breed) is nu
+  alleen voor dev (verplaatst naar devacc-scherm), niet meer voor beheerder.
+  Firestore-regel beperkt beheerder tot alleen het reminderHours-veld.
+- Nieuwe, door dev intrekbare bevoegdheid 'toggleFeatures': blokkeert een
+  beheerder in het uitzetten van functies per profiel, zowel in de UI als
+  server-side in firestore.rules.
+- promo.html volledig herbouwd: van een auto-afspelende 1280x720 slideshow naar
+  een echte, scrollbare landingspagina met concrete functies per rol
+  (medewerker/beheerder, dev bewust weggelaten).
+---
+ app.html        |  36 ++-
+ firestore.rules |  19 +-
+ promo.html      | 728 ++++++++++++++++++------------------------------
+ 3 files changed, 310 insertions(+), 473 deletions(-)
+
+diff --git a/app.html b/app.html
+index bda71b1..842a445 100644
+--- a/app.html
++++ b/app.html
+@@ -2078,7 +2078,11 @@ function renderAnnouncementArea(area, announcements, showAll){
+ // Detailpagina van een aankondiging (als modal-'pagina'): afbeelding, opgemaakte tekst, bijlages.
+ function openAnnouncementDetail(id){
+   const ann=lastAnnouncements.find(a=>a.id===id); if(!ann)return;
+-  const canDel = U.role==='software' || (U.role==='admin' && !ann.special);
++  // Verwijderrecht hangt af van wie de aankondiging heeft geplaatst — NIET van het 'special'-
++  // vlaggetje (dat is puur de rode opmaak/pop-up). Een beheerder mag nooit een aankondiging van
++  // een dev verwijderen, ook niet als die dev 'm niet als 'speciaal' heeft gemarkeerd.
++  const annAuthorRole = ann.authorRole || (allUsers.find(u=>u.uid===ann.authorUid)||{}).role;
++  const canDel = U.role==='software' || (U.role==='admin' && annAuthorRole!=='software');
+   const dateStr = ann.createdAt?.toDate ? fmtDate(dKey(ann.createdAt.toDate())) : '';
+   modal(`
+     <div class="modal-handle"></div>
+@@ -2503,7 +2507,13 @@ function renderAdminSettings(c){
+       <div class="form-section"><label class="form-label">Reminder na (uren)</label>
+         <input type="number" class="form-input" id="setReminderHours" min="1" value="${APP_SETTINGS.reminderHours}"></div>
+       <button class="btn btn-yellow btn-full" onclick="saveAppSettings()">Opslaan</button>
+-    </div></div>
++    </div></div>`;
++}
++// 'Functies tijdelijk uitzetten' (app-breed chat/rooster/beschikbaarheid uitzetten) staat expres
++// NIET meer in het beheerder-paneel — alleen dev mag dit (zie renderDevAcc). Een beheerder kan nog
++// altijd functies UIT ZETTEN VOOR ÉÉN PERSOON, bij die medewerker bewerken (eeFeature_-checkboxes).
++function renderFeatureFlagsPanel(){
++  return `
+     <div class="section-label">Functies tijdelijk uitzetten</div>
+     <div class="card" style="margin-bottom:16px"><div style="padding:16px">
+       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Werkt iets niet, of is er onderhoud? Zet een functie hier uit voor <b>alle</b> gebruikers. Ze zien dan netjes "tijdelijk buiten gebruik" i.p.v. een kapot scherm. Voor één persoon: ga naar die medewerker → Functies uitzetten voor deze persoon.</p>
+@@ -2634,12 +2644,14 @@ function openEditEmployee(uid){
+       </div>
+     </label>
+     <div class="section-label" style="margin-top:16px">Functies uitzetten voor deze persoon</div>
+-    <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Bijvoorbeeld als iets voor deze persoon (nog) niet moet werken. Voor iedereen tegelijk: Instellingen → Functies tijdelijk uitzetten.</p>
++    ${restricted('toggleFeatures')?`
++    <p style="font-size:13px;color:var(--text3);text-align:center;padding:10px 0">Je bevoegdheid om functies bij een profiel uit te zetten is door de dev ingetrokken.</p>`:`
++    <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Bijvoorbeeld als iets voor deze persoon (nog) niet moet werken. Voor iedereen tegelijk (alleen dev): Beheer → Functies tijdelijk uitzetten.</p>
+     ${Object.entries(TOGGLABLE_FEATURES).map(([key,label])=>`
+     <label class="worker-check">
+       <input type="checkbox" id="eeFeature_${key}" ${u.disabledFeatures?.includes(key)?'checked':''}>
+       <div class="worker-check-info"><div class="worker-check-name">${label} uitzetten</div></div>
+-    </label>`).join('')}
++    </label>`).join('')}`}
+     ${(U.role==='software'&&u.role==='admin')?`
+     <div class="section-label" style="margin-top:16px">Bevoegdheden intrekken (alleen dev)</div>
+     <p style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Het account blijft gewoon werken — dit blokkeert alleen specifieke acties, in plaats van het hele account te schorsen.</p>
+@@ -2670,6 +2682,10 @@ function openEditEmployee(uid){
+     <label class="worker-check">
+       <input type="checkbox" id="eeRestrictManageEmployees" ${u.restrictions?.manageEmployees?'checked':''}>
+       <div class="worker-check-info"><div class="worker-check-name">Medewerkers niet mogen bewerken/schorsen/verwijderen</div></div>
++    </label>
++    <label class="worker-check">
++      <input type="checkbox" id="eeRestrictToggleFeatures" ${u.restrictions?.toggleFeatures?'checked':''}>
++      <div class="worker-check-info"><div class="worker-check-name">Geen functies mogen uitzetten bij een profiel</div></div>
+     </label>`:''}
+     <button class="btn btn-yellow btn-full" onclick="saveEmployee('${uid}')">Opslaan</button>
+   `);
+@@ -2682,8 +2698,12 @@ async function saveEmployee(uid){
+   const canServe=!!$('eeCanServe')?.checked;
+   if(!name){toast('Naam verplicht','err');return;}
+   const{db,doc,updateDoc,setDoc}=window._f;
+-  const disabledFeatures=Object.keys(TOGGLABLE_FEATURES).filter(key=>!!$('eeFeature_'+key)?.checked);
+-  const payload={name,wage,canServe,disabledFeatures};
++  const payload={name,wage,canServe};
++  // Functies uitzetten voor deze persoon — alleen meesturen als de checkboxes er zijn (ze staan er
++  // altijd, maar zijn uitgeschakeld voor een beheerder van wie de dev deze bevoegdheid introk).
++  if(!restricted('toggleFeatures')){
++    payload.disabledFeatures=Object.keys(TOGGLABLE_FEATURES).filter(key=>!!$('eeFeature_'+key)?.checked);
++  }
+   if(role) payload.role=role;
+   // Bevoegdheden-restricties (alleen door dev in te stellen, alleen relevant voor een beheerder-account)
+   if($('eeRestrictAddEmployee')){
+@@ -2695,6 +2715,7 @@ async function saveEmployee(uid){
+       approve:!!$('eeRestrictApprove').checked,
+       announcements:!!$('eeRestrictAnnouncements').checked,
+       manageEmployees:!!$('eeRestrictManageEmployees').checked,
++      toggleFeatures:!!$('eeRestrictToggleFeatures').checked,
+     };
+   }
+   try{
+@@ -4656,7 +4677,8 @@ function renderDevAcc(){
+     +'<textarea class="form-input" id="devBody" rows="3" style="resize:none;margin-top:6px" placeholder="Typ je bericht..."></textarea></div>'
+     +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
+     +'</div>'
+-    +'</div>';
++    +'</div>'
++    +'<div style="padding:0 16px 16px">'+renderFeatureFlagsPanel()+'</div>';
+ }
+ 
+ // ═══════════════════════════════════════════
+diff --git a/firestore.rules b/firestore.rules
+index e7ee54c..1db19c4 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -30,7 +30,8 @@ service cloud.firestore {
+         || (isAdmin() && request.resource.data.role != 'software')
+         || (isAuth() && request.auth.uid == uid);
+       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']) && !restr('manageEmployees'))
++            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']) && !restr('manageEmployees')
++            && !(restr('toggleFeatures') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['disabledFeatures'])))
+         || isSoftware()
+         || (isAuth() && request.auth.uid == uid
+             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified']));
+@@ -135,8 +136,9 @@ service cloud.firestore {
+       allow read: if isAuth();
+       allow create: if isStaff() && !restr('announcements');
+       allow update: if isStaff();
+-      // Een beheerder mag geen 'speciale' (dev-only) aankondiging verwijderen — alleen dev zelf.
+-      allow delete: if isSoftware() || (isAdmin() && resource.data.special != true);
++      // Een beheerder mag nooit een aankondiging van een dev verwijderen — dat hangt af van wie
++      // 'm heeft geplaatst (authorRole), niet van het 'special'-vlaggetje (dat is alleen opmaak).
++      allow delete: if isSoftware() || (isAdmin() && resource.data.get('authorRole', 'admin') != 'software');
+     }
+ 
+     // Privéberichten (medewerker <-> beheerder/dev), 1 doc per thread
+@@ -152,10 +154,17 @@ service cloud.firestore {
+       allow delete: if isStaff();
+     }
+ 
+-    // Globale instellingen (bv. reminder-uren), alleen beheerder/dev mag schrijven
++    // Globale instellingen. Een beheerder mag alleen de reminder-uren aanpassen (settings/general,
++    // veld 'reminderHours'). Functies app-breed uitzetten (disabledFeatures/disabledMsg) en het
++    // versienummer (settings/app) mag uitsluitend dev — dat kan hele onderdelen van de app voor
++    // IEDEREEN blokkeren en hoort niet bij een beheerder-account.
+     match /settings/{id} {
+       allow read: if isAuth();
+-      allow write: if isStaff();
++      allow write: if isSoftware()
++        || (isAdmin() && id == 'general'
++            && (resource == null
++                ? request.resource.data.diff({}).affectedKeys().hasOnly(['reminderHours'])
++                : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reminderHours'])));
+     }
+ 
+     // Alleen zichtbaar voor de dev-rol
+diff --git a/promo.html b/promo.html
+index c0e01ff..db051b7 100644
+--- a/promo.html
++++ b/promo.html
+@@ -3,507 +3,313 @@
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-<title>MHVwork — Promo</title>
++<title>MHVwork — het rooster van de MHV-kantine</title>
++<meta name="description" content="MHVwork is het gratis rooster, de chat en de uitbetaling voor de barhulp van MHV. Geen abonnement, geen WhatsApp-chaos.">
++<link rel="preconnect" href="https://fonts.googleapis.com">
++<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+ <style>
++:root{
++  --bg:#07080D; --bg2:#0E101A; --bg3:#161826;
++  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.14);
++  --ink:#F3F4F7; --ink2:#9BA0B4; --ink3:#666B7E;
++  --blue:#3E5EF2; --blue-deep:#1A3BB5; --blue-dim:rgba(62,94,242,.12);
++  --yellow:#F5C800; --yellow-dim:rgba(245,200,0,.1);
++  --green:#30D158;
++  --serif:'Fraunces',Georgia,serif;
++  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,Arial,sans-serif;
++}
+ *{margin:0;padding:0;box-sizing:border-box;}
+-html,body{background:#000;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;overflow:hidden;width:100%;height:100%;color:#fff;}
+-body{position:relative;}
+-.frame{position:absolute;top:50%;left:50%;width:1280px;height:720px;transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center center;}
+-
+-.scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .8s ease;display:flex;align-items:center;justify-content:center;}
+-.scene.active{opacity:1;pointer-events:all;}
++html{scroll-behavior:smooth;}
++body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;}
++img,svg{max-width:100%;}
++a{color:inherit;}
++:focus-visible{outline:2px solid var(--yellow);outline-offset:3px;border-radius:4px;}
++@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;scroll-behavior:auto !important;}}
+ 
+-/* ── S1 ── */
+-#s1{background:radial-gradient(ellipse at 50% 45%,#0d2070 0%,#000 70%);}
+-.s1-wrap{text-align:center;}
+-.logo-ring{width:170px;height:170px;border-radius:40px;background:#1A3BB5;margin:0 auto 26px;display:flex;align-items:center;justify-content:center;
+-  box-shadow:0 0 0 1px rgba(245,200,0,.25),0 0 60px rgba(29,63,187,.5);
+-  transform:scale(0) rotate(-8deg);transition:transform 1.1s cubic-bezier(.22,.68,0,1.35) .15s;}
+-.scene.active .logo-ring{transform:scale(1) rotate(0deg);}
+-.s1-title{font-size:54px;font-weight:800;letter-spacing:-2px;opacity:0;transform:translateY(24px);transition:all .8s ease .7s;}
+-.scene.active .s1-title{opacity:1;transform:translateY(0);}
+-.s1-title span{color:#F5C800;}
+-.s1-sub{margin-top:10px;font-size:19px;color:rgba(255,255,255,.4);opacity:0;transition:all .7s ease 1.05s;}
+-.scene.active .s1-sub{opacity:1;}
++.wrap{max-width:1120px;margin:0 auto;padding:0 28px;}
++.prose{max-width:640px;}
+ 
+-/* ── S2: Features ── */
+-#s2{background:#080808;flex-direction:column;gap:34px;}
+-.s2-head{font-size:44px;font-weight:800;letter-spacing:-1.5px;text-align:center;opacity:0;transform:translateY(-16px);transition:all .7s ease .1s;}
+-.scene.active .s2-head{opacity:1;transform:translateY(0);}
+-.s2-head span{color:#F5C800;}
+-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;width:980px;}
+-.feat{background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;
+-  opacity:0;transform:translateY(26px) scale(.96);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,0,1.1),border-color .3s ease;}
+-.scene.active .feat{opacity:1;transform:translateY(0) scale(1);}
+-.scene.active .feat:nth-child(1){transition-delay:.2s;}
+-.scene.active .feat:nth-child(2){transition-delay:.35s;}
+-.scene.active .feat:nth-child(3){transition-delay:.5s;}
+-.scene.active .feat:nth-child(4){transition-delay:.65s;}
+-.scene.active .feat:nth-child(5){transition-delay:.8s;}
+-.scene.active .feat:nth-child(6){transition-delay:.95s;}
+-.feat.open{border-color:rgba(245,200,0,.35);}
+-.feat-top{padding:20px 20px 16px;display:flex;align-items:center;gap:13px;}
+-.feat-icon-wrap{width:42px;height:42px;border-radius:12px;background:rgba(245,200,0,.1);display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;transition:background .3s ease;}
+-.feat.open .feat-icon-wrap{background:rgba(245,200,0,.22);}
+-.feat-title{font-size:15px;font-weight:700;}
+-.feat-expand{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .45s ease,padding-bottom .45s ease;}
+-.feat.open .feat-expand{max-height:130px;padding-bottom:20px;}
+-.feat-desc{font-size:12.5px;color:rgba(255,255,255,.5);line-height:1.6;}
+-.feat-visual{margin-top:10px;background:rgba(245,200,0,.07);border:1px solid rgba(245,200,0,.15);border-radius:9px;padding:8px 12px;font-size:11px;color:#F5C800;font-weight:600;}
++/* ── Nav ── */
++header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rgba(7,8,13,.72);border-bottom:1px solid transparent;transition:border-color .3s ease;}
++header.scrolled{border-color:var(--line);}
++.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;}
++.brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:600;font-size:18px;text-decoration:none;}
++.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--blue-deep);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
++.brand span{color:var(--yellow);}
++.nav-cta{display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:#181300;font-weight:700;font-size:14px;padding:9px 18px;border-radius:10px;text-decoration:none;transition:transform .15s ease,background .15s ease;}
++.nav-cta:hover{background:#ffd633;transform:translateY(-1px);}
+ 
+-/* ── S3: Medewerker ── */
+-#s3{background:#080808;flex-direction:row;padding:0 70px;gap:50px;}
+-.s3-left{width:430px;flex-shrink:0;}
+-.s3-tag{display:inline-block;background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.25);color:#30D158;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+-  opacity:0;transform:translateX(-20px);transition:all .6s ease .15s;}
+-.scene.active .s3-tag{opacity:1;transform:translateX(0);}
+-.s3-title{font-size:48px;font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px;
+-  opacity:0;transform:translateX(-24px);transition:all .7s ease .3s;}
+-.scene.active .s3-title{opacity:1;transform:translateX(0);}
+-.s3-title span{color:#F5C800;}
+-.s3-point{display:flex;align-items:flex-start;gap:13px;margin-bottom:17px;opacity:0;}
+-.scene.active .s3-point:nth-child(1){animation:si .6s ease .5s both;}
+-.scene.active .s3-point:nth-child(2){animation:si .6s ease .7s both;}
+-.scene.active .s3-point:nth-child(3){animation:si .6s ease .9s both;}
+-.scene.active .s3-point:nth-child(4){animation:si .6s ease 1.1s both;}
+-.scene.active .s3-point:nth-child(5){animation:si .6s ease 1.3s both;}
+-@keyframes si{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+-.sp-dot{width:7px;height:7px;border-radius:50%;background:#F5C800;margin-top:7px;flex-shrink:0;}
+-.sp-text{font-size:14px;color:rgba(255,255,255,.7);line-height:1.5;}
+-.sp-text strong{color:#fff;}
+-.s3-right{flex-shrink:0;}
+-.mock-phone{width:250px;height:480px;background:#1C1C1E;border-radius:34px;border:2.5px solid rgba(255,255,255,.1);overflow:hidden;
+-  box-shadow:0 40px 80px rgba(0,0,0,.7);
+-  opacity:0;transform:translateX(30px) rotate(3deg);transition:all .9s cubic-bezier(.22,.68,0,1.2) .4s;}
+-.scene.active .mock-phone{opacity:1;transform:translateX(0) rotate(3deg);}
+-.mock-header{background:#000;padding:15px 16px 9px;border-bottom:1px solid rgba(255,255,255,.06);}
+-.mock-logo{font-size:13px;font-weight:800;}
+-.mock-logo span{color:#F5C800;}
+-.mock-body{padding:14px;display:flex;flex-direction:column;gap:9px;}
+-.mock-title{font-size:14px;font-weight:800;margin-bottom:3px;}
+-.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+-.stat-box{background:#2C2C2E;border-radius:11px;padding:11px;text-align:center;}
+-.stat-num{font-size:20px;font-weight:800;color:#F5C800;}
+-.stat-lbl{font-size:9.5px;color:rgba(255,255,255,.4);margin-top:2px;}
+-.shift-item{background:#2C2C2E;border-radius:11px;padding:10px 12px;border-left:3px solid #F5C800;}
+-.shift-time{font-size:12.5px;font-weight:700;}
+-.shift-date{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:2px;}
+-.mock-btns{display:flex;gap:6px;}
+-.mock-btn{flex:1;padding:7px 6px;border-radius:8px;font-size:10.5px;font-weight:700;text-align:center;border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);}
++/* ── Hero ── */
++.hero{padding:96px 0 84px;position:relative;overflow:hidden;}
++.hero::before{content:'';position:absolute;top:-220px;left:50%;width:900px;height:560px;transform:translateX(-50%);
++  background:radial-gradient(ellipse at center,rgba(26,59,181,.35),transparent 65%);pointer-events:none;}
++.hero-inner{position:relative;max-width:760px;}
++.eyebrow-tag{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink2);background:var(--bg3);border:1px solid var(--line);padding:6px 14px 6px 10px;border-radius:20px;margin-bottom:26px;
++  opacity:0;animation:rise .7s ease .1s forwards;}
++.eyebrow-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
++h1{font-family:var(--serif);font-weight:600;font-size:clamp(38px,6vw,64px);line-height:1.06;letter-spacing:-.5px;
++  opacity:0;animation:rise .8s ease .22s forwards;}
++h1 em{font-style:normal;color:var(--yellow);}
++.hero-sub{margin-top:22px;font-size:18px;line-height:1.6;color:var(--ink2);max-width:560px;
++  opacity:0;animation:rise .8s ease .38s forwards;}
++.hero-ctas{margin-top:34px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;
++  opacity:0;animation:rise .8s ease .52s forwards;}
++.btn{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:700;padding:13px 22px;border-radius:12px;text-decoration:none;border:1px solid transparent;transition:transform .15s ease,background .15s ease,border-color .15s ease;}
++.btn-primary{background:var(--yellow);color:#181300;}
++.btn-primary:hover{background:#ffd633;transform:translateY(-1px);}
++.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line2);}
++.btn-ghost:hover{border-color:var(--ink2);}
++.trust-line{margin-top:20px;font-size:13px;color:var(--ink3);display:flex;flex-wrap:wrap;gap:6px 10px;
++  opacity:0;animation:rise .8s ease .64s forwards;}
++.trust-line b{color:var(--ink2);font-weight:600;}
++@keyframes rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+ 
+-/* ── S4: Chat ── */
+-#s4{background:#080808;flex-direction:row;padding:0 70px;gap:50px;}
+-.s4-left{width:370px;flex-shrink:0;}
+-.s4-tag{display:inline-block;background:rgba(29,63,187,.2);border:1px solid rgba(29,63,187,.4);color:#7b9bff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+-  opacity:0;transition:all .6s ease .15s;}
+-.scene.active .s4-tag{opacity:1;}
+-.s4-title{font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px;
+-  opacity:0;transition:all .7s ease .3s;}
+-.scene.active .s4-title{opacity:1;}
+-.s4-title span{color:#F5C800;}
+-.s4-feat{display:flex;align-items:center;gap:13px;margin-bottom:16px;opacity:0;}
+-.scene.active .s4-feat:nth-child(1){animation:si .6s ease .45s both;}
+-.scene.active .s4-feat:nth-child(2){animation:si .6s ease .65s both;}
+-.scene.active .s4-feat:nth-child(3){animation:si .6s ease .85s both;}
+-.scene.active .s4-feat:nth-child(4){animation:si .6s ease 1.05s both;}
+-.sf-icon{width:40px;height:40px;border-radius:11px;background:rgba(245,200,0,.1);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+-.sf-text{font-size:13.5px;color:rgba(255,255,255,.65);line-height:1.45;}
+-.sf-text strong{color:#fff;}
+-.chat-phone{width:270px;height:500px;background:#1C1C1E;border-radius:36px;border:2.5px solid rgba(255,255,255,.1);overflow:hidden;display:flex;flex-direction:column;
+-  box-shadow:0 40px 80px rgba(0,0,0,.7);
+-  opacity:0;transform:scale(.88);transition:all .9s cubic-bezier(.22,.68,0,1.2) .35s;}
+-.scene.active .chat-phone{opacity:1;transform:scale(1);}
+-.cp-header{background:#000;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+-.cp-title{font-size:13.5px;font-weight:800;}
+-.cp-sub{font-size:9.5px;color:rgba(255,255,255,.3);margin-top:1px;}
+-.cp-msgs{padding:12px;display:flex;flex-direction:column;gap:9px;flex:1;overflow:hidden;}
+-.cm-row{display:flex;gap:7px;align-items:flex-end;opacity:0;transform:translateY(10px);}
+-.cm-row.me{flex-direction:row-reverse;}
+-.cm-av{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+-.cm-bubblewrap{display:flex;flex-direction:column;max-width:170px;}
+-.cm-row.me .cm-bubblewrap{align-items:flex-end;}
+-.cm-name{font-size:9px;color:rgba(255,255,255,.32);margin-bottom:3px;padding:0 3px;}
+-.cm-bubble{padding:7px 11px;font-size:11.5px;line-height:1.45;border-radius:15px 15px 15px 4px;color:#fff;background:#2C2C2E;}
+-.cm-row.me .cm-bubble{background:#1A3BB5;border-radius:15px 15px 4px 15px;}
+-.cm-mention{color:#F5C800;font-weight:700;}
+-.cm-swap{background:rgba(245,200,0,.08);border:1px solid rgba(245,200,0,.2);border-radius:8px;padding:7px 9px;margin-top:6px;font-size:10.5px;color:rgba(255,255,255,.6);}
+-.cm-swap strong{color:#F5C800;display:block;margin-bottom:2px;}
+-.cp-input{padding:10px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;align-items:center;background:#000;flex-shrink:0;}
+-.cp-ta{flex:1;background:#2C2C2E;border-radius:16px;padding:7px 12px;font-size:10.5px;color:rgba(255,255,255,.4);}
+-.cp-send{width:28px;height:28px;border-radius:50%;background:#F5C800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
++/* ── Before/after ── */
++.band{padding:76px 0;border-top:1px solid var(--line);}
++.compare-head{font-family:var(--serif);font-weight:600;font-size:clamp(26px,3.4vw,36px);letter-spacing:-.3px;margin-bottom:34px;max-width:560px;}
++.compare{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
++.compare>div{background:var(--bg2);padding:26px 28px;}
++.compare-label{font-size:12.5px;font-weight:700;color:var(--ink3);margin-bottom:10px;}
++.compare .before .compare-label{color:#c96a5c;}
++.compare .after .compare-label{color:var(--green);}
++.compare p{font-size:15px;line-height:1.65;color:var(--ink2);}
++.compare .after p{color:var(--ink);}
++@media (max-width:680px){.compare{grid-template-columns:1fr;}}
+ 
+-/* ── S8: Einde ── */
+-#s8{background:radial-gradient(circle at 30% 50%,#102a8a 0%,#040712 55%,#000 100%);justify-content:center;gap:90px;}
+-.s5-left{opacity:0;transform:translateX(-30px);transition:all .9s cubic-bezier(.22,.68,0,1.2) .15s;text-align:right;}
+-.scene.active .s5-left{opacity:1;transform:translateX(0);}
+-.s5-big{font-size:84px;font-weight:800;letter-spacing:-3px;line-height:1;}
+-.s5-big span{color:#F5C800;}
+-.s5-url{margin-top:16px;font-size:17px;color:rgba(255,255,255,.4);}
+-.s5-url strong{color:rgba(255,255,255,.75);}
+-.s5-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(245,200,0,.12) 0%,transparent 70%);
+-  opacity:0;transition:opacity 1.2s ease .3s;pointer-events:none;}
+-.scene.active .s5-glow{opacity:1;}
+-.s5-phone-wrap{opacity:0;transform:translateX(40px) rotate(0deg);transition:all 1s cubic-bezier(.22,.68,0,1.3) .35s;flex-shrink:0;position:relative;z-index:2;}
+-.scene.active .s5-phone-wrap{opacity:1;transform:translateX(0) rotate(11deg);}
+-.s5-phone{width:210px;height:430px;background:#1C1C1E;border-radius:34px;border:2.5px solid rgba(255,255,255,.14);
+-  box-shadow:-25px 35px 90px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.05),inset 0 1px 0 rgba(255,255,255,.08);
+-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+-.s5-phone-icon{width:76px;height:76px;border-radius:18px;background:#1A3BB5;display:flex;align-items:center;justify-content:center;
+-  box-shadow:0 0 36px rgba(29,63,187,.6);}
+-.s5-phone-name{font-size:17px;font-weight:800;}
+-.s5-phone-name span{color:#F5C800;}
++/* ── Role bands ── */
++.role-band{padding:88px 0;border-top:1px solid var(--line);position:relative;}
++.role-band.medewerker{background:linear-gradient(180deg,rgba(26,59,181,.08),transparent 40%);}
++.role-band.beheerder{background:linear-gradient(180deg,rgba(245,200,0,.055),transparent 40%);}
++.role-grid{display:grid;grid-template-columns:1fr 300px;gap:64px;align-items:center;}
++.role-band.beheerder .role-grid{grid-template-columns:300px 1fr;}
++.role-band.beheerder .role-text{order:2;}
++.role-band.beheerder .role-visual{order:1;}
++@media (max-width:860px){
++  .role-grid,.role-band.beheerder .role-grid{grid-template-columns:1fr;}
++  .role-band.beheerder .role-text,.role-band.beheerder .role-visual{order:0;}
++  .role-visual{justify-self:center;margin-top:44px;}
++}
++.role-tag{display:inline-block;font-size:12.5px;font-weight:700;padding:6px 14px;border-radius:20px;margin-bottom:20px;}
++.medewerker .role-tag{color:#8fa5ff;background:var(--blue-dim);border:1px solid rgba(62,94,242,.35);}
++.beheerder .role-tag{color:#F5C800;background:var(--yellow-dim);border:1px solid rgba(245,200,0,.3);}
++.role-title{font-family:var(--serif);font-weight:600;font-size:clamp(28px,3.6vw,40px);letter-spacing:-.4px;line-height:1.12;margin-bottom:28px;max-width:420px;}
++.role-list{display:flex;flex-direction:column;gap:18px;}
++.role-item{display:flex;gap:14px;}
++.role-item-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
++.medewerker .role-item-icon{background:var(--blue-dim);color:#8fa5ff;}
++.beheerder .role-item-icon{background:var(--yellow-dim);color:var(--yellow);}
++.role-item-text{font-size:14.5px;line-height:1.55;color:var(--ink2);padding-top:6px;}
++.role-item-text strong{color:var(--ink);font-weight:600;}
+ 
+-/* ── S5(new): Beheerder ── */
+-#s5{background:#080808;flex-direction:row;padding:0 70px;gap:50px;}
+-.s5b-tag{display:inline-block;background:rgba(245,200,0,.12);border:1px solid rgba(245,200,0,.3);color:#F5C800;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+-  opacity:0;transform:translateX(-20px);transition:all .6s ease .15s;}
+-.scene.active .s5b-tag{opacity:1;transform:translateX(0);}
+-.s5b-title{font-size:48px;font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px;
+-  opacity:0;transform:translateX(-24px);transition:all .7s ease .3s;}
+-.scene.active .s5b-title{opacity:1;transform:translateX(0);}
+-.s5b-title span{color:#F5C800;}
+-.admin-phone{width:250px;height:480px;background:#1C1C1E;border-radius:34px;border:2.5px solid rgba(255,255,255,.1);overflow:hidden;
+-  box-shadow:0 40px 80px rgba(0,0,0,.7);opacity:0;transform:translateX(30px) rotate(-3deg);transition:all .9s cubic-bezier(.22,.68,0,1.2) .4s;}
+-.scene.active .admin-phone{opacity:1;transform:translateX(0) rotate(-3deg);}
+-.ap-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;}
+-.ap-stat{background:#2C2C2E;border-radius:10px;padding:8px 5px;text-align:center;}
+-.ap-stat .n{font-size:15px;font-weight:800;}
+-.ap-stat .l{font-size:8px;color:rgba(255,255,255,.4);margin-top:2px;}
+-.ap-ann{background:linear-gradient(90deg,rgba(255,159,10,.14),rgba(255,159,10,.03));border-left:3px solid #FF9F0A;border-radius:9px;padding:9px 11px;margin-top:10px;}
+-.ap-ann .t{font-size:10.5px;font-weight:700;}
+-.ap-ann .s{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
++/* phone mock (medewerker) */
++.phone{width:272px;background:#131521;border-radius:30px;border:1px solid var(--line2);overflow:hidden;box-shadow:0 30px 70px -20px rgba(0,0,0,.6);}
++.phone-bar{background:#0A0B12;padding:14px 16px 10px;border-bottom:1px solid var(--line);font-family:var(--serif);font-weight:600;font-size:13px;}
++.phone-bar span{color:var(--yellow);}
++.phone-body{padding:16px;display:flex;flex-direction:column;gap:10px;}
++.phone-greet{font-size:14px;font-weight:700;}
++.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
++.stat-box{background:var(--bg3);border-radius:12px;padding:12px;text-align:center;}
++.stat-num{font-size:19px;font-weight:800;}
++.stat-lbl{font-size:9.5px;color:var(--ink3);margin-top:3px;}
++.mini-label{font-size:10px;color:var(--ink3);margin-top:2px;}
++.shift-card{background:var(--bg3);border-radius:12px;padding:11px 13px;border-left:3px solid var(--yellow);}
++.shift-time{font-size:12.5px;font-weight:700;}
++.shift-date{font-size:10.5px;color:var(--ink3);margin-top:2px;}
++.row-btns{display:flex;gap:7px;}
++.row-btn{flex:1;padding:8px 6px;border-radius:9px;font-size:10.5px;font-weight:700;text-align:center;border:1px solid var(--line2);color:var(--ink2);}
++.ann-card{background:var(--bg3);border-left:3px solid var(--yellow);border-radius:10px;padding:9px 11px;}
++.ann-card .t{font-size:11.5px;font-weight:700;}
++.ann-card .s{font-size:9.5px;color:var(--ink3);margin-top:2px;}
+ 
+-/* ── S6: Exporteren & rollen ── */
+-#s6{background:#080808;flex-direction:column;gap:30px;}
+-.s6-head{font-size:40px;font-weight:800;letter-spacing:-1.5px;text-align:center;opacity:0;transform:translateY(-16px);transition:all .7s ease .1s;}
+-.scene.active .s6-head{opacity:1;transform:translateY(0);}
+-.s6-head span{color:#F5C800;}
+-.s6-row{display:flex;gap:20px;}
+-.exp-card{width:220px;background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px 18px;text-align:center;
+-  opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,0,1.1);}
+-.scene.active .exp-card{opacity:1;transform:translateY(0);}
+-.scene.active .exp-card:nth-child(1){transition-delay:.2s;}
+-.scene.active .exp-card:nth-child(2){transition-delay:.35s;}
+-.exp-icon{width:46px;height:46px;border-radius:13px;background:rgba(48,209,88,.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 12px;color:#30D158;}
+-.exp-card:nth-child(2) .exp-icon{background:rgba(255,69,58,.12);color:#FF453A;}
+-.exp-title{font-size:14.5px;font-weight:700;margin-bottom:5px;}
+-.exp-desc{font-size:11.5px;color:rgba(255,255,255,.5);line-height:1.5;}
+-.role-row{display:flex;gap:16px;}
+-.role-card{width:180px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;text-align:center;
+-  opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,0,1.1);}
+-.scene.active .role-card{opacity:1;transform:translateY(0);}
+-.scene.active .role-card:nth-child(1){transition-delay:.5s;}
+-.scene.active .role-card:nth-child(2){transition-delay:.62s;}
+-.scene.active .role-card:nth-child(3){transition-delay:.74s;}
+-.role-icon{width:38px;height:38px;border-radius:50%;background:rgba(245,200,0,.12);color:#F5C800;display:flex;align-items:center;justify-content:center;font-size:17px;margin:0 auto 10px;}
+-.role-name{font-size:13px;font-weight:700;}
+-.role-desc{font-size:10.5px;color:rgba(255,255,255,.45);margin-top:4px;line-height:1.4;}
++/* ── Shared feature strip ── */
++.strip{padding:76px 0;border-top:1px solid var(--line);}
++.strip-head{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3vw,32px);margin-bottom:40px;max-width:520px;letter-spacing:-.3px;}
++.strip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
++.strip-item{background:var(--bg2);padding:26px 22px;}
++.strip-icon{width:36px;height:36px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--yellow);}
++.strip-title{font-size:14.5px;font-weight:700;margin-bottom:6px;}
++.strip-desc{font-size:12.5px;color:var(--ink3);line-height:1.5;}
++@media (max-width:860px){.strip-grid{grid-template-columns:1fr 1fr;}}
++@media (max-width:520px){.strip-grid{grid-template-columns:1fr;}}
+ 
+-/* ── S7: Persoonlijk & flexibel ── */
+-#s7{background:#080808;flex-direction:row;padding:0 70px;gap:60px;}
+-.s7-left{width:400px;flex-shrink:0;}
+-.s7-tag{display:inline-block;background:rgba(123,155,255,.14);border:1px solid rgba(123,155,255,.35);color:#7b9bff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:18px;
+-  opacity:0;transition:all .6s ease .15s;}
+-.scene.active .s7-tag{opacity:1;}
+-.s7-title{font-size:42px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:22px;opacity:0;transition:all .7s ease .3s;}
+-.scene.active .s7-title{opacity:1;}
+-.s7-title span{color:#F5C800;}
+-.theme-row{display:flex;gap:10px;margin-bottom:22px;}
+-.theme-swatch{width:56px;height:56px;border-radius:13px;border:1.5px solid rgba(255,255,255,.12);opacity:0;transform:scale(.8);transition:all .5s cubic-bezier(.34,1.56,.64,1);}
+-.scene.active .theme-swatch{opacity:1;transform:scale(1);}
+-.scene.active .theme-swatch:nth-child(1){transition-delay:.5s;}
+-.scene.active .theme-swatch:nth-child(2){transition-delay:.6s;}
+-.scene.active .theme-swatch:nth-child(3){transition-delay:.7s;}
+-.scene.active .theme-swatch:nth-child(4){transition-delay:.8s;}
+-.s7-toggle-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:13px 16px;opacity:0;}
+-.scene.active .s7-toggle-row{animation:si .6s ease .9s both;}
+-.tgl{width:38px;height:22px;border-radius:99px;background:#F5C800;position:relative;flex-shrink:0;}
+-.tgl i{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#000;}
+-.s7-toggle-text{font-size:12.5px;color:rgba(255,255,255,.65);}
+-.s7-toggle-text strong{color:#fff;display:block;font-size:13.5px;margin-bottom:1px;}
+-.s7-right{position:relative;flex-shrink:0;opacity:0;transform:scale(.9);transition:all .9s cubic-bezier(.22,.68,0,1.2) .35s;}
+-.scene.active .s7-right{opacity:1;transform:scale(1);}
+-.s7-photo-ring{width:230px;height:230px;border-radius:50%;background:conic-gradient(from 0deg,#F5C800,#1A3BB5,#F5C800);display:flex;align-items:center;justify-content:center;animation:s7spin 6s linear infinite;}
+-@keyframes s7spin{to{transform:rotate(360deg)}}
+-.s7-photo-inner{width:214px;height:214px;border-radius:50%;background:#1C1C1E;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800;color:#F5C800;}
++/* ── Closing ── */
++.closing{padding:100px 0 70px;border-top:1px solid var(--line);text-align:center;}
++.closing-mark{font-family:var(--serif);font-weight:600;font-size:clamp(34px,5.5vw,52px);letter-spacing:-.5px;}
++.closing-mark span{color:var(--yellow);}
++.closing-sub{margin-top:14px;font-size:15px;color:var(--ink2);}
++.closing-ctas{margin-top:30px;display:flex;justify-content:center;flex-wrap:wrap;gap:12px;}
+ 
+-.progress{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;}
+-.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;transition:all .3s ease;}
+-.dot.active{background:#F5C800;width:22px;border-radius:4px;}
++footer{border-top:1px solid var(--line);padding:26px 0 40px;}
++.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12.5px;color:var(--ink3);}
++.foot-row a{text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px;}
+ </style>
+-<script src="icons.js"></script>
+ </head>
+ <body>
+-<div class="frame">
+-
+-<div class="scene" id="s1">
+-  <div class="s1-wrap">
+-    <div class="logo-ring">
+-      <svg width="115" height="115" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+-        <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
+-        <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
+-        <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
+-        <circle cx="340" cy="195" r="72" fill="#1A3BB5" stroke="#F5C800" stroke-width="20"/>
+-        <line x1="340" y1="195" x2="340" y2="164" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+-        <line x1="340" y1="195" x2="366" y2="195" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+-        <circle cx="340" cy="195" r="18" fill="#1A3BB5"/><circle cx="340" cy="195" r="9" fill="#fff"/>
+-      </svg>
+-    </div>
+-    <div class="s1-title">MHV<span>work</span></div>
+-    <div class="s1-sub">Roosterbeheer voor de barhulp van MHV</div>
+-  </div>
+-</div>
+ 
+-<div class="scene" id="s2">
+-  <div class="s2-head">Alles in <span>één app</span></div>
+-  <div class="feat-grid" id="featGrid">
+-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="calendar"></span></div><div class="feat-title">Roosters</div></div>
+-      <div class="feat-expand"><div class="feat-desc">Diensten aanmaken en toewijzen. Bevestigen, tijden aanpassen, overzicht per week.</div>
+-      <div class="feat-visual">Kalenderweergave · Bevestigen · Tijden aanpassen</div></div></div>
+-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="chat"></span></div><div class="feat-title">Groepschat</div></div>
+-      <div class="feat-expand"><div class="feat-desc">Live berichten voor iedereen. Tag collega's, deel foto's, ruil diensten direct in de chat.</div>
+-      <div class="feat-visual">@tags · Afbeeldingen · Dienst ruilen</div></div></div>
+-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="swap"></span></div><div class="feat-title">Dienst ruilen</div></div>
+-      <div class="feat-expand"><div class="feat-desc">Verzoek plaatsen, collega reageert, beheerder keurt goed. Automatisch overgezet.</div>
+-      <div class="feat-visual">Aanvraag → Reactie → Goedkeuring</div></div></div>
+-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="euro"></span></div><div class="feat-title">Uitbetalingen</div></div>
+-      <div class="feat-expand"><div class="feat-desc">Overzicht per maand. Bij uitbetaling krijgt de medewerker automatisch een e-mail.</div>
+-      <div class="feat-visual">Salaris overzicht · Automatische mail</div></div></div>
+-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="bell"></span></div><div class="feat-title">Push meldingen</div></div>
+-      <div class="feat-expand"><div class="feat-desc">In-app, e-mail én browser push. Bij berichten, tags en uitbetalingen.</div>
+-      <div class="feat-visual">In-app · E-mail · Browser push</div></div></div>
+-    <div class="feat"><div class="feat-top"><div class="feat-icon-wrap"><span class="ic" data-icon="calendar"></span></div><div class="feat-title">Agenda export</div></div>
+-      <div class="feat-expand"><div class="feat-desc">Exporteer elke dienst met één tik naar je telefoonagenda.</div>
+-      <div class="feat-visual">iPhone · Android · Outlook · Google</div></div></div>
++<header id="siteHeader">
++  <div class="wrap nav">
++    <a class="brand" href="index.html">
++      <span class="brand-mark">
++        <svg width="17" height="17" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
++          <rect x="110" y="160" width="230" height="230" rx="32" fill="none" stroke="#F5C800" stroke-width="30"/>
++          <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="30" stroke-linecap="round"/>
++        </svg>
++      </span>
++      MHV<span>work</span>
++    </a>
++    <a class="nav-cta" href="index.html">Open de app</a>
+   </div>
+-</div>
++</header>
+ 
+-<div class="scene" id="s3">
+-  <div class="s3-left">
+-    <div class="s3-tag">Medewerker</div>
+-    <div class="s3-title">Jouw diensten,<br><span>jouw dashboard</span></div>
+-    <div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Komende diensten</strong> in één oogopslag — datum, tijd en collega's</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Verwacht salaris</strong> op basis van geplande uren</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Beschikbaarheid</strong> opgeven — meerdere dagen in één keer</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Dienst bevestigen</strong> of tijden aanpassen na afloop</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Dienst ruilen</strong> via de chat — admin keurt goed</div></div>
++<section class="hero">
++  <div class="wrap hero-inner">
++    <div class="eyebrow-tag"><span class="eyebrow-dot"></span> Gebouwd voor de kantine van MHV</div>
++    <h1>Wie staat er zaterdag<br>achter de <em>bar</em>?</h1>
++    <p class="hero-sub">MHVwork is het rooster, de groepschat en de uitbetaling van de barhulp — in één gratis app. Geen WhatsApp-groep meer waarin het laatste overzicht ligt te verstoffen.</p>
++    <div class="hero-ctas">
++      <a class="btn btn-primary" href="index.html">Open de app <span data-icon="check"></span></a>
++      <a class="btn btn-ghost" href="#medewerker">Bekijk wat het doet</a>
+     </div>
++    <div class="trust-line"><b>Gratis</b>·<b>Geen abonnement</b>·<b>Installeerbaar op je telefoon</b></div>
+   </div>
+-  <div class="s3-right">
+-    <div class="mock-phone">
+-      <div class="mock-header"><div class="mock-logo">MHV<span>work</span></div></div>
+-      <div class="mock-body">
+-        <div class="mock-title">Welkom, Tygo</div>
+-        <div class="stat-row">
+-          <div class="stat-box"><div class="stat-num">3</div><div class="stat-lbl">Komende diensten</div></div>
+-          <div class="stat-box"><div class="stat-num" style="color:#30D158">€84</div><div class="stat-lbl">Verwacht</div></div>
+-        </div>
+-        <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:2px 0 2px">Volgende dienst</div>
+-        <div class="shift-item"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Zaterdag 21 juni</div></div>
+-        <div class="mock-btns"><div class="mock-btn"><span class="ic" data-icon="calendar"></span> Agenda</div><div class="mock-btn"><span class="ic" data-icon="swap"></span> Ruilen</div></div>
+-        <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:2px 0 2px">Uitbetaald</div>
+-        <div style="background:#2C2C2E;border-radius:11px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+-          <span style="font-size:11.5px;color:rgba(255,255,255,.5)">Mei 2026</span>
+-          <span style="font-size:13.5px;font-weight:700;color:#30D158">€120,00</span>
+-        </div>
++</section>
++
++<section class="band">
++  <div class="wrap">
++    <h2 class="compare-head">Van losse WhatsApp-berichten naar één rooster dat klopt</h2>
++    <div class="compare">
++      <div class="before">
++        <div class="compare-label">Zoals het was</div>
++        <p>Een rooster in een groepsapp die niemand meer terugvindt, een Excel-bestand op één laptop, en achteraf gedoe over wie er nu precies stond en wat er nog betaald moest worden.</p>
++      </div>
++      <div class="after">
++        <div class="compare-label">Met MHVwork</div>
++        <p>Iedereen ziet zijn eigen diensten, geeft beschikbaarheid door en ruilt met een collega. De beheerder keurt goed, betaalt uit en heeft altijd een actueel overzicht — automatisch bijgehouden.</p>
+       </div>
+     </div>
+   </div>
+-</div>
++</section>
+ 
+-<div class="scene" id="s4">
+-  <div class="s4-left">
+-    <div class="s4-tag">Groepschat</div>
+-    <div class="s4-title">Alles in<br><span>één gesprek</span></div>
+-    <div>
+-      <div class="s4-feat"><div class="sf-icon">@</div><div class="sf-text"><strong>Tag iedereen of één persoon</strong><br>direct een pushmelding</div></div>
+-      <div class="s4-feat"><div class="sf-icon"><span class="ic" data-icon="swap"></span></div><div class="sf-text"><strong>Dienst ruilen in de chat</strong><br>verzoek, reactie, goedkeuring</div></div>
+-      <div class="s4-feat"><div class="sf-icon"><span class="ic" data-icon="euro"></span></div><div class="sf-text"><strong>Uitbetaling aankondigen</strong><br>iedereen krijgt mail én melding</div></div>
+-      <div class="s4-feat"><div class="sf-icon"><span class="ic" data-icon="camera"></span></div><div class="sf-text"><strong>Afbeeldingen delen</strong><br>automatisch gecomprimeerd</div></div>
++<section class="role-band medewerker" id="medewerker">
++  <div class="wrap role-grid">
++    <div class="role-text">
++      <div class="role-tag">Voor medewerkers</div>
++      <h2 class="role-title">Jouw diensten, in één oogopslag</h2>
++      <div class="role-list">
++        <div class="role-item"><div class="role-item-icon" data-icon="calendar"></div><div class="role-item-text"><strong>Je rooster per week</strong> — datum, tijd en met wie je werkt</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="check-circle"></div><div class="role-item-text"><strong>Beschikbaarheid doorgeven</strong>, meerdere dagen in één keer</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="edit"></div><div class="role-item-text"><strong>Dienst bevestigen</strong> of een afwijkende werktijd doorgeven</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="chat"></div><div class="role-item-text"><strong>Ruilen via de chat</strong> — een collega neemt over, de beheerder keurt goed</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="euro"></div><div class="role-item-text"><strong>Verwacht salaris</strong> zien, en wat er al is uitbetaald</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="mobile-down"></div><div class="role-item-text"><strong>Diensten in je eigen agenda</strong>, met één tik geëxporteerd</div></div>
++      </div>
+     </div>
+-  </div>
+-  <div class="chat-phone">
+-    <div class="cp-header"><div class="cp-title">Groepschat</div><div class="cp-sub">Iedereen ziet mee</div></div>
+-    <div class="cp-msgs" id="cpMsgs"></div>
+-    <div class="cp-input">
+-      <div class="cp-ta">Bericht... @ om te taggen</div>
+-      <div class="cp-send"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
++    <div class="role-visual">
++      <div class="phone">
++        <div class="phone-bar">MHV<span>work</span></div>
++        <div class="phone-body">
++          <div class="phone-greet">Welkom, Tygo</div>
++          <div class="stat-row">
++            <div class="stat-box"><div class="stat-num" style="color:#F5C800">3</div><div class="stat-lbl">Komende diensten</div></div>
++            <div class="stat-box"><div class="stat-num" style="color:#30D158">€84</div><div class="stat-lbl">Verwacht</div></div>
++          </div>
++          <div class="mini-label">Volgende dienst</div>
++          <div class="shift-card"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Zaterdag 27 juni</div></div>
++          <div class="row-btns">
++            <div class="row-btn"><span data-icon="calendar"></span> Agenda</div>
++            <div class="row-btn"><span data-icon="swap"></span> Ruilen</div>
++          </div>
++        </div>
++      </div>
+     </div>
+   </div>
+-</div>
++</section>
+ 
+-<div class="scene" id="s5">
+-  <div class="s5b-left" style="width:430px;flex-shrink:0">
+-    <div class="s5b-tag">Beheerder</div>
+-    <div class="s5b-title">Overzicht in<br><span>één oogopslag</span></div>
+-    <div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Diensten van vandaag</strong> — wie werkt, wie ontbreekt nog</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Openstaand & uitbetaald</strong> in één cijfer, per maand</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Aankondigingen plaatsen</strong> — altijd zichtbaar wie en wanneer</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Medewerkers beheren</strong> — rollen, lonen, IVA-certificaat</div></div>
+-      <div class="s3-point"><div class="sp-dot"></div><div class="sp-text"><strong>Ruilverzoeken goedkeuren</strong> met één tik</div></div>
++<section class="role-band beheerder" id="beheerder">
++  <div class="wrap role-grid">
++    <div class="role-text">
++      <div class="role-tag">Voor beheerders</div>
++      <h2 class="role-title">Het hele rooster, altijd compleet</h2>
++      <div class="role-list">
++        <div class="role-item"><div class="role-item-icon" data-icon="calendar"></div><div class="role-item-text"><strong>Diensten inplannen en toewijzen</strong> — ook nog zonder dat er al iemand op staat</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="check"></div><div class="role-item-text"><strong>Gewerkte tijd en ruilverzoeken goedkeuren</strong> met één tik</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="chart"></div><div class="role-item-text"><strong>Uitbetalingen bijhouden</strong>, met Excel-export voor de boekhouding</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="megaphone"></div><div class="role-item-text"><strong>Aankondigingen plaatsen</strong> — voor iedereen, of alleen voor beheerders</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="users"></div><div class="role-item-text"><strong>Medewerkers uitnodigen en beheren</strong>, inclusief IVA-certificaat</div></div>
++        <div class="role-item"><div class="role-item-icon" data-icon="bell-off"></div><div class="role-item-text"><strong>Een functie tijdelijk uitzetten</strong> voor één persoon, bijvoorbeeld bij onderhoud</div></div>
++      </div>
+     </div>
+-  </div>
+-  <div class="admin-phone">
+-    <div class="mock-header"><div class="mock-logo">MHV<span>work</span></div></div>
+-    <div class="mock-body">
+-      <div class="mock-title">Goedemorgen, Beheerder</div>
+-      <div class="ap-stats">
+-        <div class="ap-stat"><div class="n" style="color:#F5C800">4</div><div class="l">Vandaag</div></div>
+-        <div class="ap-stat"><div class="n" style="color:#FF453A">€0</div><div class="l">Schuldig</div></div>
+-        <div class="ap-stat"><div class="n" style="color:#30D158">€1.240</div><div class="l">Uitbetaald</div></div>
++    <div class="role-visual">
++      <div class="phone">
++        <div class="phone-bar">MHV<span>work</span></div>
++        <div class="phone-body">
++          <div class="phone-greet">Goedemorgen, Beheerder</div>
++          <div class="stat-row">
++            <div class="stat-box"><div class="stat-num" style="color:#F5C800">4</div><div class="stat-lbl">Diensten vandaag</div></div>
++            <div class="stat-box"><div class="stat-num" style="color:#30D158">€1.240</div><div class="stat-lbl">Uitbetaald</div></div>
++          </div>
++          <div class="ann-card"><div class="t">Zomerrooster is open!</div><div class="s">— Beheerder · 2 uur geleden</div></div>
++          <div class="mini-label">Diensten vandaag</div>
++          <div class="shift-card"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Tygo, Sara</div></div>
++        </div>
+       </div>
+-      <div class="ap-ann"><div class="t">Zomerrooster is open!</div><div class="s">— Beheerder · 2 uur geleden</div></div>
+-      <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin:6px 0 2px">Diensten vandaag</div>
+-      <div class="shift-item"><div class="shift-time">14:00 – 18:00</div><div class="shift-date">Tygo, Sara</div></div>
+-      <div class="shift-item" style="margin-top:6px"><div class="shift-time">18:00 – 23:00</div><div class="shift-date">Milan</div></div>
+     </div>
+   </div>
+-</div>
+-
+-<div class="scene" id="s6">
+-  <div class="s6-head">Exporteren <span>en overzicht</span></div>
+-  <div class="s6-row">
+-    <div class="exp-card"><div class="exp-icon"><span class="ic" data-icon="chart"></span></div><div class="exp-title">Excel-export</div><div class="exp-desc">Boekhoudklaar bestand, per maand, per medewerker.</div></div>
+-    <div class="exp-card"><div class="exp-icon"><span class="ic" data-icon="clipboard"></span></div><div class="exp-title">PDF-overzicht</div><div class="exp-desc">Netjes opgemaakt maandrapport om te delen met het bestuur.</div></div>
+-  </div>
+-  <div class="role-row">
+-    <div class="role-card"><div class="role-icon"><span class="ic" data-icon="user"></span></div><div class="role-name">Medewerker</div><div class="role-desc">Eigen rooster, beschikbaarheid en chat</div></div>
+-    <div class="role-card"><div class="role-icon"><span class="ic" data-icon="crown"></span></div><div class="role-name">Beheerder</div><div class="role-desc">Rooster maken, goedkeuren, uitbetalen</div></div>
+-    <div class="role-card"><div class="role-icon"><span class="ic" data-icon="tools"></span></div><div class="role-name">Dev</div><div class="role-desc">Volledig beheer & technisch onderhoud</div></div>
+-  </div>
+-</div>
++</section>
+ 
+-<div class="scene" id="s7">
+-  <div class="s7-left">
+-    <div class="s7-tag">Persoonlijk</div>
+-    <div class="s7-title">Jouw app,<br><span>jouw smaak</span></div>
+-    <div class="theme-row">
+-      <div class="theme-swatch" style="background:#fff"></div>
+-      <div class="theme-swatch" style="background:#000"></div>
+-      <div class="theme-swatch" style="background:linear-gradient(135deg,#2a2a3a,#1a1a28)"></div>
+-      <div class="theme-swatch" style="background:radial-gradient(circle at 30% 30%,#1a1a4a,#000)"></div>
+-    </div>
+-    <div class="s7-toggle-row">
+-      <div class="tgl"><i></i></div>
+-      <div class="s7-toggle-text"><strong>Functies tijdelijk uitzetten</strong>Onderhoud? Zet een onderdeel netjes op pauze — voor iedereen of voor één persoon.</div>
++<section class="strip">
++  <div class="wrap">
++    <h2 class="strip-head">En verder — voor iedereen, welke rol je ook hebt</h2>
++    <div class="strip-grid">
++      <div class="strip-item">
++        <div class="strip-icon" data-icon="chat"></div>
++        <div class="strip-title">Groepschat</div>
++        <div class="strip-desc">Eén gesprek voor iedereen. Tag een naam, @iedereen of @beheerder voor een pushmelding.</div>
++      </div>
++      <div class="strip-item">
++        <div class="strip-icon" data-icon="bell"></div>
++        <div class="strip-title">Meldingen</div>
++        <div class="strip-desc">In-app, per e-mail én browser push — bij berichten, tags en uitbetalingen.</div>
++      </div>
++      <div class="strip-item">
++        <div class="strip-icon" data-icon="galaxy"></div>
++        <div class="strip-title">Persoonlijk thema</div>
++        <div class="strip-desc">Licht, donker of een verborgen sterrenhemel-thema — jouw keuze, los van je telefoon.</div>
++      </div>
++      <div class="strip-item">
++        <div class="strip-icon" data-icon="lock"></div>
++        <div class="strip-title">Alleen wat nodig is</div>
++        <div class="strip-desc">Lonen en persoonsgegevens zijn alleen zichtbaar voor jezelf en voor beheerders.</div>
++      </div>
+     </div>
+   </div>
+-  <div class="s7-right">
+-    <div class="s7-photo-ring"><div class="s7-photo-inner">T</div></div>
+-  </div>
+-</div>
++</section>
+ 
+-<div class="scene" id="s8">
+-  <div class="s5-glow"></div>
+-  <div class="s5-left">
+-    <div class="s5-big">MHV<span>work</span></div>
+-    <div class="s5-url">adminmossel.github.io/<strong>MHVwork</strong></div>
+-  </div>
+-  <div class="s5-phone-wrap">
+-    <div class="s5-phone">
+-      <div class="s5-phone-icon">
+-        <svg width="48" height="48" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+-          <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
+-          <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
+-          <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
+-          <circle cx="340" cy="195" r="72" fill="#1A3BB5" stroke="#F5C800" stroke-width="20"/>
+-          <line x1="340" y1="195" x2="340" y2="164" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+-          <line x1="340" y1="195" x2="366" y2="195" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+-          <circle cx="340" cy="195" r="18" fill="#1A3BB5"/><circle cx="340" cy="195" r="9" fill="#fff"/>
+-        </svg>
+-      </div>
+-      <div class="s5-phone-name">MHV<span>work</span></div>
+-      <div style="font-size:10.5px;color:rgba(255,255,255,.3)">MHV</div>
++<section class="closing">
++  <div class="wrap">
++    <div class="closing-mark">MHV<span>work</span></div>
++    <div class="closing-sub">adminmossel.github.io/MHVwork</div>
++    <div class="closing-ctas">
++      <a class="btn btn-primary" href="index.html">Open de app</a>
++      <a class="btn btn-ghost" href="register.html">Ik heb een uitnodiging</a>
+     </div>
+   </div>
+-</div>
++</section>
+ 
+-</div>
+-<div class="progress" id="progress"></div>
++<footer>
++  <div class="wrap foot-row">
++    <span>MHVwork — gebouwd vóór en dóór de barhulp van MHV</span>
++    <a href="voorwaarden.html">Voorwaarden &amp; privacy</a>
++  </div>
++</footer>
+ 
++<script src="icons.js"></script>
+ <script>
+-const SCENES = ['s1','s2','s3','s4','s5','s6','s7','s8'];
+-const DURATIONS = [4200, 9000, 8500, 8500, 7500, 7000, 6500, 5000];
+-let cur = 0, timer, featTimer, featIdx = 0;
+-
+-const prog = document.getElementById('progress');
+-SCENES.forEach((_,i) => {
+-  const d = document.createElement('div');
+-  d.className = 'dot' + (i===0?' active':'');
+-  d.onclick = () => goTo(i);
+-  prog.appendChild(d);
+-});
+-
+-function goTo(idx) {
+-  document.getElementById(SCENES[cur]).classList.remove('active');
+-  prog.children[cur].classList.remove('active');
+-  cur = idx;
+-  document.getElementById(SCENES[cur]).classList.add('active');
+-  prog.children[cur].classList.add('active');
+-  clearTimeout(featTimer);
+-  document.querySelectorAll('.feat').forEach(f=>f.classList.remove('open'));
+-  if (cur === 1) { featIdx = 0; setTimeout(autoExpand, 900); }
+-  if (cur === 3) startChatAnim();
+-  clearTimeout(timer);
+-  timer = setTimeout(() => goTo(cur < SCENES.length-1 ? cur+1 : 0), DURATIONS[cur]);
+-}
+-
+-function autoExpand() {
+-  const feats = document.querySelectorAll('.feat');
+-  feats.forEach(f => f.classList.remove('open'));
+-  if (featIdx < feats.length) {
+-    feats[featIdx].classList.add('open');
+-    featIdx++;
+-    featTimer = setTimeout(autoExpand, 1300);
+-  }
+-}
+-
+-const chatMsgs = [
+-  {name:'Beheerder', av:'B', bg:'#F5C800', clr:'#000', me:true,  text:'<span class="cm-mention">@iedereen</span> zaterdag 14:00 — wie kan?', delay:500},
+-  {name:'Tygo',     av:'T', bg:'#1A3BB5', clr:'#fff', me:false, text:'Ik kan helaas niet', delay:1700},
+-  {name:'Sara',     av:'S', bg:'#30D158', clr:'#fff', me:false, text:'Ik wil zijn dienst overnemen!<div class="cm-swap"><strong>Dienst ruilen</strong>Zat 21 jun · 14:00-18:00</div>', delay:2900},
+-  {name:'Beheerder',av:'B', bg:'#F5C800', clr:'#000', me:true,  text:'Goedgekeurd — dienst is aan Sara gegeven', delay:4600},
+-];
+-
+-function startChatAnim() {
+-  const el = document.getElementById('cpMsgs');
+-  el.innerHTML = '';
+-  chatMsgs.forEach(m => {
+-    setTimeout(() => {
+-      const row = document.createElement('div');
+-      row.className = 'cm-row' + (m.me ? ' me' : '');
+-      const wrap = document.createElement('div');
+-      wrap.className = 'cm-bubblewrap';
+-      wrap.innerHTML = `<div class="cm-name">${m.name}</div><div class="cm-bubble">${m.text}</div>`;
+-      const av = document.createElement('div');
+-      av.className = 'cm-av';
+-      av.style.background = m.bg; av.style.color = m.clr;
+-      av.textContent = m.av;
+-      if (m.me) { row.appendChild(wrap); row.appendChild(av); }
+-      else { row.appendChild(av); row.appendChild(wrap); }
+-      el.appendChild(row);
+-      requestAnimationFrame(() => {
+-        row.style.transition = 'all .45s ease';
+-        row.style.opacity = '1';
+-        row.style.transform = 'translateY(0)';
+-      });
+-    }, m.delay);
+-  });
+-}
+-
+-goTo(0);
+-
+-// Schaal het vaste 1280×720 canvas uniform naar elk scherm (ook portrait mobiel) —
+-// zonder dit blijft alle content op vaste pixelmaten staan en past het simpelweg niet.
+-function fitFrame(){
+-  const s = Math.min(window.innerWidth/1280, window.innerHeight/720);
+-  document.documentElement.style.setProperty('--s', s);
+-}
+-fitFrame();
+-window.addEventListener('resize', fitFrame);
+-window.addEventListener('orientationchange', fitFrame);
++  const h = document.getElementById('siteHeader');
++  const onScroll = () => h.classList.toggle('scrolled', window.scrollY > 8);
++  onScroll();
++  window.addEventListener('scroll', onScroll, {passive:true});
+ </script>
+ </body>
+ </html>
+-- 
+2.43.0
+

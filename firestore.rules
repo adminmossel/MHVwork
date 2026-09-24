@@ -30,7 +30,8 @@ service cloud.firestore {
         || (isAdmin() && request.resource.data.role != 'software')
         || (isAuth() && request.auth.uid == uid);
       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']) && !restr('manageEmployees'))
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']) && !restr('manageEmployees')
+            && !(restr('toggleFeatures') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['disabledFeatures'])))
         || isSoftware()
         || (isAuth() && request.auth.uid == uid
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified']));
@@ -135,8 +136,9 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isStaff() && !restr('announcements');
       allow update: if isStaff();
-      // Een beheerder mag geen 'speciale' (dev-only) aankondiging verwijderen — alleen dev zelf.
-      allow delete: if isSoftware() || (isAdmin() && resource.data.special != true);
+      // Een beheerder mag nooit een aankondiging van een dev verwijderen — dat hangt af van wie
+      // 'm heeft geplaatst (authorRole), niet van het 'special'-vlaggetje (dat is alleen opmaak).
+      allow delete: if isSoftware() || (isAdmin() && resource.data.get('authorRole', 'admin') != 'software');
     }
 
     // Privéberichten (medewerker <-> beheerder/dev), 1 doc per thread
@@ -152,10 +154,17 @@ service cloud.firestore {
       allow delete: if isStaff();
     }
 
-    // Globale instellingen (bv. reminder-uren), alleen beheerder/dev mag schrijven
+    // Globale instellingen. Een beheerder mag alleen de reminder-uren aanpassen (settings/general,
+    // veld 'reminderHours'). Functies app-breed uitzetten (disabledFeatures/disabledMsg) en het
+    // versienummer (settings/app) mag uitsluitend dev — dat kan hele onderdelen van de app voor
+    // IEDEREEN blokkeren en hoort niet bij een beheerder-account.
     match /settings/{id} {
       allow read: if isAuth();
-      allow write: if isStaff();
+      allow write: if isSoftware()
+        || (isAdmin() && id == 'general'
+            && (resource == null
+                ? request.resource.data.diff({}).affectedKeys().hasOnly(['reminderHours'])
+                : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reminderHours'])));
     }
 
     // Alleen zichtbaar voor de dev-rol
