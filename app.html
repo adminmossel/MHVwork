@@ -4081,7 +4081,7 @@ async function toggleReaction(msgId,key){
   const nextArr=has?cur.filter(u=>u!==U.uid):[...cur,U.uid];
   const reactions={...(msg.reactions||{}), [key]:nextArr};
   const{db,doc,updateDoc}=window._f;
-  //try{ await updateDoc(doc(db,'chat',msgId),{reactions}); }catch(e){ console.error('reactie mislukt',e); }
+  try{ await updateDoc(doc(db,'chat',msgId),{reactions}); }catch(e){ console.error('reactie mislukt',e); }
 }
 const REACTION_ICONS={like:'thumbsup',check:'check',heart:'heart'};
 
