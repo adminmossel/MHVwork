@@ -249,6 +249,7 @@ In het kort:
 - Alle databasetoegang loopt via Firestore Security Rules — medewerkers kunnen alleen hun eigen
   gegevens aanpassen, beheerders beheren roosters/uitbetalingen binnen hun bevoegdheden, en de
   dev-rol heeft geen toegang tot financiële gegevens
+- Installatie wordt per account én per toestel bijgehouden (Profiel → App): is de app op één apparaat geïnstalleerd, dan komt de installatie-barricade nooit meer terug — een bekend maar nog niet geïnstalleerd apparaat krijgt alleen een kleine melding met een installeerknop
 - Alleen een dev-account kan de dev-rol toewijzen of intrekken, en alleen dev kan een beheerder
   specifieke bevoegdheden ontnemen — of een app-brede functie uitzetten — allebei afgedwongen in
   zowel de app als de databaseregels, niet alleen in het scherm

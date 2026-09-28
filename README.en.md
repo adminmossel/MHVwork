@@ -251,6 +251,7 @@ In short:
 - All database access goes through Firestore Security Rules — staff members can only edit their
   own data, admins manage schedules/payouts within their granted permissions, and the dev role
   has no access to financial data
+- Installation is tracked per account and per device (Profile → App): once the app is installed on one device the install gate never returns — a known device without the app just gets a small prompt with an install button
 - Only a dev account can assign or revoke the dev role, and only dev can revoke a specific
   permission from an admin — or disable a feature app-wide — both enforced in the app and in the
   database rules, not just on screen

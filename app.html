@@ -673,6 +673,9 @@ select.form-input option { background:var(--bg3); }
 .barricade-confirm span{font-size:13px;color:var(--text2);line-height:1.45}
 .barricade-foot{flex-shrink:0;padding:14px 22px max(18px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--separator);background:var(--bg)}
 .barricade-foot-inner{max-width:380px;margin:0 auto}
+.barricade-device{display:inline-block;font-size:12px;font-weight:600;color:var(--text2);background:var(--bg2);border:1px solid var(--separator);padding:5px 12px;border-radius:20px;margin-top:16px}
+.device-nudge{position:fixed;left:12px;right:12px;top:max(12px,env(safe-area-inset-top,0px));z-index:99990;max-width:460px;margin:0 auto;background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:14px 15px;box-shadow:0 12px 40px rgba(0,0,0,.45);animation:nudgeIn .4s ease}
+@keyframes nudgeIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
 .barricade-note{font-size:11.5px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.4}
 
 /* ── MODAL ─── */
@@ -1024,41 +1027,30 @@ window.addEventListener('mhv:ready', async ()=>{
 // en een vinkje bij Profiel zodra de app daadwerkelijk geïnstalleerd is
 // ═══════════════════════════════════════════
 let _deferredInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); _deferredInstallPrompt=e; });
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); _deferredInstallPrompt=e;
+  // Kwam het native installatievenster pas laat beschikbaar terwijl de barricade al open staat? Dan meteen de betere variant tonen.
+  if(document.getElementById('installBarricade')) renderInstallBarricade();
+});
 window.addEventListener('appinstalled',async()=>{
-  try{
-    const{db,doc,updateDoc}=window._f;
-    if(U) await updateDoc(doc(db,'users',U.uid),{pwaInstalled:true});
-    if(U) U.pwaInstalled=true;
-  }catch(e){}
+  await markDeviceInstalled();
   toast('App geïnstalleerd!','ok');
   const v=document.getElementById('view-profile'); if(v&&v.classList.contains('active')) renderProfile();
-  // Als de barricade nog openstaat: dit ís het echte, betrouwbare installatiesignaal (Android/
-  // desktop) — meteen doorsturen, geen handmatige bevestiging nodig.
+  const n=document.getElementById('deviceNudge'); if(n) n.remove();
+  // Echt, betrouwbaar signaal (Android/desktop): barricade meteen laten sluiten.
   if(document.getElementById('installBarricade')) resolveInstallBarricade('event');
 });
 function isRunningStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
 }
-function iosInstallGuideHtml(){
-  return `<div class="modal-handle"></div>
-    <div style="text-align:center;padding:6px 0 4px">
-      <div style="font-size:44px;margin-bottom:10px"><span class="ic" data-icon="mobile-down"></span></div>
-      <div class="modal-title" style="text-align:center">Installeer MHVwork</div>
-      <p style="font-size:13px;color:var(--text3);margin:8px 0 18px">Op iPhone/iPad gaat dit via Safari in 2 stappen:</p>
-      <div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:12px;padding:12px 14px;text-align:left;margin-bottom:10px">
-        <div style="width:30px;height:30px;border-radius:50%;background:var(--mhv-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">1</div>
-        <div style="flex:1;font-size:13px;color:var(--text2)">Tik onderin (of bovenin) Safari op het <b>deel-icoon</b></div>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text2)"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:12px;padding:12px 14px;text-align:left;margin-bottom:18px">
-        <div style="width:30px;height:30px;border-radius:50%;background:var(--mhv-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">2</div>
-        <div style="flex:1;font-size:13px;color:var(--text2)">Scrol naar beneden en kies <b>"Zet op beginscherm"</b></div>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text2)"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 9v6M9 12h6"/></svg>
-      </div>
-      <button class="btn btn-ghost btn-full" onclick="closeModal()">Begrepen</button>
-    </div>`;
-}
+
+// ═══════════════════════════════════════════
+// APPARATEN — per account bijhouden op welke toestellen de app is geïnstalleerd
+// ═══════════════════════════════════════════
+// Een toestel herkennen we aan platform + schermafmetingen + pixeldichtheid, NIET aan een
+// localStorage-id: een geïnstalleerde iOS-app heeft een eigen, aparte opslag naast Safari, dus zo'n
+// id zou 'Safari op deze iPhone' en 'de app op deze iPhone' voor twee verschillende toestellen aanzien.
+// Nadeel: twee identieke toestellen (zelfde model) van één account tellen als één.
 function detectPlatform(){
   const ua=navigator.userAgent;
   const isIOS=/iphone|ipad|ipod/i.test(ua) || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints>1); // iPadOS 13+ meldt zich als 'Mac'
@@ -1066,11 +1058,153 @@ function detectPlatform(){
   if(/android/i.test(ua)) return 'android';
   return 'desktop';
 }
-// Wordt maar op één plek écht zeker geweten: het 'appinstalled'-event. Op iOS bestaat dat
-// signaal niet — geen enkele browser daar biedt dat — dus daar blijft een eigen bevestiging
-// door de gebruiker de enige optie. Dat is een bewuste, eerlijke beperking, geen bug.
+function detectBrowser(){
+  const ua=navigator.userAgent;
+  if(/CriOS/.test(ua)) return 'chrome';
+  if(/FxiOS/.test(ua)) return 'firefox';
+  if(/EdgiOS|EdgA|Edg\//.test(ua)) return 'edge';
+  if(/OPR\/|OPiOS/.test(ua)) return 'opera';
+  if(/SamsungBrowser/.test(ua)) return 'samsung';
+  if(/Firefox/.test(ua)) return 'firefox';
+  if(/Chrome/.test(ua)) return 'chrome';
+  if(/Safari/.test(ua)) return 'safari';
+  return 'other';
+}
+const BROWSER_NAME={safari:'Safari',chrome:'Chrome',edge:'Edge',firefox:'Firefox',samsung:'Samsung Internet',opera:'Opera',other:'deze browser'};
+function getDeviceInfo(){
+  const platform=detectPlatform();
+  const w=Math.min(screen.width,screen.height), h=Math.max(screen.width,screen.height);
+  const dpr=Math.round((window.devicePixelRatio||1)*100)/100;
+  const key=(platform+'_'+w+'x'+h+'_'+dpr).replace(/[^a-zA-Z0-9]/g,'_');
+  let label;
+  if(platform==='ios') label = (/ipad/i.test(navigator.userAgent)||w>=700) ? 'iPad' : 'iPhone';
+  else if(platform==='android') label = w>=600 ? 'Android-tablet' : 'Android-telefoon';
+  else { const ua=navigator.userAgent; label = /Windows/.test(ua)?'Windows-computer':/Mac/.test(ua)?'Mac':/Linux|CrOS/.test(ua)?'Linux-computer':'Computer'; }
+  return {key,platform,label,browser:detectBrowser()};
+}
+// Registreert dit toestel bij het account. Geeft terug of het al bekend was en of de app hier al staat.
+async function registerDevice(){
+  const out={known:false,installedHere:false,key:null,label:''};
+  try{
+    if(!U) return out;
+    const info=getDeviceInfo(); out.key=info.key; out.label=info.label;
+    const existing=(U.devices||{})[info.key];
+    const standalone=isRunningStandalone();
+    const now=Date.now();
+    const installed=!!(existing&&existing.installed)||standalone;
+    out.known=!!existing; out.installedHere=installed;
+    const stale=!existing || (now-(existing.lastSeen||0))>12*3600*1000;
+    const needsPwaFlag=standalone && !U.pwaInstalled;
+    const rec={label:(existing&&existing.label)||info.label,platform:info.platform,installed,firstSeen:(existing&&existing.firstSeen)||now,lastSeen:now};
+    U.devices=Object.assign({},U.devices||{},{[info.key]:rec});
+    if(stale||(standalone&&existing&&!existing.installed)||needsPwaFlag){
+      const{db,doc,updateDoc}=window._f;
+      const patch={['devices.'+info.key]:rec};
+      if(standalone){ patch.pwaInstalled=true; U.pwaInstalled=true; }
+      await updateDoc(doc(db,'users',U.uid),patch);
+    }
+  }catch(e){}
+  return out;
+}
+async function markDeviceInstalled(){
+  try{
+    if(!U) return;
+    const info=getDeviceInfo();
+    const{db,doc,updateDoc}=window._f;
+    const prev=(U.devices||{})[info.key]||{};
+    const rec={label:prev.label||info.label,platform:info.platform,installed:true,firstSeen:prev.firstSeen||Date.now(),lastSeen:Date.now()};
+    U.devices=Object.assign({},U.devices||{},{[info.key]:rec});
+    U.pwaInstalled=true;
+    await updateDoc(doc(db,'users',U.uid),{['devices.'+info.key]:rec,pwaInstalled:true});
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════
+// INSTALLATIE-UITLEG — per platform én per browser
+// ═══════════════════════════════════════════
+const INST_ICON={
+  share:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>',
+  plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 9v6M9 12h6"/></svg>',
+  dots:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
+  menu:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+  monitor:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>'
+};
+function installGuide(){
+  const platform=detectPlatform(), browser=detectBrowser();
+  const S=(txt,icon)=>({txt,icon});
+  const OPEN=(platform==='desktop'?'Open MHVwork daarna via het <b>nieuwe app-icoon</b>':'Open MHVwork daarna vanaf het <b>nieuwe icoon</b>, niet meer via de browser');
+  let steps=[], note='', native=false;
+  if(platform!=='ios' && _deferredInstallPrompt){
+    native=true;
+    steps=[S('Klik hieronder op <b>Installeren</b>'),S('Bevestig in het venstertje van je browser'),S(OPEN)];
+  } else if(platform==='ios'){
+    if(browser==='safari'){
+      steps=[S('Tik in Safari op het <b>deel-icoon</b> (vierkantje met pijl omhoog) — onderin op iPhone, bovenin op iPad','share'),
+             S('Scrol omlaag en kies <b>"Zet op beginscherm"</b>','plus'),
+             S('Tik rechtsboven op <b>Voeg toe</b>'),S(OPEN)];
+    } else if(browser==='chrome'||browser==='edge'){
+      steps=[S('Tik rechtsboven naast de adresbalk op het <b>deel-icoon</b>','share'),
+             S('Kies <b>"Zet op beginscherm"</b> (scrol eventueel omlaag)','plus'),
+             S('Tik op <b>Voeg toe</b>'),S(OPEN)];
+      note='Lukt het niet in '+BROWSER_NAME[browser]+'? Open MHVwork dan in <b>Safari</b> en volg daar de stappen.';
+    } else {
+      steps=[S('Open deze pagina in <b>Safari</b> (kopieer de link uit de adresbalk)'),
+             S('Tik in Safari op het <b>deel-icoon</b>','share'),
+             S('Kies <b>"Zet op beginscherm"</b> en tik op <b>Voeg toe</b>','plus'),S(OPEN)];
+      note=BROWSER_NAME[browser]+' kan op iPhone/iPad geen apps toevoegen aan je beginscherm — Safari wel.';
+    }
+  } else if(platform==='android'){
+    if(browser==='samsung'){
+      steps=[S('Tik onderin op het <b>menu</b> (drie streepjes)','menu'),
+             S('Kies <b>"Pagina toevoegen aan"</b> en dan <b>"Startscherm"</b>'),
+             S('Tik op <b>Toevoegen</b>'),S(OPEN)];
+    } else if(browser==='firefox'){
+      steps=[S('Tik rechtsboven op <b>⋮</b>','dots'),S('Kies <b>"Installeren"</b>'),S('Bevestig met <b>Toevoegen</b>'),S(OPEN)];
+    } else if(browser==='edge'){
+      steps=[S('Tik onderin op het <b>menu</b> (•••)','menu'),S('Kies <b>"Toevoegen aan telefoon"</b>'),S('Bevestig met <b>Installeren</b>'),S(OPEN)];
+    } else {
+      steps=[S('Tik rechtsboven op <b>⋮</b>','dots'),
+             S('Kies <b>"App installeren"</b> (of <b>"Toevoegen aan startscherm"</b>)'),
+             S('Bevestig met <b>Installeren</b>'),S(OPEN)];
+    }
+  } else {
+    if(browser==='safari'){
+      steps=[S('Klik in de menubalk bovenaan op <b>Bestand</b>'),S('Kies <b>"Voeg toe aan Dock"</b>'),S('Klik op <b>Voeg toe</b>'),S(OPEN)];
+      note='Dit werkt in Safari 17 of nieuwer. Oudere versie? Gebruik dan Chrome of Edge.';
+    } else if(browser==='firefox'){
+      steps=[S('Firefox kan op een computer geen apps installeren. Open MHVwork in <b>Chrome</b> of <b>Edge</b>'),S('Volg daar de installatiestappen die je dan te zien krijgt'),S(OPEN)];
+    } else {
+      steps=[S('Klik rechts in de adresbalk op het <b>installatie-icoon</b> (monitor met pijltje)','monitor'),
+             S('Zie je dat niet? Open het menu <b>⋮</b> en kies <b>"MHVwork installeren"</b>'+(browser==='edge'?' (bij Edge: ••• → Apps → "Deze site als app installeren")':''),'dots'),
+             S('Bevestig met <b>Installeren</b>'),S(OPEN)];
+    }
+  }
+  const info=getDeviceInfo();
+  return {steps,note,native,platform,browser,deviceText:info.label+' · '+BROWSER_NAME[browser]};
+}
+function installStepsHtml(g){
+  return g.steps.map((s,i)=>`<div class="barricade-step"><div class="barricade-step-n">${i+1}</div><div class="barricade-step-txt">${s.txt}</div>${s.icon?INST_ICON[s.icon]:''}</div>`).join('');
+}
+function installGuideModalHtml(){
+  const g=installGuide();
+  return `<div class="modal-handle"></div>
+    <div style="text-align:center;padding:6px 0 4px">
+      <div style="font-size:40px;margin-bottom:8px"><span class="ic" data-icon="mobile-down"></span></div>
+      <div class="modal-title" style="text-align:center">Installeer MHVwork</div>
+      <div class="barricade-device" style="margin:10px auto 16px">Herkend: ${g.deviceText}</div>
+      <div class="barricade-steps" style="margin:0 auto 14px;text-align:left">${installStepsHtml(g)}</div>
+      ${g.note?`<p style="font-size:12px;color:var(--text3);line-height:1.5;margin:0 0 14px">${g.note}</p>`:''}
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Begrepen</button>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// BARRICADE — alleen zolang dit account de app op NERGENS heeft geïnstalleerd
+// ═══════════════════════════════════════════
+// Zodra er op één toestel geïnstalleerd is (pwaInstalled) komt dit nooit meer terug. Voor andere,
+// nog niet geïnstalleerde toestellen is er alleen de vriendelijke melding (zie showDeviceNudge).
 function needsInstallBarricade(){
-  return !!U && !isRunningStandalone() && !U.installBarrierSeen;
+  return !!U && !isRunningStandalone() && !U.pwaInstalled && !U.installBarrierSeen;
 }
 async function markInstallBarrierSeen(){
   try{
@@ -1078,54 +1212,43 @@ async function markInstallBarrierSeen(){
     if(U){ await updateDoc(doc(db,'users',U.uid),{installBarrierSeen:true}); U.installBarrierSeen=true; }
   }catch(e){}
 }
-function showInstallBarricade(onDone){
-  const platform=detectPlatform();
-  let stepsHtml='', confirmHtml='', ctaHtml='';
-  if(platform==='ios'){
-    stepsHtml=`
-      <div class="barricade-step"><div class="barricade-step-n">1</div><div class="barricade-step-txt">Tik onderin (of bovenin) <b>Safari</b> op het deel-icoon</div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg></div>
-      <div class="barricade-step"><div class="barricade-step-n">2</div><div class="barricade-step-txt">Scrol naar beneden en kies <b>"Zet op beginscherm"</b></div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 9v6M9 12h6"/></svg></div>
-      <div class="barricade-step"><div class="barricade-step-n">3</div><div class="barricade-step-txt">Open MHVwork daarna vanaf dat <b>nieuwe icoon</b>, niet meer via Safari</div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>`;
-    confirmHtml=`<label class="barricade-confirm"><input type="checkbox" id="barrConfirm" onchange="document.getElementById('barrGoBtn').disabled=!this.checked"><span>Ik heb bovenstaande stappen gevolgd en MHVwork staat op mijn beginscherm</span></label>`;
-    ctaHtml=`<button class="btn btn-yellow btn-full" id="barrGoBtn" disabled onclick="resolveInstallBarricade('confirm')">Doorgaan</button>
-      <div class="barricade-note">Safari geeft geen enkele app de mogelijkheid om dit automatisch te controleren — vandaar dit vinkje in plaats van een knop die het voor je detecteert.</div>`;
-  } else {
-    stepsHtml=`
-      <div class="barricade-step"><div class="barricade-step-n">1</div><div class="barricade-step-txt">Tik hieronder op <b>Installeren</b></div></div>
-      <div class="barricade-step"><div class="barricade-step-n">2</div><div class="barricade-step-txt">Bevestig in het venstertje van je browser</div></div>
-      <div class="barricade-step"><div class="barricade-step-n">3</div><div class="barricade-step-txt">Open MHVwork daarna vanaf het <b>nieuwe icoon</b> op je ${platform==='android'?'startscherm':'bureaublad'}</div></div>`;
+function renderInstallBarricade(){
+  const g=installGuide();
+  let ctaHtml, confirmHtml='';
+  if(g.native){
     ctaHtml=`<button class="btn btn-yellow btn-full" onclick="barricadeTriggerInstall()">Installeren</button>
-      <button class="btn btn-ghost btn-full" style="margin-top:8px" id="barrManualBtn" onclick="resolveInstallBarricade('manual')">Ik heb 'm al geïnstalleerd</button>
-      <div class="barricade-note">Zie je geen installatievenster? Gebruik het menu van je browser (⋮ of •••) → "App installeren" of "Toevoegen aan startscherm".</div>`;
+      <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="resolveInstallBarricade('manual')">Ik heb 'm al geïnstalleerd</button>`;
+  } else {
+    confirmHtml=`<label class="barricade-confirm"><input type="checkbox" id="barrConfirm" onchange="document.getElementById('barrGoBtn').disabled=!this.checked"><span>Ik heb de stappen gevolgd en MHVwork staat op mijn ${g.platform==='desktop'?'computer':'beginscherm'}</span></label>`;
+    ctaHtml=`<button class="btn btn-yellow btn-full" id="barrGoBtn" disabled onclick="resolveInstallBarricade('confirm')">Doorgaan</button>
+      <div class="barricade-note">${g.platform==='ios'?'Safari geeft apps op iPhone/iPad geen enkele manier om dit automatisch te controleren':'Deze browser meldt niet automatisch dat de installatie gelukt is'} — vandaar dit vinkje.</div>`;
   }
   document.getElementById('barricade-root').innerHTML=`
     <div class="barricade" id="installBarricade">
       <div class="barricade-scroll">
         <div class="barricade-logo"><svg width="30" height="30" viewBox="0 0 512 512"><rect x="110" y="160" width="230" height="230" rx="32" fill="none" stroke="#F5C800" stroke-width="30"/><path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="30" stroke-linecap="round"/></svg></div>
-        <div class="barricade-eyebrow">Eenmalig, duurt 10 seconden</div>
+        <div class="barricade-eyebrow">Eenmalig per account</div>
         <div class="barricade-title">Installeer MHVwork om verder te gaan</div>
-        <div class="barricade-sub">Zo werkt de app sneller, werken pushmeldingen écht, en hoef je nooit meer een browsertabblad te zoeken. Dit is de laatste stap voor je rondleiding.</div>
-        <div class="barricade-steps">${stepsHtml}</div>
+        <div class="barricade-sub">Zo werkt de app sneller en komen pushmeldingen écht aan. Zodra de app op één toestel staat zie je dit scherm nooit meer. Daarna volgt je rondleiding.</div>
+        <div class="barricade-device">Herkend: ${g.deviceText}</div>
+        <div class="barricade-steps">${installStepsHtml(g)}</div>
+        ${g.note?`<div class="barricade-note" style="max-width:340px;margin-top:12px">${g.note}</div>`:''}
         ${confirmHtml}
       </div>
       <div class="barricade-foot"><div class="barricade-foot-inner">${ctaHtml}</div></div>
     </div>`;
+}
+function showInstallBarricade(onDone){
   window._onInstallBarricadeDone=onDone;
+  renderInstallBarricade();
 }
 window.barricadeTriggerInstall=async function(){
-  if(!_deferredInstallPrompt){
-    // Geen native prompt beschikbaar (browser ondersteunt het niet, of al eerder gedismisst) —
-    // val terug op de handmatige bevestigingsknop die toch al onder de instructies staat.
-    toast('Gebruik het menu van je browser om te installeren','info');
-    return;
-  }
+  if(!_deferredInstallPrompt){ renderInstallBarricade(); return; }
   _deferredInstallPrompt.prompt();
-  const choice=await _deferredInstallPrompt.userChoice;
+  await _deferredInstallPrompt.userChoice;
   _deferredInstallPrompt=null;
-  if(choice && choice.outcome==='accepted'){ /* 'appinstalled' handelt het afsluiten van de barricade zelf af */ }
+  // Bij 'accepted' regelt het 'appinstalled'-event het afsluiten; bij weigeren blijft de barricade staan.
+  if(document.getElementById('installBarricade')) renderInstallBarricade();
 };
 window.resolveInstallBarricade=async function(via){
   await markInstallBarrierSeen();
@@ -1135,27 +1258,65 @@ window.resolveInstallBarricade=async function(via){
   window._onInstallBarricadeDone=null;
   if(done) done();
 };
-function runFirstLoginFlow(){
+
+// ═══════════════════════════════════════════
+// BEKEND TOESTEL, NOG NIET GEÏNSTALLEERD — kleine melding
+// ═══════════════════════════════════════════
+function showDeviceNudge(dev){
+  if(document.getElementById('deviceNudge')||document.getElementById('installBarricade')) return;
+  const el=document.createElement('div');
+  el.id='deviceNudge'; el.className='device-nudge';
+  el.innerHTML=`<div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--mhv-blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mhv-yellow);font-size:18px"><span class="ic" data-icon="mobile-down"></span></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">Bekend apparaat</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.45;margin-top:3px">Dit is een bekend apparaat met jouw account (${escAnn(dev.label)}), alleen heb je MHVwork hier nog niet geïnstalleerd.</div>
+      </div></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-yellow btn-sm" style="flex:2" onclick="nudgeInstall()">Installeren</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="nudgeLater()">Later</button>
+    </div>`;
+  document.body.appendChild(el);
+}
+window.nudgeInstall=function(){ const n=document.getElementById('deviceNudge'); if(n) n.remove(); triggerInstall(); };
+window.nudgeLater=function(){
+  const n=document.getElementById('deviceNudge'); if(n) n.remove();
+  try{ localStorage.setItem('mhv_nudge_until',String(Date.now()+3*24*3600*1000)); }catch(e){}
+};
+function maybeShowDeviceNudge(dev){
+  if(!dev||!dev.known||dev.installedHere||isRunningStandalone()) return;
+  try{ if(Date.now()<parseInt(localStorage.getItem('mhv_nudge_until')||'0',10)) return; }catch(e){}
+  showDeviceNudge(dev);
+}
+
+// Profiel → App: is de app geïnstalleerd, en op welke toestellen van dit account is dat wel/niet zo
+function appDevicesRowsHtml(){
+  const info=getDeviceInfo();
+  const devs=Object.entries(U.devices||{}).map(([k,d])=>Object.assign({k},d)).sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0));
+  const anyInst=devs.some(d=>d.installed)||!!U.pwaInstalled||isRunningStandalone();
+  const head=`<div class="card-row"><div class="card-row-label">${anyInst?'<span class="ic" data-icon="check-circle"></span> Geïnstalleerd op minstens één apparaat':'<span class="ic" data-icon="mobile-down"></span> Nog op geen enkel apparaat geïnstalleerd'}</div></div>`;
+  const rows=devs.map(d=>{
+    const me=d.k===info.key;
+    const inst=!!d.installed||(me&&isRunningStandalone());
+    const seen=d.lastSeen?new Date(d.lastSeen).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):'';
+    return `<div class="card-row"><div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600">${escAnn(d.label||'Apparaat')}${me?' <span style="font-size:11px;color:var(--text3);font-weight:500">(dit apparaat)</span>':''}</div>
+        <div style="font-size:12px;margin-top:2px;color:${inst?'var(--green)':'var(--orange)'}">${inst?'Geïnstalleerd':'Niet geïnstalleerd'}<span style="color:var(--text3)">${seen?' · laatst gezien '+seen:''}</span></div>
+      </div>${me&&!inst?'<button class="btn btn-ghost btn-sm" onclick="triggerInstall()">Installeer</button>':''}</div>`;
+  }).join('');
+  return head+rows;
+}
+async function runFirstLoginFlow(){
+  const dev=await registerDevice();
   if(needsInstallBarricade()){
     showInstallBarricade(()=>{ maybeShowFirstTour(true); });
-  } else {
-    maybeShowFirstTour();
-  }
-}
-window.triggerInstall=async function(){
-  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  if(isIOS){ modal(iosInstallGuideHtml()); return; }
-  if(!_deferredInstallPrompt){
-    // Android/desktop Chrome maar geen prompt beschikbaar (al gedismisst, of andere browser)
-    modal(`<div class="modal-handle"></div>
-      <div style="text-align:center;padding:6px 0 4px">
-        <div style="font-size:40px;margin-bottom:10px"><span class="ic" data-icon="mobile-down"></span></div>
-        <div class="modal-title" style="text-align:center">Installeren</div>
-        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 18px">Open het menu van je browser (meestal rechtsboven, ⋮ of •••) en kies <b>"App installeren"</b> of <b>"Toevoegen aan startscherm"</b>.</p>
-        <button class="btn btn-ghost btn-full" onclick="closeModal()">Begrepen</button>
-      </div>`);
     return;
   }
+  maybeShowFirstTour();
+  if(U.tourSeen) setTimeout(()=>maybeShowDeviceNudge(dev),2500);
+}
+window.triggerInstall=async function(){
+  if(detectPlatform()==='ios' || !_deferredInstallPrompt){ modal(installGuideModalHtml()); return; }
   closeModal();
   _deferredInstallPrompt.prompt();
   await _deferredInstallPrompt.userChoice;
@@ -3930,10 +4091,7 @@ function renderProfile(){
     </div>
 
     <div class="section-label">App</div>
-    <div class="card"><div class="card-row">
-      <div class="card-row-label">${U.pwaInstalled||isRunningStandalone()?'<span class="ic" data-icon="check-circle"></span> Geïnstalleerd als app':'<span class="ic" data-icon="mobile-down"></span> Nog niet geïnstalleerd'}</div>
-      ${!(U.pwaInstalled||isRunningStandalone())?'<button class="btn btn-ghost btn-sm" onclick="triggerInstall()">Installeer</button>':''}
-    </div>
+    <div class="card">${appDevicesRowsHtml()}
     <div class="card-row" style="cursor:pointer" onclick="startAppTour()">
       <div class="card-row-label"><span class="ic" data-icon="compass"></span> Rondleiding door de app</div>
       <div style="color:var(--text3)">›</div>
