@@ -22,7 +22,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
-  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion }
+  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getMessaging, getToken, isSupported as fcmIsSupported }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
@@ -55,6 +55,7 @@ const EMAILJS_TPL_ANNOUNCE = "template_7lytlw4"; // Aankondigingen
 const EMAILJS_TPL_TAG      = "template_7lytlw4"; // @tag in chat
 const EMAILJS_TPL_SWAP     = "template_7lytlw4"; // Dienst ruilen
 const EMAILJS_TPL_PW       = "template_7lytlw4"; // Wachtwoord-gerelateerd
+const EMAILJS_TPL_WELCOME  = "template_7lytlw4"; // Welkomstmail bij registratie
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -76,10 +77,10 @@ async function registerPushToken(uid){
 }
 
 window._f = { auth, db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
-  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion,
+  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion, increment,
   signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail,
   EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TPL_INVITE, EMAILJS_TPL_NOTIF, EMAILJS_TPL_PAYMENT,
-  EMAILJS_TPL_ANNOUNCE, EMAILJS_TPL_TAG, EMAILJS_TPL_SWAP, EMAILJS_TPL_PW, registerPushToken };
+  EMAILJS_TPL_ANNOUNCE, EMAILJS_TPL_TAG, EMAILJS_TPL_SWAP, EMAILJS_TPL_PW, EMAILJS_TPL_WELCOME, registerPushToken };
 
 let _authHandled = false;
 onAuthStateChanged(auth, async (user) => {
@@ -631,6 +632,49 @@ select.form-input option { background:var(--bg3); }
 .shift-progress-fill.openend { background:repeating-linear-gradient(45deg,var(--mhv-yellow) 0 10px,rgba(245,200,0,.35) 10px 20px); }
 .shift-progress-label { font-size:12px; color:var(--text3); margin-top:6px; font-weight:600; }
 
+
+/* ── Rondleiding: mini-voorbeeldschermen ── */
+.ts-shot{width:210px;margin:0 auto;background:var(--bg);border:2px solid var(--separator);border-radius:22px;overflow:hidden;text-align:left}
+.ts-bar{display:flex;justify-content:space-between;align-items:center;padding:7px 12px 4px;font-size:9px;font-weight:700;color:var(--text3)}
+.ts-bat{width:14px;height:7px;border:1px solid var(--text3);border-radius:2px;padding:1px}.ts-bat i{display:block;height:100%;width:70%;background:var(--green);border-radius:1px}
+.ts-body{padding:6px 10px 12px;display:flex;flex-direction:column;gap:6px;min-height:130px}
+.ts-row{display:flex;gap:6px}
+.ts-box{flex:1;background:var(--bg2);border-radius:9px;padding:7px 4px;text-align:center}.ts-box b{display:block;font-size:15px;font-weight:800}.ts-box small{font-size:8px;color:var(--text3)}
+.ts-card{background:var(--bg2);border-radius:9px;padding:7px 9px}.ts-card b{display:block;font-size:11px}.ts-card small{font-size:9px;color:var(--text3)}
+.ts-line{height:6px;background:var(--bg3);border-radius:3px}
+.ts-msg{align-self:flex-start;background:var(--bg3);border-radius:10px 10px 10px 3px;padding:6px 9px;font-size:10px;max-width:80%}
+.ts-msg.me{align-self:flex-end;background:var(--mhv-blue);color:#fff;border-radius:10px 10px 3px 10px}
+.ts-btn{flex:1;text-align:center;padding:6px 4px;border-radius:8px;border:1px solid var(--separator);font-size:9.5px;font-weight:700;color:var(--text2)}
+.ts-pill{font-size:9px;font-weight:700;padding:3px 9px;border-radius:10px}
+.ts-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.ts-cal i{font-style:normal;text-align:center;font-size:9px;padding:4px 0;border-radius:6px;background:var(--bg2);color:var(--text3)}
+.ts-cal i.on{background:var(--mhv-yellow);color:#000;font-weight:800}.ts-cal i.off{background:var(--red-dim);color:var(--red);font-weight:800}
+.ts-theme{width:34px;height:34px;border-radius:50%;border:2px solid var(--separator)}
+
+/* ── INSTALLATIE-BARRICADE ───
+   Volledig scherm, geen backdrop-klik-om-te-sluiten, geen kruisje. Verschijnt bij de allereerste
+   keer inloggen zolang de app niet als PWA draait, met per-OS uitleg. Pas als die is opgelost
+   (écht geïnstalleerd, of — op iOS, waar geen enkele browser dat detecteerbaar maakt — zelf
+   bevestigd) gaat de rondleiding verder. Hoger dan .modal-bg (999999) zodat niets eroverheen kan. */
+.barricade{position:fixed;inset:0;z-index:9999999;background:var(--bg);display:flex;flex-direction:column;}
+.barricade-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:max(28px,env(safe-area-inset-top,0px)) 22px 20px}
+.barricade-logo{width:64px;height:64px;border-radius:18px;background:var(--mhv-blue);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 0 0 1px rgba(245,200,0,.3),0 12px 30px rgba(26,59,181,.4)}
+.barricade-eyebrow{font-size:12.5px;font-weight:700;color:var(--mhv-yellow);background:rgba(245,200,0,.1);border:1px solid rgba(245,200,0,.25);padding:5px 13px;border-radius:20px;margin-bottom:14px}
+.barricade-title{font-size:24px;font-weight:800;letter-spacing:-.4px;text-align:center;max-width:340px;line-height:1.25}
+.barricade-sub{font-size:14px;color:var(--text3);text-align:center;max-width:340px;margin-top:10px;line-height:1.5}
+.barricade-steps{width:100%;max-width:380px;margin-top:26px;display:flex;flex-direction:column;gap:10px}
+.barricade-step{display:flex;align-items:center;gap:13px;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:13px 15px}
+.barricade-step-n{width:26px;height:26px;border-radius:50%;background:var(--mhv-blue);color:#fff;font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.barricade-step-txt{flex:1;font-size:13.5px;color:var(--text2);line-height:1.4}
+.barricade-step-txt b{color:var(--text)}
+.barricade-step svg{flex-shrink:0;color:var(--text3)}
+.barricade-confirm{display:flex;align-items:flex-start;gap:10px;width:100%;max-width:380px;margin-top:22px;background:var(--bg2);border:1px solid var(--separator);border-radius:14px;padding:14px 15px;cursor:pointer}
+.barricade-confirm input{margin-top:2px;width:18px;height:18px;accent-color:var(--mhv-yellow);flex-shrink:0}
+.barricade-confirm span{font-size:13px;color:var(--text2);line-height:1.45}
+.barricade-foot{flex-shrink:0;padding:14px 22px max(18px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--separator);background:var(--bg)}
+.barricade-foot-inner{max-width:380px;margin:0 auto}
+.barricade-note{font-size:11.5px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.4}
+
 /* ── MODAL ─── */
 .modal-bg {
   position:fixed; inset:0; background:rgba(0,0,0,0.7);
@@ -733,10 +777,12 @@ select.form-input option { background:var(--bg3); }
 </style>
 <script>
 // Thema zo vroeg mogelijk toepassen (vóór de eerste paint) om een flits van het verkeerde thema te voorkomen.
+// Standaard is donker — alleen als iemand zelf expliciet een ander thema kiest (Profiel → Weergave)
+// wijkt de app daarvan af.
 (function(){
   try{
-    var pref = localStorage.getItem('mhv_theme') || 'system';
-    var eff = (pref==='light'||pref==='dark') ? pref : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var pref = localStorage.getItem('mhv_theme') || 'dark';
+    var eff = (pref==='light'||pref==='dark') ? pref : (pref==='system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref);
     document.documentElement.setAttribute('data-theme', eff);
   }catch(e){}
 })();
@@ -877,6 +923,8 @@ const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
 let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[];
 let idleExitCode=null, idleTimer=null, appVersion='';
 let allChat=[]; let unsubChat; let allChatReads={}; let unsubChatReads;
+let emailUsageStats=null; let emailUsageLoading=false; // dev-only mailmeter: [{month:'2026-09',count:12}, ...] nieuwste eerst
+const EMAIL_MONTH_LIMIT=200; // gratis EmailJS-plan
 let allDMs=[]; let unsubDMs; let activeDMThread=null;
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
 let rosterTab='mine', adminTab='medewerkers', adminRTab='all', payMonth=0, exportFormat='excel';
@@ -966,8 +1014,7 @@ window.addEventListener('mhv:ready', async ()=>{
       startEl.classList.add('active');
     }
     // (hulp-uitleg nu alleen op de loginpagina)
-    maybeShowInstallPrompt();
-    maybeShowFirstTour();
+    runFirstLoginFlow();
     applyHolidayTheme();
   }
 });;
@@ -986,6 +1033,9 @@ window.addEventListener('appinstalled',async()=>{
   }catch(e){}
   toast('App geïnstalleerd!','ok');
   const v=document.getElementById('view-profile'); if(v&&v.classList.contains('active')) renderProfile();
+  // Als de barricade nog openstaat: dit ís het echte, betrouwbare installatiesignaal (Android/
+  // desktop) — meteen doorsturen, geen handmatige bevestiging nodig.
+  if(document.getElementById('installBarricade')) resolveInstallBarricade('event');
 });
 function isRunningStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
@@ -1009,32 +1059,88 @@ function iosInstallGuideHtml(){
       <button class="btn btn-ghost btn-full" onclick="closeModal()">Begrepen</button>
     </div>`;
 }
-function maybeShowInstallPrompt(){
-  if(isRunningStandalone()){
-    if(U && !U.pwaInstalled){
-      const{db,doc,updateDoc}=window._f;
-      updateDoc(doc(db,'users',U.uid),{pwaInstalled:true}).catch(()=>{});
-      U.pwaInstalled=true;
-    }
+function detectPlatform(){
+  const ua=navigator.userAgent;
+  const isIOS=/iphone|ipad|ipod/i.test(ua) || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints>1); // iPadOS 13+ meldt zich als 'Mac'
+  if(isIOS) return 'ios';
+  if(/android/i.test(ua)) return 'android';
+  return 'desktop';
+}
+// Wordt maar op één plek écht zeker geweten: het 'appinstalled'-event. Op iOS bestaat dat
+// signaal niet — geen enkele browser daar biedt dat — dus daar blijft een eigen bevestiging
+// door de gebruiker de enige optie. Dat is een bewuste, eerlijke beperking, geen bug.
+function needsInstallBarricade(){
+  return !!U && !isRunningStandalone() && !U.installBarrierSeen;
+}
+async function markInstallBarrierSeen(){
+  try{
+    const{db,doc,updateDoc}=window._f;
+    if(U){ await updateDoc(doc(db,'users',U.uid),{installBarrierSeen:true}); U.installBarrierSeen=true; }
+  }catch(e){}
+}
+function showInstallBarricade(onDone){
+  const platform=detectPlatform();
+  let stepsHtml='', confirmHtml='', ctaHtml='';
+  if(platform==='ios'){
+    stepsHtml=`
+      <div class="barricade-step"><div class="barricade-step-n">1</div><div class="barricade-step-txt">Tik onderin (of bovenin) <b>Safari</b> op het deel-icoon</div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg></div>
+      <div class="barricade-step"><div class="barricade-step-n">2</div><div class="barricade-step-txt">Scrol naar beneden en kies <b>"Zet op beginscherm"</b></div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 9v6M9 12h6"/></svg></div>
+      <div class="barricade-step"><div class="barricade-step-n">3</div><div class="barricade-step-txt">Open MHVwork daarna vanaf dat <b>nieuwe icoon</b>, niet meer via Safari</div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>`;
+    confirmHtml=`<label class="barricade-confirm"><input type="checkbox" id="barrConfirm" onchange="document.getElementById('barrGoBtn').disabled=!this.checked"><span>Ik heb bovenstaande stappen gevolgd en MHVwork staat op mijn beginscherm</span></label>`;
+    ctaHtml=`<button class="btn btn-yellow btn-full" id="barrGoBtn" disabled onclick="resolveInstallBarricade('confirm')">Doorgaan</button>
+      <div class="barricade-note">Safari geeft geen enkele app de mogelijkheid om dit automatisch te controleren — vandaar dit vinkje in plaats van een knop die het voor je detecteert.</div>`;
+  } else {
+    stepsHtml=`
+      <div class="barricade-step"><div class="barricade-step-n">1</div><div class="barricade-step-txt">Tik hieronder op <b>Installeren</b></div></div>
+      <div class="barricade-step"><div class="barricade-step-n">2</div><div class="barricade-step-txt">Bevestig in het venstertje van je browser</div></div>
+      <div class="barricade-step"><div class="barricade-step-n">3</div><div class="barricade-step-txt">Open MHVwork daarna vanaf het <b>nieuwe icoon</b> op je ${platform==='android'?'startscherm':'bureaublad'}</div></div>`;
+    ctaHtml=`<button class="btn btn-yellow btn-full" onclick="barricadeTriggerInstall()">Installeren</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px" id="barrManualBtn" onclick="resolveInstallBarricade('manual')">Ik heb 'm al geïnstalleerd</button>
+      <div class="barricade-note">Zie je geen installatievenster? Gebruik het menu van je browser (⋮ of •••) → "App installeren" of "Toevoegen aan startscherm".</div>`;
+  }
+  document.getElementById('barricade-root').innerHTML=`
+    <div class="barricade" id="installBarricade">
+      <div class="barricade-scroll">
+        <div class="barricade-logo"><svg width="30" height="30" viewBox="0 0 512 512"><rect x="110" y="160" width="230" height="230" rx="32" fill="none" stroke="#F5C800" stroke-width="30"/><path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="30" stroke-linecap="round"/></svg></div>
+        <div class="barricade-eyebrow">Eenmalig, duurt 10 seconden</div>
+        <div class="barricade-title">Installeer MHVwork om verder te gaan</div>
+        <div class="barricade-sub">Zo werkt de app sneller, werken pushmeldingen écht, en hoef je nooit meer een browsertabblad te zoeken. Dit is de laatste stap voor je rondleiding.</div>
+        <div class="barricade-steps">${stepsHtml}</div>
+        ${confirmHtml}
+      </div>
+      <div class="barricade-foot"><div class="barricade-foot-inner">${ctaHtml}</div></div>
+    </div>`;
+  window._onInstallBarricadeDone=onDone;
+}
+window.barricadeTriggerInstall=async function(){
+  if(!_deferredInstallPrompt){
+    // Geen native prompt beschikbaar (browser ondersteunt het niet, of al eerder gedismisst) —
+    // val terug op de handmatige bevestigingsknop die toch al onder de instructies staat.
+    toast('Gebruik het menu van je browser om te installeren','info');
     return;
   }
-  const params=new URLSearchParams(window.location.search);
-  const justRegistered=params.get('justRegistered')==='1';
-  if(!justRegistered) return;
-  // Query-param opschonen zodat een refresh de popup niet opnieuw toont
-  history.replaceState({}, '', window.location.pathname);
-  setTimeout(()=>{
-    const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-    if(isIOS){ modal(iosInstallGuideHtml()); return; }
-    modal(`<div class="modal-handle"></div>
-      <div style="text-align:center;padding:6px 0 4px">
-        <div style="font-size:44px;margin-bottom:10px"><span class="ic" data-icon="mobile-down"></span></div>
-        <div class="modal-title" style="text-align:center">Installeer MHVwork</div>
-        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 18px">Installeer de app op je telefoon — dat werkt sneller en pushmeldingen werken dan ook echt.</p>
-        <button class="btn btn-yellow btn-full" onclick="triggerInstall()">Nu installeren</button>
-        <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal()">Later</button>
-      </div>`);
-  },900);
+  _deferredInstallPrompt.prompt();
+  const choice=await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt=null;
+  if(choice && choice.outcome==='accepted'){ /* 'appinstalled' handelt het afsluiten van de barricade zelf af */ }
+};
+window.resolveInstallBarricade=async function(via){
+  await markInstallBarrierSeen();
+  const el=document.getElementById('installBarricade');
+  if(el) el.remove();
+  const done=window._onInstallBarricadeDone;
+  window._onInstallBarricadeDone=null;
+  if(done) done();
+};
+function runFirstLoginFlow(){
+  if(needsInstallBarricade()){
+    showInstallBarricade(()=>{ maybeShowFirstTour(true); });
+  } else {
+    maybeShowFirstTour();
+  }
 }
 window.triggerInstall=async function(){
   const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1211,7 +1317,7 @@ function userAvatarHtml(uid){
   return getInitials(u.name);
 }
 function userWage(uid){return allUsers.find(u=>u.uid===uid)?.wage||0;}
-function getTheme(){ try{return localStorage.getItem('mhv_theme')||'system';}catch(e){return 'system';} }
+function getTheme(){ try{return localStorage.getItem('mhv_theme')||'dark';}catch(e){return 'dark';} }
 function computeEffectiveTheme(pref){
   if(pref==='light'||pref==='dark'||pref==='liquid'||pref==='apod') return pref;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
@@ -2613,7 +2719,7 @@ async function createInvite(){
 }
 async function sendInviteEmail(email,name,link){
   try{
-    await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_INVITE,{to_email:email,to_name:name,invite_link:link,club_name:'MHV'});
+    await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_INVITE,{to_email:email,to_name:name,invite_link:link,club_name:'MHV'});
     toast('Uitnodiging verstuurd!','ok');
   }catch(e){toast('Email mislukt','err');console.error(e);}
 }
@@ -3107,7 +3213,7 @@ async function markPaid(uid,year,month,name,amount){
   await sendNotif(uid,'Uitbetaling ontvangen',`Je hebt ${fmtMoney(amount)} ontvangen voor ${MO[m]} ${y}.`);
   const u=allUsers.find(x=>x.uid===uid);
   if(u?.email){
-    try{await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_PAYMENT,{to_email:u.email,to_name:u.name,amount:fmtMoney(amount),month:`${MO[m]} ${y}`,title:'Uitbetaling ontvangen',body:`Je hebt ${fmtMoney(amount)} ontvangen voor ${MO[m]} ${y}.`});}
+    try{await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_PAYMENT,{to_email:u.email,to_name:u.name,amount:fmtMoney(amount),month:`${MO[m]} ${y}`,title:'Uitbetaling ontvangen',body:`Je hebt ${fmtMoney(amount)} ontvangen voor ${MO[m]} ${y}.`});}
     catch(e){console.warn('Email fout:',e);}
   }
   toast('Uitbetaling geregistreerd!','ok');
@@ -3176,7 +3282,7 @@ async function sendMsg(){
   for(const uid of recipients){
     const u=allUsers.find(x=>x.uid===uid);
     if(u?.email){
-      try{await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{to_email:u.email,to_name:u.name,title,body});}
+      try{await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{to_email:u.email,to_name:u.name,title,body});}
       catch(e){console.warn(e);}
     }
   }
@@ -3527,17 +3633,54 @@ function openSendToAdmin(){
 // ═══════════════════════════════════════════
 // APP-TOUR — automatisch bij de allereerste login ooit, of handmatig via Profiel
 // ═══════════════════════════════════════════
+// ── RONDLEIDING ───
+// Elke stap heeft een mini-voorbeeldscherm ('shot'): een getekende, vereenvoudigde weergave van het
+// echte scherm, zodat je herkent wat je later ziet. Geen echte screenshots — die zouden met elke
+// update verouderen, en bevatten al snel echte namen/bedragen van collega's.
+function tsShot(inner){
+  return `<div class="ts-shot"><div class="ts-bar"><span>20:14</span><span class="ts-bat"><i></i></span></div><div class="ts-body">${inner}</div></div>`;
+}
+const TS = {
+  stat:(a,b,c1,c2)=>`<div class="ts-row"><div class="ts-box"><b style="color:${c1||'var(--mhv-yellow)'}">${a[0]}</b><small>${a[1]}</small></div><div class="ts-box"><b style="color:${c2||'var(--green)'}">${b[0]}</b><small>${b[1]}</small></div></div>`,
+  shift:(t,d,col)=>`<div class="ts-card" style="border-left:3px solid ${col||'var(--mhv-yellow)'}"><b>${t}</b><small>${d}</small></div>`,
+  line:(w)=>`<div class="ts-line" style="width:${w}%"></div>`,
+  msg:(txt,me)=>`<div class="ts-msg${me?' me':''}">${txt}</div>`,
+  btns:(...l)=>`<div class="ts-row">${l.map(x=>`<div class="ts-btn">${x}</div>`).join('')}</div>`,
+  pill:(txt,col)=>`<span class="ts-pill" style="color:${col};background:${col}22">${txt}</span>`,
+};
 const TOUR_STEPS_BASE = [
-  {icon:'<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="var(--mhv-yellow)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/><path d="M18 11V6a2 2 0 0 0-4 0v.5"/><path d="M14 10.5V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8.5"/><path d="M2 3c1.4 1.4 1.4 3.6 0 5" opacity=".55"/></svg>', title:'Welkom bij MHVwork!', body:'Even in een paar stappen laten zien wat je hier allemaal kan. Dit duurt maar een minuutje.'},
-  {icon:'<span class="ic" data-icon="home"></span>', title:'Home', body:'Je startpagina met je komende diensten, verdiensten en eventuele aankondigingen.'},
-  {icon:'<span class="ic" data-icon="calendar"></span>', title:'Rooster', body:'Hier zie je al je diensten. Tik op een dag in de kalender voor de details, of exporteer een dienst naar je eigen agenda.'},
-  {icon:'<span class="ic" data-icon="forbidden"></span>', title:'Beschikbaarheid', body:'Geef hier aan wanneer je niet kunt werken — ook voor een hele periode in één keer, bijvoorbeeld je vakantie.'},
-  {icon:'<span class="ic" data-icon="chat"></span>', title:'Groepschat', body:'Praat mee met iedereen. Gebruik @naam om iemand te taggen, of vraag om een dienst te ruilen.'},
-  {icon:'<span class="ic" data-icon="bell"></span>', title:'Meldingen', body:'Systeemberichten én privéberichten, allemaal op één plek.'},
-  {icon:'<span class="ic" data-icon="user"></span>', title:'Profiel', body:'Je eigen gegevens, wachtwoord wijzigen, licht/donker thema, en deze rondleiding nog eens terugkijken.'},
+  {title:'Welkom bij MHVwork!', body:'In een paar stappen laten we zien wat je hier allemaal kan. Kost ongeveer twee minuten — en je kan het later altijd terugkijken bij Profiel.',
+   shot:tsShot(`<div style="text-align:center;padding:18px 0"><div style="font-size:30px;font-weight:800;letter-spacing:-1px">MHV<span style="color:var(--mhv-yellow)">work</span></div><small style="color:var(--text3)">Rooster · chat · uitbetalingen</small></div>`+TS.shift('Zaterdag 14:00 – 18:00','Achter de bar')) },
+  {title:'Home', body:'Je startpagina: je eerstvolgende dienst, wat je verwacht te verdienen en de laatste aankondigingen. Is je dienst bezig, dan zie je een live voortgangsbalk.',
+   shot:tsShot(TS.stat(['3','Komende diensten'],['€84','Verwacht'])+TS.shift('14:00 – 18:00','Zaterdag 27 juni')+`<div class="ts-card" style="border-left:3px solid var(--mhv-blue)"><b>Zomerrooster staat open</b><small>Aankondiging · vandaag</small></div>`)},
+  {title:'Rooster', body:'Al je diensten in een kalender. Tik op een dag voor de details. Vanuit een dienst kan je bevestigen, een andere werktijd doorgeven, een notitie of foto toevoegen, of de dienst in je eigen agenda zetten.',
+   shot:tsShot(`<div class="ts-cal">${Array.from({length:14},(_,i)=>`<i class="${[2,5,9].includes(i)?'on':''}">${i+1}</i>`).join('')}</div>`+TS.shift('Za 14:00 – 18:00','Bevestig je dienst',' var(--orange)')+TS.btns('Bevestigen','Agenda'))},
+  {title:'Dienst bevestigen', body:'Na afloop bevestig je met één tik dat je hebt gewerkt. Was het korter of langer? Geef dan de echte tijd door — de beheerder ziet dat en keurt het goed.',
+   shot:tsShot(TS.shift('14:00 – 18:00','Afgelopen dienst',' var(--green)')+`<div class="ts-card"><small>Werkelijke eindtijd</small><b>18:45</b></div>`+TS.btns('Bevestigen'))},
+  {title:'Beschikbaarheid', body:'Kan je op bepaalde dagen niet? Geef dat hier door, ook voor een hele periode tegelijk — bijvoorbeeld je vakantie. Beheerders houden er dan rekening mee bij het inplannen.',
+   shot:tsShot(`<div class="ts-cal">${Array.from({length:14},(_,i)=>`<i class="${[4,5,6,7].includes(i)?'off':''}">${i+1}</i>`).join('')}</div>`+TS.shift('4 t/m 8 juli','Niet beschikbaar',' var(--red)'))},
+  {title:'Groepschat', body:'Praat mee met iedereen. Tik met @naam iemand aan (die krijgt direct een melding), of gebruik @iedereen. Stuur foto\'s mee, of stuur iemand een privébericht.',
+   shot:tsShot(TS.msg('Wie kan zaterdag ruilen?')+TS.msg('@Sanne ik kan!',true)+TS.msg('Top, bedankt 🙌'))},
+  {title:'Dienst ruilen', body:'Kan je écht niet? Plaats een ruilverzoek in de groepschat. Een collega meldt zich, de beheerder keurt goed, en de dienst wordt automatisch overgezet. Jullie allebei krijgen een melding.',
+   shot:tsShot(`<div class="ts-card" style="border-left:3px solid var(--mhv-yellow)"><b>Ruilverzoek</b><small>Za 14:00 – 18:00</small></div>`+TS.msg('Ik neem \'m over!')+`<div style="text-align:center;margin-top:6px">${TS.pill('Goedgekeurd','var(--green)')}</div>`)},
+  {title:'Salaris & uitbetalingen', body:'Bij Profiel zie je wat je nog tegoed hebt en wat er al is uitbetaald. Elke dienst gaat van bevestigd → goedgekeurd → uitbetaald.',
+   shot:tsShot(TS.stat(['€84','Nog tegoed'],['€310','Uitbetaald'],'var(--green)','var(--text)')+TS.shift('Juni','Uitbetaald',' var(--green)')+TS.shift('Juli','Goedgekeurd',' var(--orange)'))},
+  {title:'Meldingen', body:'Systeemberichten, ruilverzoeken en privéberichten staan bij elkaar. Zet pushmeldingen aan voor een melding op je telefoon — zo mis je nooit een wijziging aan je dienst.',
+   shot:tsShot(`<div class="ts-card"><b>Dienst gewijzigd</b><small>Za nu 15:00 – 19:00</small></div><div class="ts-card"><b>Nieuw bericht van beheerder</b><small>2 uur geleden</small></div>`)},
+  {title:'Profiel & thema', body:'Je gegevens, wachtwoord, welke mails je wilt ontvangen, en je thema: zwart is de standaard, maar licht of een eigen thema kan ook. Hier start je deze rondleiding ook opnieuw.',
+   shot:tsShot(`<div class="ts-row" style="justify-content:center;gap:10px"><div class="ts-theme" style="background:#000;border-color:var(--mhv-yellow)"></div><div class="ts-theme" style="background:#f2f2f7"></div><div class="ts-theme" style="background:linear-gradient(135deg,#0d1a40,#3b1c6b)"></div></div>`+TS.line(80)+TS.line(60))},
 ];
 const TOUR_STEPS_ADMIN = [
-  {icon:'<span class="ic" data-icon="tools"></span>', title:'Beheer', body:'Medewerkers uitnodigen, diensten inplannen, uitbetalingen bijhouden en instellingen aanpassen — allemaal hier.'},
+  {title:'Beheer: rooster maken', body:'Onder Beheer plan je diensten in. Je kan er direct iemand aan koppelen, of een dienst nog open laten. Gebruik de eindtijd "Sluit" als je nog niet weet hoe laat het wordt.',
+   shot:tsShot(TS.shift('Za 14:00 – Sluit','Nog niet toegewezen',' var(--orange)')+TS.shift('Za 18:00 – 23:00','Sanne'))},
+  {title:'Beheer: goedkeuren', body:'Bevestigde diensten en ruilverzoeken komen bij jou binnen. Controleer de gewerkte tijd, keur goed met één tik, en het gaat door naar uitbetalen.',
+   shot:tsShot(`<div class="ts-card"><b>Sanne · 14:00 – 18:45</b><small>Wacht op goedkeuring</small></div>`+TS.btns('Afkeuren','Goedkeuren'))},
+  {title:'Beheer: uitbetalen', body:'Zet goedgekeurde diensten per medewerker op uitbetaald, en exporteer naar Excel voor de boekhouding. Wat je uitbetaalt zien medewerkers meteen in hun eigen overzicht.',
+   shot:tsShot(TS.stat(['€1.240','Uitbetaald'],['€180','Openstaand'],'var(--green)','var(--orange)')+TS.btns('Uitbetalen','Excel'))},
+  {title:'Beheer: medewerkers', body:'Nodig nieuwe mensen uit met een link, pas gegevens aan, en zet per persoon functies uit als dat nodig is. Ook houd je hier bij wie een IVA-certificaat heeft om te mogen schenken.',
+   shot:tsShot(`<div class="ts-card"><b>Sanne</b><small>Medewerker · IVA ✓</small></div><div class="ts-card"><b>Tygo</b><small>Beheerder</small></div>`+TS.btns('+ Uitnodigen'))},
+  {title:'Beheer: aankondigingen', body:'Plaats een bericht voor iedereen, of alleen voor beheerders. Een speciale aankondiging krijgt een eigen kleur en verschijnt direct als pop-up.',
+   shot:tsShot(`<div class="ts-card" style="border-left:3px solid var(--mhv-yellow)"><b>Zomerrooster staat open!</b><small>Voor iedereen</small></div>`+TS.line(90)+TS.line(70))},
 ];
 function startAppTour(){
   const steps = U && U.role==='employee' ? TOUR_STEPS_BASE : [...TOUR_STEPS_BASE, ...TOUR_STEPS_ADMIN];
@@ -3546,14 +3689,16 @@ function startAppTour(){
     const s=steps[i];
     const isLast=i===steps.length-1;
     modal(`<div class="modal-handle"></div>
-      <div style="text-align:center;padding:8px 0 4px">
-        <div style="font-size:46px;margin-bottom:10px">${s.icon}</div>
-        <div class="modal-title" style="text-align:center">${s.title}</div>
-        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:12px 0 20px">${s.body}</p>
-        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:18px">
-          ${steps.map((_,idx)=>`<div style="width:6px;height:6px;border-radius:50%;background:${idx===i?'var(--mhv-yellow)':'var(--separator)'}"></div>`).join('')}
+      <div style="text-align:center;padding:4px 0 4px">
+        ${s.shot}
+        <div class="modal-title" style="text-align:center;margin-top:16px">${s.title}</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:10px 0 16px">${s.body}</p>
+        <div style="height:4px;background:var(--separator);border-radius:2px;overflow:hidden;margin-bottom:6px"><div style="height:100%;width:${Math.round((i+1)/steps.length*100)}%;background:var(--mhv-yellow);transition:width .3s ease"></div></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:16px">${i+1} van ${steps.length}</div>
+        <div style="display:flex;gap:8px">
+          ${i>0?'<button class="btn btn-ghost" style="flex:1" onclick="tourPrev()">Terug</button>':''}
+          <button class="btn btn-yellow" style="flex:2" onclick="tourNext()">${isLast?'Aan de slag!':'Volgende'}</button>
         </div>
-        <button class="btn btn-yellow btn-full" onclick="tourNext()">${isLast?'Aan de slag!':'Volgende'}</button>
         ${!isLast?'<button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal();markTourSeen()">Overslaan</button>':''}
       </div>`);
   }
@@ -3562,6 +3707,7 @@ function startAppTour(){
     if(i>=steps.length){ closeModal(); markTourSeen(); return; }
     showStep();
   };
+  window.tourPrev=()=>{ if(i>0){ i--; showStep(); } };
   showStep();
 }
 async function markTourSeen(){
@@ -3608,10 +3754,11 @@ function handleProfilePhoto(file){
   };
   reader.readAsDataURL(file);
 }
-function maybeShowFirstTour(){
+function maybeShowFirstTour(afterBarricade){
   if(U && !U.tourSeen){
     const justRegistered=new URLSearchParams(window.location.search).get('justRegistered')==='1';
-    setTimeout(()=>startAppTour(), justRegistered?4000:1400);
+    if(justRegistered) history.replaceState({}, '', window.location.pathname);
+    setTimeout(()=>startAppTour(), afterBarricade ? 500 : (justRegistered?4000:1400));
   }
 }
 
@@ -3765,9 +3912,9 @@ function renderProfile(){
       <div class="card-row">
         <div class="card-row-label"><span class="ic" data-icon="contrast"></span> Thema</div>
         <div style="display:flex;gap:4px;background:var(--bg3);border-radius:10px;padding:3px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="theme-opt ${getTheme()==='system'?'active':''}" onclick="setTheme('system')" title="Systeem (standaard)"><span class="ic" data-icon="settings"></span></button>
+          <button class="theme-opt ${getTheme()==='system'?'active':''}" onclick="setTheme('system')" title="Systeem (volgt je toestel)"><span class="ic" data-icon="settings"></span></button>
           <button class="theme-opt ${getTheme()==='light'?'active':''}" onclick="setTheme('light')" title="Licht"><span class="ic" data-icon="sun"></span></button>
-          <button class="theme-opt ${getTheme()==='dark'?'active':''}" onclick="setTheme('dark')" title="Donker"><span class="ic" data-icon="moon"></span></button>
+          <button class="theme-opt ${getTheme()==='dark'?'active':''}" onclick="setTheme('dark')" title="Donker (standaard)"><span class="ic" data-icon="moon"></span></button>
           <button class="theme-opt ${getTheme()==='liquid'?'active':''}" onclick="setTheme('liquid')" title="Liquid Glass"><span class="ic" data-icon="bubbles"></span></button>
           ${isApodUnlocked()?`<button class="theme-opt ${getTheme()==='apod'?'active':''}" onclick="setTheme('apod')" title="Geheim: NASA-foto van de dag"><span class="ic" data-icon="galaxy"></span></button>`:''}
         </div>
@@ -3987,6 +4134,24 @@ async function showBrowserNotif(title, body, tag){
     new Notification(title,{body,icon:'/MHVwork/icon.svg'});
   }
 }
+// ═══════════════════════════════════════════
+// MAILGEBRUIK BIJHOUDEN — één Firestore-document per maand ('emailUsage/2026-09'), zodat dev
+// live kan zien hoeveel mails er via het gratis EmailJS-plan (limiet 200/maand) zijn verstuurd.
+// Loopt gewoon door als deze write om wat voor reden dan ook faalt — een mail die al verstuurd
+// is, mag nooit alsnog als mislukt tellen voor de gebruiker.
+// ═══════════════════════════════════════════
+async function logEmailSent(n){
+  try{
+    const{db,doc,setDoc,increment,serverTimestamp}=window._f;
+    const ym=new Date().toISOString().slice(0,7); // 'YYYY-MM'
+    await setDoc(doc(db,'emailUsage',ym),{count:increment(n||1),month:ym,updatedAt:serverTimestamp()},{merge:true});
+  }catch(e){}
+}
+async function trackedEmailSend(serviceId,tplId,params){
+  const r=await emailjs.send(serviceId,tplId,params);
+  logEmailSent(1);
+  return r;
+}
 async function notifyUsers(uids, title, body, emailBody, opts){
   opts=opts||{};
   const notifType=opts.type||'general'; // 'general' | 'tag' | 'announce' | 'swap' | 'payment' | 'message'
@@ -4018,7 +4183,7 @@ async function notifyUsers(uids, title, body, emailBody, opts){
       // Niet-urgente mails respecteren de opt-out die de medewerker zelf bij Profiel instelt
       if(!isUrgent && u.emailOptOut) continue;
       try{
-        await emailjs.send(window._f.EMAILJS_SERVICE_ID,tplId,{
+        await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,tplId,{
           to_email:u.email, to_name:u.name, title, body:emailBody||body
         });
       }catch(e){}
@@ -4598,6 +4763,52 @@ function downloadIcsFile(shiftId){
 // ═══════════════════════════════════════════
 // DEV — Beheer (accounts + uitzending)
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// DEV — Live mailmeter (EmailJS gratis plan: 200 mails/maand)
+// ═══════════════════════════════════════════
+let _unsubEmailUsage=null;
+function startEmailUsageListener(){
+  if(_unsubEmailUsage||U.role!=='software') return;
+  emailUsageLoading=true;
+  const{db,collection,onSnapshot}=window._f;
+  _unsubEmailUsage=onSnapshot(collection(db,'emailUsage'),snap=>{
+    emailUsageStats=snap.docs.map(d=>({month:d.id,count:d.data().count||0}))
+      .sort((a,b)=>b.month.localeCompare(a.month));
+    emailUsageLoading=false;
+    const v=document.getElementById('view-devacc');
+    if(v&&v.classList.contains('active')){ const el=document.getElementById('emailMeterBox'); if(el) el.innerHTML=renderEmailMeterInner(); }
+  },()=>{ emailUsageStats=[]; emailUsageLoading=false; });
+}
+function fmtMonthNl(ym){
+  const[y,m]=ym.split('-'); const N=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  return N[parseInt(m,10)-1]+' '+y;
+}
+function renderEmailMeterInner(){
+  if(emailUsageStats===null) return '<div style="padding:16px;font-size:13px;color:var(--text3)">Laden…</div>';
+  const nowYm=new Date().toISOString().slice(0,7);
+  const cur=(emailUsageStats.find(x=>x.month===nowYm)||{count:0}).count;
+  const pct=Math.min(100,Math.round(cur/EMAIL_MONTH_LIMIT*100));
+  const col=cur>=EMAIL_MONTH_LIMIT?'var(--red)':(cur>=EMAIL_MONTH_LIMIT*0.8?'var(--mhv-yellow)':'var(--green)');
+  const left=Math.max(0,EMAIL_MONTH_LIMIT-cur);
+  const hist=emailUsageStats.filter(x=>x.month!==nowYm);
+  return '<div style="padding:16px">'
+    +'<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">'
+    +'<div><span style="font-size:30px;font-weight:800;color:'+col+'">'+cur+'</span><span style="font-size:14px;color:var(--text3)"> / '+EMAIL_MONTH_LIMIT+'</span></div>'
+    +'<div style="font-size:12px;color:var(--text3)">'+fmtMonthNl(nowYm)+'</div></div>'
+    +'<div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;transition:width .4s ease"></div></div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:8px">'
+    +(cur>=EMAIL_MONTH_LIMIT?'<b style="color:var(--red)">Limiet bereikt</b> — mails worden door EmailJS mogelijk geweigerd tot de nieuwe maand.':left+' mails over deze maand')
+    +'</div></div>'
+    +(hist.length?'<div style="border-top:1px solid var(--separator);padding:6px 16px 10px"><div class="form-label" style="margin:8px 0 4px">Geschiedenis</div>'
+      +hist.map(h=>'<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--separator)"><span style="color:var(--text2)">'+fmtMonthNl(h.month)+'</span><span style="font-weight:700;color:'+(h.count>=EMAIL_MONTH_LIMIT?'var(--red)':'var(--text)')+'">'+h.count+' / '+EMAIL_MONTH_LIMIT+'</span></div>').join('')
+      +'</div>':'');
+}
+function renderEmailMeterPanel(){
+  startEmailUsageListener();
+  return '<div class="section-label">Mailgebruik</div>'
+    +'<div id="emailMeterBox" style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;margin-bottom:24px">'+renderEmailMeterInner()+'</div>';
+}
+
 function renderDevAcc(){
   const v=document.getElementById('view-devacc'); if(!v)return;
   const statsHtml=
@@ -4652,6 +4863,7 @@ function renderDevAcc(){
   v.innerHTML=
     '<div class="page-title" style="padding:16px 16px 0"><span class="ic" data-icon="tools"></span> Beheer</div>'
     +statsHtml
+    +'<div style="padding:0 16px">'+renderEmailMeterPanel()+'</div>'
     +'<div style="padding:0 16px">'
     +'<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Gebruiker uitnodigen</button>'
     +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;margin-bottom:24px">'+rows+'</div>'
@@ -5400,7 +5612,7 @@ window.sendDevMsg = async function(){
     for(const uid of rcpts){
       const u=allUsers.find(x=>x.uid===uid);
       if(u&&u.email){
-        try{await emailjs.send(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{to_email:u.email,to_name:u.name,title,body});}catch(e){}
+        try{await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,window._f.EMAILJS_TPL_NOTIF,{to_email:u.email,to_name:u.name,title,body});}catch(e){}
       }
     }
   }
@@ -5436,6 +5648,7 @@ window.requestPushPermission=async function(){
 </script>
 
 <div id="modal-root"></div>
+<div id="barricade-root"></div>
 
 <!-- Help overlay: toont promo.html -->
 </body>

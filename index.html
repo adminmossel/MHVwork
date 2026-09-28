@@ -14,7 +14,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
@@ -31,6 +31,13 @@ const EMAILJS_TPL_NOTIF  = "template_7lytlw4";
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
+// Zelfde telling als in app.html — één document per maand, alleen dev leest 'm terug.
+window._logEmailSent = async function(n){
+  try{
+    const ym=new Date().toISOString().slice(0,7);
+    await setDoc(doc(db,'emailUsage',ym),{count:increment(n||1),month:ym,updatedAt:serverTimestamp()},{merge:true});
+  }catch(e){}
+};
 
 if (!window.location.pathname.includes("app.html")) {
   onAuthStateChanged(auth, async (user) => {
@@ -313,7 +320,7 @@ async function sendForgot(){
       to_email:'h.mhvwork@gmail.com',to_name:'Beheerder',
       title:'Wachtwoord vergeten: '+name,
       body:name+' ('+email+') heeft hun wachtwoord vergeten.\n\nEr is automatisch een herstelmail gestuurd. Lukt dat niet, ga dan naar Beheer → Medewerkers → Wachtwoord resetten.'
-    }).catch(e=>console.warn('email:',e));
+    }).then(()=>window._logEmailSent(1)).catch(e=>console.warn('email:',e));
   }catch(e){err.textContent='Er ging iets mis.';err.style.display='block';}
 }
 </script>

@@ -158,6 +158,15 @@ service cloud.firestore {
     // veld 'reminderHours'). Functies app-breed uitzetten (disabledFeatures/disabledMsg) en het
     // versienummer (settings/app) mag uitsluitend dev — dat kan hele onderdelen van de app voor
     // IEDEREEN blokkeren en hoort niet bij een beheerder-account.
+    // Eén document per maand ('YYYY-MM'), telt hoeveel mails er via EmailJS zijn verstuurd —
+    // voor de live mailmeter bij dev (gratis EmailJS-plan houdt op bij 200/maand). Iedereen die
+    // ingelogd is kan een mail versturen (bv. bij een @tag) en moet dus mogen meetellen; alleen
+    // dev mag de cijfers echt inzien.
+    match /emailUsage/{id} {
+      allow read: if isSoftware();
+      allow write: if isAuth();
+    }
+
     match /settings/{id} {
       allow read: if isAuth();
       allow write: if isSoftware()

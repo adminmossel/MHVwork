@@ -12,7 +12,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
@@ -27,6 +27,31 @@ const firebaseConfig = {
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getFirestore(app);
+
+  // Zelfde EmailJS-account en dezelfde maandteller als app.html/index.html — voor de
+  // welkomstmail die hieronder bij een geslaagde registratie wordt verstuurd.
+  const EMAILJS_PUBLIC_KEY = "IUhBp9uzDvqwoZlls";
+  const EMAILJS_SERVICE_ID = "service_ahm3hnp";
+  const EMAILJS_TPL_WELCOME = "template_7lytlw4";
+  window._logEmailSent = async function(n){
+    try{
+      const ym=new Date().toISOString().slice(0,7);
+      await setDoc(doc(db,'emailUsage',ym),{count:increment(n||1),month:ym,updatedAt:serverTimestamp()},{merge:true});
+    }catch(e){}
+  };
+  window._sendWelcomeEmail = async function(name,email){
+    try{
+      if(window.emailjs){
+        emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
+        await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TPL_WELCOME,{
+          to_email:email, to_name:name,
+          title:'Welkom bij MHVwork, '+name+'!',
+          body:'Je account staat klaar. Log in, installeer de app op je telefoon zodra dat gevraagd wordt, en loop de korte rondleiding door — dan weet je precies hoe alles werkt.\n\nTot achter de bar!'
+        });
+        window._logEmailSent(1);
+      }
+    }catch(e){ console.warn('welkomstmail:',e); }
+  };
 
   window._reg = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword, doc, getDoc, setDoc, updateDoc, serverTimestamp };
 
@@ -111,6 +136,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
 .loader-wrap p{font-size:13px;color:var(--text3);}
 </style>
 <script src="icons.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -274,6 +300,9 @@ async function doRegister() {
     });
 
     showMsg('Account aangemaakt! Je wordt doorgestuurd...','success');
+    // Niet blokkerend — als de welkomstmail om wat voor reden dan ook mislukt, mag dat nooit de
+    // registratie zelf in de weg zitten (die is op dit punt al helemaal geslaagd).
+    window._sendWelcomeEmail(inv.name, inv.email);
     setTimeout(() => window.location.href = 'app.html?justRegistered=1', 1800);
   } catch(e) {
     console.error('Registratie fout:', e.code, e.message, e);
