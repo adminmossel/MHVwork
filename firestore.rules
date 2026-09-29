@@ -171,11 +171,13 @@ service cloud.firestore {
       allow write: if isAuth();
     }
 
-    // Thuiswedstrijden van de club, gesynchroniseerd door de server (GitHub Actions met een
-    // service-account — dat omzeilt deze regels). Vanuit de app kan niemand hier iets schrijven.
+    // Thuiswedstrijden. Handmatig ingevoerd door beheerder/dev (geen externe bron beschikbaar) —
+    // zichtbaar voor iedereen, maar alleen staff mag ze toevoegen/wijzigen/verwijderen. De hele
+    // functie is bovendien met een schakelaar (settings/general → disabledFeatures.matches) door
+    // dev uit te zetten; dat bepaalt de app, niet deze regel.
     match /matches/{id} {
       allow read: if isAuth();
-      allow write: if false;
+      allow write: if isStaff();
     }
 
     // Sluitchecklist: de takenlijst zelf ('closing'). Beheerder/dev passen 'm aan, iedereen leest 'm.
