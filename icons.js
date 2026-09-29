@@ -8,6 +8,7 @@
 (function(){
   var ICON = {
     'calendar': '<svg class="ic-svg" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>',
+    'info': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M12 11v6"/><circle cx="12" cy="7.7" r="0.15" fill="currentColor" stroke-width="2.6"/></svg>',
     'edit': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M4 20l.9-4.2L15.6 5.1a1.6 1.6 0 0 1 2.3 0l1 1a1.6 1.6 0 0 1 0 2.3L8.2 19.1 4 20z"/><path d="M14 6.7l3.3 3.3"/></svg>',
     'check-circle': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.6 2.6L16.2 9"/></svg>',
     'check': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg>',

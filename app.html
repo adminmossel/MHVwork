@@ -103,6 +103,12 @@ onAuthStateChanged(auth, async (user) => {
     window.dispatchEvent(new Event("mhv:suspended"));
     return;
   }
+  if (userData.guestUntil && Date.now() > userData.guestUntil) {
+    _authHandled = true;
+    window._user = { uid: user.uid, email: user.email, ...userData };
+    window.dispatchEvent(new Event("mhv:guestExpired"));
+    return;
+  }
   _authHandled = true;
   window._user = { uid: user.uid, email: user.email, ...userData };
   window.dispatchEvent(new Event("mhv:ready"));
@@ -601,6 +607,34 @@ select.form-input option { background:var(--bg3); }
 .idle-worker:last-child { margin-bottom:0; }
 .idle-worker-name { font-size:17px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between; gap:10px; }
 .idle-worker-sub { font-size:13px; font-weight:400; color:rgba(255,255,255,0.5); }
+
+/* ── Wedstrijden ── */
+.match-card{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--separator);border-radius:12px;padding:11px 14px;margin-bottom:8px;}
+.match-card.live{border-color:var(--green);background:var(--green-dim);}
+.match-card.off{opacity:.6;}
+.match-time{font-size:13px;font-weight:700;color:var(--mhv-yellow);min-width:44px;}
+.match-main{flex:1;min-width:0;}
+.match-teams{font-size:14px;font-weight:600;}
+.match-sub{font-size:11.5px;color:var(--text3);margin-top:1px;}
+.view-pills{max-width:320px;}
+
+/* ── Idle-modus: wedstrijden ── */
+.idle-matches{background:rgba(255,255,255,.05);border-radius:14px;padding:14px 20px;margin:0 24px 14px;}
+.idle-matches-title{font-size:14px;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:8px;}
+.idle-match-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.35);margin:8px 0 4px;}
+.idle-match{display:flex;align-items:center;gap:10px;font-size:15px;padding:3px 0;}
+.idle-match.live{color:var(--green);}
+.idle-match.done{color:rgba(255,255,255,.45);}
+.idle-match-time{font-weight:700;min-width:44px;}
+.idle-match-sub{margin-left:auto;font-size:12.5px;color:rgba(255,255,255,.5);}
+.idle-match-foot{font-size:11.5px;color:rgba(255,255,255,.35);margin-top:8px;}
+
+/* ── Sluitchecklist ── */
+.check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--separator);cursor:pointer;}
+.check-row input{width:19px;height:19px;margin-top:1px;accent-color:var(--mhv-yellow);flex-shrink:0;}
+.check-row span{font-size:14px;color:var(--text2);}
+.check-row.done span{color:var(--text3);text-decoration:line-through;}
+.check-row small{display:block;font-size:11px;color:var(--green);text-decoration:none;margin-top:2px;}
 .idle-bar-track { height:8px; border-radius:4px; background:rgba(255,255,255,0.12); overflow:hidden; position:relative; }
 .idle-bar-fill { height:100%; border-radius:4px; background:var(--mhv-yellow); transition:width 20s linear; }
 .idle-bar-fill.done { background:var(--green); }
@@ -760,6 +794,7 @@ select.form-input option { background:var(--bg3); }
 .worker-check.blocked { border-color:rgba(255,69,58,0.3); }
 .worker-check-info { flex:1; }
 .worker-check-name { font-size:14px; font-weight:600; }
+.worker-check-sub { font-size:12px; color:var(--text3); margin-top:2px; line-height:1.4; }
 .worker-check-wage { font-size:12px; color:var(--text3); margin-top:2px; }
 
 /* ── PROFILE CARD ─── */
@@ -897,6 +932,7 @@ select.form-input option { background:var(--bg3); }
     <div class="idle-clock" id="idleClock">--:--</div>
     <div class="idle-date" id="idleDate"></div>
   </div>
+  <div id="idleMatches"></div>
   <div class="idle-list" id="idleList"></div>
 </div>
 
@@ -953,6 +989,21 @@ window.addEventListener('mhv:suspended', ()=>{
       <button onclick="window._f.signOut(window._f.auth).then(()=>window.location.href='index.html')" style="padding:13px 28px;border-radius:12px;background:var(--mhv-yellow);color:#000;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Uitloggen</button>
     </div>`;
 });
+window.addEventListener('mhv:guestExpired', ()=>{
+  U = window._user;
+  document.body.innerHTML=`
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;background:var(--bg)">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(245,200,0,.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--mhv-yellow)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:10px;color:var(--text)">Gasttoegang verlopen</div>
+      <p style="font-size:14px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:20px">
+        Dit was een tijdelijk gastaccount tot ${new Date(U.guestUntil).toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'})}. Die periode is voorbij.
+      </p>
+      <p style="font-size:13px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:24px">Nog een keer nodig? Vraag een beheerder om de toegang te verlengen of een nieuwe uitnodiging te sturen.</p>
+      <button onclick="window._f.signOut(window._f.auth).then(()=>window.location.href='index.html')" style="padding:13px 28px;border-radius:12px;background:var(--mhv-yellow);color:#000;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Uitloggen</button>
+    </div>`;
+});
 window.addEventListener('mhv:ready', async ()=>{
   try {
     U = window._user;
@@ -989,6 +1040,7 @@ window.addEventListener('mhv:ready', async ()=>{
     if(Notification.permission==='granted') { try{ registerPushToken(U.uid); }catch(e){} }
     try { subChat(); subChatReads(); } catch(e){}
     if(U.role!=='software'){ try { subShifts(); } catch(e){} }
+    try { subMatches(); subChecklist(); } catch(e){}
     try { subNotifs(); } catch(e){}
     try { subDMs(); } catch(e){}
     if(U.role!=='software'){ try { subAvail(); } catch(e){} }
@@ -1386,6 +1438,174 @@ async function ensureAllPublicProfiles(){
   }
   if(fixed)console.log(`publicProfiles gerepareerd voor ${fixed} account(s)`);
 }
+// ═══════════════════════════════════════════
+// WEDSTRIJDEN (thuiswedstrijden, gesynchroniseerd naar Firestore 'matches' door de server)
+// ═══════════════════════════════════════════
+// Een wedstrijd duurt 4 x 17,5 min + pauzes van 2, 2 en 5 min = 79 min. De bron levert geen
+// live-status, dus "bezig" is AFGELEID uit aanvangstijd + deze duur en wordt ook zo gelabeld.
+const MATCH_MIN=79;
+let allMatches=[], unsubMatches, closingChecklist={items:[]}, unsubChecklist;
+let rosterView=(function(){ try{ return localStorage.getItem('mhv_roster_view')||'both'; }catch(e){ return 'both'; } })();
+
+function subMatches(){
+  const {db,collection,onSnapshot,orderBy,query,where}=window._f;
+  const from=Date.now()-14*24*3600*1000;
+  unsubMatches=onSnapshot(query(collection(db,'matches'),where('startMs','>=',from),orderBy('startMs','asc')),s=>{
+    allMatches=s.docs.map(d=>({id:d.id,...d.data()}));
+    rerender();
+    const ov=document.getElementById('idle-overlay'); if(ov&&ov.classList.contains('open')) renderIdlePage();
+  },e=>console.warn('matches:',e));
+}
+function subChecklist(){
+  const {db,doc,onSnapshot}=window._f;
+  unsubChecklist=onSnapshot(doc(db,'checklists','closing'),s=>{ closingChecklist=s.exists()?s.data():{items:[]}; },()=>{});
+}
+function localMs(k,hhmm){
+  const[y,m,d]=k.split('-').map(Number); const[h,mi]=(hhmm||'00:00').split(':').map(Number);
+  return new Date(y,m-1,d,h,mi||0,0,0).getTime();
+}
+function hmFromMs(ms){ return new Date(ms).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+function matchEndMs(m){ return m.startMs+MATCH_MIN*60000; }
+function matchIsOff(m){ return m.status==='canceled'||m.status==='postponed'||m.status==='discontinued'; }
+function matchPhase(m,now){
+  now=now||Date.now();
+  if(matchIsOff(m)) return 'off';
+  if(m.status==='result'||m.status==='final') return 'done';
+  if(now<m.startMs) return 'upcoming';
+  if(now<matchEndMs(m)) return 'live';
+  return 'done';
+}
+function matchesOnDay(k){ return allMatches.filter(m=>m.date===k).sort((a,b)=>a.startMs-b.startMs); }
+function shiftWindowMs(s){
+  const k=dKey(s.date);
+  const st=localMs(k,s.startTime);
+  let en=isSluit(s.endTime)?Infinity:localMs(k,s.endTime);
+  if(en!==Infinity&&en<=st) en+=24*3600*1000; // dienst over middernacht
+  return {st,en};
+}
+function matchesDuringShift(s){
+  const w=shiftWindowMs(s);
+  return matchesOnDay(dKey(s.date)).filter(m=>m.startMs<w.en&&matchEndMs(m)>w.st);
+}
+function matchScoreText(m){
+  return (m.homeScore!=null&&m.awayScore!=null&&(m.status==='result'||m.status==='final'))?`${m.homeScore} – ${m.awayScore}`:'';
+}
+function matchStatusBadge(m){
+  const ph=matchPhase(m);
+  if(m.status==='canceled') return '<span class="badge badge-red">Afgelast</span>';
+  if(m.status==='postponed') return '<span class="badge badge-orange">Uitgesteld</span>';
+  if(m.status==='discontinued') return '<span class="badge badge-red">Gestaakt</span>';
+  if(ph==='live') return '<span class="badge badge-green">Bezig (volgens speeltijd)</span>';
+  const sc=matchScoreText(m);
+  return sc?`<span class="badge badge-gray">Uitslag ${sc}</span>`:'';
+}
+function matchCardHtml(m){
+  const ph=matchPhase(m);
+  const sub=[m.field,m.competition].filter(Boolean).map(escAnn).join(' · ');
+  return `<div class="match-card${ph==='live'?' live':''}${ph==='off'?' off':''}">
+    <div class="match-time">${escAnn(m.startTime||'')}</div>
+    <div class="match-main"><div class="match-teams">${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}</div>${sub?`<div class="match-sub">${sub}</div>`:''}</div>
+    ${matchStatusBadge(m)}
+  </div>`;
+}
+function rosterViewPillsHtml(){
+  if(!featureOn('matches')) return '';
+  const b=(v,l)=>`<button class="pill-tab ${rosterView===v?'active':''}" onclick="setRosterView('${v}')">${l}</button>`;
+  return `<div class="pill-tabs view-pills" style="margin-bottom:12px">${b('shifts','Diensten')}${b('matches','Wedstrijden')}${b('both','Beide')}</div>`;
+}
+window.setRosterView=(v)=>{ rosterView=v; try{localStorage.setItem('mhv_roster_view',v);}catch(e){} renderRoster(); };
+
+// ── Idle-modus: wedstrijden van vandaag ──
+function idleMatchRow(m,cls){
+  const sc=matchScoreText(m);
+  const sub=m.status==='canceled'?'afgelast':m.status==='postponed'?'uitgesteld':m.status==='discontinued'?'gestaakt':sc?`uitslag ${sc}`:'';
+  return `<div class="idle-match ${cls||''}"><span class="idle-match-time">${escAnn(m.startTime||'')}</span><span>${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}</span>${sub?`<span class="idle-match-sub">${sub}</span>`:''}</div>`;
+}
+function idleMatchesHtml(){
+  if(!featureOn('matches')) return '';
+  const ms=matchesOnDay(nowKey());
+  if(!ms.length) return '';
+  const now=Date.now();
+  const live=ms.filter(m=>matchPhase(m,now)==='live');
+  const next=ms.filter(m=>{const p=matchPhase(m,now);return p==='upcoming'||p==='off';});
+  const done=ms.filter(m=>matchPhase(m,now)==='done').slice(-4);
+  const played=ms.filter(m=>!matchIsOff(m));
+  const last=played[played.length-1];
+  let h='<div class="idle-matches"><div class="idle-matches-title">Thuiswedstrijden vandaag</div>';
+  if(live.length) h+='<div class="idle-match-head">Nu bezig (volgens speeltijd)</div>'+live.map(m=>idleMatchRow(m,'live')).join('');
+  if(next.length) h+='<div class="idle-match-head">Straks</div>'+next.slice(0,6).map(m=>idleMatchRow(m)).join('');
+  if(done.length) h+='<div class="idle-match-head">Gespeeld</div>'+done.map(m=>idleMatchRow(m,'done')).join('');
+  if(last) h+=`<div class="idle-match-foot">Laatste wedstrijd begint om ${escAnn(last.startTime||'')} — afgelopen rond ${hmFromMs(matchEndMs(last))} (schatting)</div>`;
+  return h+'</div>';
+}
+
+// ── Details bij een dienst: wedstrijden tijdens de dienst + sluitchecklist ──
+function closingShiftIdsForDay(k){
+  const ds=allShifts.filter(s=>dKey(s.date)===k);
+  if(!ds.length) return [];
+  const endOf=s=>isSluit(s.endTime)?Infinity:minsFrom(s.endTime);
+  const max=Math.max(...ds.map(endOf));
+  return ds.filter(s=>endOf(s)===max).map(s=>s.id);
+}
+function isClosingShift(s){ return closingShiftIdsForDay(dKey(s.date)).includes(s.id); }
+function canTickClosing(s){
+  if(!U||!isClosingShift(s)) return false;
+  return (s.workers||[]).includes(U.uid)||U.role==='admin';
+}
+function closingItems(){ return (closingChecklist&&closingChecklist.items)||[]; }
+function checklistSectionHtml(s){
+  if(!isClosingShift(s)) return '';
+  const items=closingItems();
+  if(!items.length) return U&&U.role==='admin'?'<div class="section-label">Sluitchecklist</div><p style="font-size:13px;color:var(--text3)">Nog geen taken ingesteld — dat doe je bij Beheer → Instellingen.</p>':'';
+  const w=shiftWindowMs(s), now=Date.now();
+  const inWindow=now>=w.st&&now<=w.st+24*3600*1000;
+  const can=canTickClosing(s)&&inWindow;
+  const checks=s.closingChecks||{};
+  const done=items.filter(it=>checks[it.id]).length;
+  return `<div class="section-label">Sluitchecklist · ${done}/${items.length}</div>
+    ${items.map(it=>{const c=checks[it.id];return `<label class="check-row${c?' done':''}"><input type="checkbox" ${c?'checked':''} ${can?'':'disabled'} onchange="toggleClosingCheck('${s.id}','${it.id}',this.checked)"><span>${escAnn(it.text)}${c?`<small>✓ ${escAnn(userName(c.uid))} · ${hmFromMs(c.at)}</small>`:''}</span></label>`;}).join('')}
+    ${can?'':`<p style="font-size:12px;color:var(--text3);margin-top:6px">${canTickClosing(s)?'Afvinken kan vanaf het begin van de dienst.':'Alleen voor wie de sluit- of laatste dienst heeft.'}</p>`}`;
+}
+window.openShiftDetails=function(id){
+  const s=allShifts.find(x=>x.id===id); if(!s) return;
+  const mOn=featureOn('matches');
+  const ms=mOn?matchesDuringShift(s):[];
+  modal(`<div class="modal-handle"></div>
+    <div class="modal-title">Details van je dienst</div>
+    <div style="font-size:13px;color:var(--text3);margin:-4px 0 14px">${fmtDate(s.date)} · ${s.startTime} – ${dispTime(s.endTime)}</div>
+    ${mOn?`<div class="section-label" style="margin-top:0">Thuiswedstrijden tijdens je dienst</div>
+    ${ms.length?ms.map(matchCardHtml).join(''):'<p style="font-size:13px;color:var(--text3)">Geen thuiswedstrijden tijdens deze dienst.</p>'}`:''}
+    ${checklistSectionHtml(s)}
+    <button class="btn btn-ghost btn-full" style="margin-top:14px" onclick="closeModal()">Sluiten</button>`);
+};
+window.toggleClosingCheck=async function(shiftId,itemId,on){
+  const s=allShifts.find(x=>x.id===shiftId); if(!s||!canTickClosing(s)) return;
+  try{
+    const {db,doc,updateDoc,deleteField}=window._f;
+    await updateDoc(doc(db,'shifts',shiftId),{['closingChecks.'+itemId]: on?{uid:U.uid,at:Date.now()}:deleteField()});
+    const fresh=allShifts.find(x=>x.id===shiftId);
+    const items=closingItems();
+    if(on&&fresh&&items.length&&items.every(it=>(fresh.closingChecks||{})[it.id])) toast('Sluitchecklist compleet ✓','ok');
+    openShiftDetails(shiftId);
+  }catch(e){ toast('Afvinken mislukt','err'); openShiftDetails(shiftId); }
+};
+function hashId(t){ let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))|0; return 'c'+(h>>>0).toString(36); }
+window.saveClosingChecklist=async function(){
+  const lines=($('closingListIn')?.value||'').split('\n').map(t=>t.trim().slice(0,120)).filter(Boolean).slice(0,40);
+  const seen=new Set(), items=[];
+  lines.forEach(t=>{ const id=hashId(t); if(!seen.has(id)){ seen.add(id); items.push({id,text:t}); } });
+  try{
+    const {db,doc,setDoc,serverTimestamp}=window._f;
+    await setDoc(doc(db,'checklists','closing'),{items,updatedAt:serverTimestamp(),updatedBy:U.uid});
+    toast('Sluitchecklist opgeslagen','ok');
+  }catch(e){ toast('Opslaan mislukt','err'); }
+};
+function matchSyncStatusText(){
+  if(!allMatches.length) return 'Nog geen wedstrijden ontvangen. Stel de synchronisatie in — zie HANDLEIDING → Wedstrijden synchroniseren.';
+  const last=Math.max(...allMatches.map(m=>m.syncedAt||0));
+  return `${allMatches.length} thuiswedstrijden geladen${last?`, laatst gesynchroniseerd ${new Date(last).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`:''}.`;
+}
+
 function subShifts(){
   const {db,collection,onSnapshot,orderBy,query}=window._f;
   let firstLoad=true;
@@ -1582,10 +1802,13 @@ function blockedOn(key){
 // ═══════════════════════════════════════════
 let APP_SETTINGS={reminderHours:30, disabledFeatures:{}, disabledMsg:{}};
 // Functies die (tijdelijk) uitgezet kunnen worden, algemeen of per profiel.
-const TOGGLABLE_FEATURES={roster:'Rooster',avail:'Beschikbaarheid',chat:'Chat'};
+const TOGGLABLE_FEATURES={roster:'Rooster',avail:'Beschikbaarheid',chat:'Chat',matches:'Wedstrijden'};
 function featureOn(key){
-  if(APP_SETTINGS.disabledFeatures?.[key]) return false;
   if(U?.disabledFeatures?.includes(key)) return false;
+  // Wedstrijden staat, in tegenstelling tot de andere schakelaars, standaard UIT — de databron
+  // is nog niet geverifieerd. Pas aan zodra dev 'm expliciet aanzet.
+  if(key==='matches') return APP_SETTINGS.disabledFeatures?.matches===false;
+  if(APP_SETTINGS.disabledFeatures?.[key]) return false;
   return true;
 }
 function _featureOffCard(key){
@@ -2273,6 +2496,7 @@ async function renderEmployeeHome(c){
         <div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--separator)">
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportShiftToCalendar('${next.id}')"><span class="ic" data-icon="calendar"></span> Agenda</button>
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openSwapModal()"><span class="ic" data-icon="swap"></span> Ruilen</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openShiftDetails('${next.id}')"><span class="ic" data-icon="info"></span> Details</button>
         </div>
       </div>` : `<div class="empty"><div class="empty-icon" style="font-size:36px">🎉</div><p>Geen komende diensten</p></div>`}
   `;
@@ -2502,6 +2726,7 @@ function renderEmployeeRoster(c){
 
   c.innerHTML=`
     <div class="page-title" style="margin-bottom:16px">Rooster</div>
+    ${rosterViewPillsHtml()}
     ${tabs}
     <div class="card" style="padding:16px">
       <div class="cal-nav">
@@ -2560,8 +2785,14 @@ function renderDayShifts(k){
     if(dKey(s.date)!==k)return false;
     return rosterTab==='all'?true:s.workers?.includes(U.uid);
   });
-  if(!shifts.length){list.innerHTML=`<div class="empty" style="padding:20px 0"><div class="empty-icon"><span class="ic" data-icon="calendar"></span></div><p>Geen diensten</p></div>`;return;}
-  list.innerHTML=shifts.map(s=>{
+  const mOn=featureOn('matches');
+  const showMatches=mOn&&rosterView!=='shifts';
+  const showShifts=!mOn||rosterView!=='matches';
+  const dayMatches=showMatches?matchesOnDay(k):[];
+  const matchesHtml=dayMatches.length?`<div class="section-label" style="margin-top:0">Thuiswedstrijden</div>${dayMatches.map(matchCardHtml).join('')}`:(showMatches&&!showShifts?`<div class="empty" style="padding:20px 0"><div class="empty-icon"><span class="ic" data-icon="calendar"></span></div><p>Geen thuiswedstrijden</p></div>`:'');
+  if(!showShifts){ list.innerHTML=matchesHtml; return; }
+  if(!shifts.length){list.innerHTML=matchesHtml+`<div class="empty" style="padding:20px 0"><div class="empty-icon"><span class="ic" data-icon="calendar"></span></div><p>Geen diensten</p></div>`;return;}
+  list.innerHTML=matchesHtml+shifts.map(s=>{
     const workers=(s.workers||[]).map(uid=>{
       const isMe=uid===U.uid;
       const st=getShiftStatus(s,uid);
@@ -2577,6 +2808,7 @@ function renderDayShifts(k){
         <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'In beoord.':st==='unconfirmed_locked'?'Geweest, onbevestigd':'Gepland'}</span>
         ${canConfirm?`<button class="btn btn-yellow btn-sm" onclick="openCorrectShift('${s.id}')">Bevestig</button>`:''}
         ${isMe?`<button class="btn btn-ghost btn-sm" title="Exporteer naar agenda" onclick="exportShiftToCalendar('${s.id}')"><span class="ic" data-icon="calendar"></span></button>`:''}
+        <button class="btn btn-ghost btn-sm" title="Details" onclick="openShiftDetails('${s.id}')"><span class="ic" data-icon="info"></span></button>
       </div>`;
     }).join('');
     return `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
@@ -2768,6 +3000,12 @@ function renderAdminSettings(c){
       </div>
       <button class="btn btn-yellow btn-full" onclick="exportShiftsExcel()"><span class="ic" data-icon="chart"></span> Exporteer naar Excel</button>
     </div></div>
+    <div class="section-label">Sluitchecklist</div>
+    <div class="card" style="margin-bottom:16px"><div style="padding:16px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Eén taak per regel. Wie de sluit- of laatste dienst van de dag heeft, kan deze lijst bij die dienst afvinken (bij Details) — met naam en tijdstip erbij.</p>
+      <textarea class="form-input" id="closingListIn" rows="5" placeholder="Koelkast dicht&#10;Kassa geteld&#10;Licht uit" style="resize:vertical">${closingItems().map(it=>it.text).join('\n')}</textarea>
+      <button class="btn btn-yellow btn-full" style="margin-top:10px" onclick="saveClosingChecklist()">Opslaan</button>
+    </div></div>
     <div class="section-label">Bevestigingsreminders</div>
     <div class="card"><div style="padding:16px">
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Als een medewerker een dienst niet bevestigt, krijgt hij/zij meteen na afloop een melding. Bevestigt diegene daarna nog steeds niet, dan volgt na dit aantal uur een herinnering — en kan de oorspronkelijke tijd niet meer door jou aangepast worden.</p>
@@ -2786,10 +3024,11 @@ function renderFeatureFlagsPanel(){
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Werkt iets niet, of is er onderhoud? Zet een functie hier uit voor <b>alle</b> gebruikers. Ze zien dan netjes "tijdelijk buiten gebruik" i.p.v. een kapot scherm. Voor één persoon: ga naar die medewerker → Functies uitzetten voor deze persoon.</p>
       ${Object.entries(TOGGLABLE_FEATURES).map(([key,label])=>`
       <label class="worker-check" style="margin-bottom:10px">
-        <input type="checkbox" id="ff_${key}" ${APP_SETTINGS.disabledFeatures?.[key]?'checked':''}>
+        <input type="checkbox" id="ff_${key}" ${(key==='matches'?APP_SETTINGS.disabledFeatures?.matches!==false:APP_SETTINGS.disabledFeatures?.[key])?'checked':''}>
         <div class="worker-check-info"><div class="worker-check-name">${label} uitzetten</div></div>
       </label>
       <input type="text" class="form-input" id="ffmsg_${key}" placeholder="Eigen bericht (optioneel), bv. '${label} is tijdelijk buiten gebruik i.v.m. onderhoud.'" value="${escAnn(APP_SETTINGS.disabledMsg?.[key]||'')}" style="margin:-6px 0 14px">
+      ${key==='matches'?`<p style="font-size:11.5px;color:var(--text3);margin:-8px 0 14px">${escAnn(matchSyncStatusText())}</p>`:''}
       `).join('')}
       <button class="btn btn-yellow btn-full" onclick="saveFeatureFlags()">Opslaan</button>
     </div></div>`;
@@ -2819,8 +3058,8 @@ function renderMedewerkers(c){
         <div class="card-row">
           <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
           <div style="flex:1">
-            <div style="font-size:16px;font-weight:700">${u.name}</div>
-            <div style="font-size:13px;color:var(--text3)">${u.email||'—'}</div>
+            <div style="font-size:16px;font-weight:700">${u.name}${u.guestUntil?` <span class="badge ${u.guestUntil<Date.now()?'badge-red':'badge-yellow'}" style="font-size:10px;vertical-align:middle"><span class="ic" data-icon="hourglass"></span> Gast</span>`:''}</div>
+            <div style="font-size:13px;color:var(--text3)">${u.email||'—'}${u.guestUntil?` · tot ${new Date(u.guestUntil).toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}`:''}</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(u.wage||0)}<span style="font-size:11px;color:var(--text3)">/u</span></div>
@@ -2829,7 +3068,7 @@ function renderMedewerkers(c){
         ${restricted('manageEmployees')?'':`<div class="card-row" style="gap:6px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="openEditEmployee('${u.uid}')"><span class="ic" data-icon="edit"></span> Bewerken</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="resetPwAdmin('${u.uid}','${u.name}','${u.email}')"><span class="ic" data-icon="key"></span> Reset ww</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')"><span class="ic" data-icon="crown"></span> Admin</button>
+          ${u.guestUntil?`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="extendGuest('${u.uid}')"><span class="ic" data-icon="calendar"></span> Verleng 7 dagen</button>`:`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')"><span class="ic" data-icon="crown"></span> Admin</button>`}
           <button class="btn btn-red btn-sm" style="flex:1;min-width:80px" onclick="deleteEmployee('${u.uid}','${u.name}')"><span class="ic" data-icon="trash"></span> Verwijder</button>
         </div>`}
       </div>`).join('')}
@@ -2837,6 +3076,16 @@ function renderMedewerkers(c){
   `;
 }
 
+window.extendGuest=async function(uid){
+  const u=allUsers.find(x=>x.uid===uid); if(!u)return;
+  const base=Math.max(u.guestUntil||0,Date.now());
+  const until=base+7*86400000;
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'users',uid),{guestUntil:until});
+    toast('Verlengd tot '+new Date(until).toLocaleDateString('nl-NL',{day:'numeric',month:'long'}),'ok');
+  }catch(e){ toast('Verlengen mislukt','err'); }
+};
 function openAddEmployee(){
   modal(`
     <div class="modal-handle"></div>
@@ -2846,13 +3095,22 @@ function openAddEmployee(){
     <div class="form-section"><label class="form-label">E-mailadres</label>
       <input type="email" class="form-input" id="eEmail" placeholder="naam@email.nl"></div>
     <div class="form-section"><label class="form-label">Rol</label>
-      <select class="form-input" id="eRole" style="padding:10px 12px" onchange="document.getElementById('eWageWrap').style.display=this.value==='employee'?'block':'none'">
+      <select class="form-input" id="eRole" style="padding:10px 12px" onchange="document.getElementById('eWageWrap').style.display=this.value==='employee'?'block':'none';document.getElementById('eGuestWrap').style.display=this.value==='employee'?'block':'none'">
         <option value="employee"><span class="ic" data-icon="user"></span> Medewerker</option>
         ${U.role==='software'?'<option value="software"><span class="ic" data-icon="tools"></span> Developer (dev)</option>':''}
         <option value="admin"><span class="ic" data-icon="crown"></span> Beheerder</option>
       </select></div>
     <div class="form-section" id="eWageWrap"><label class="form-label">Uurtarief (€)</label>
       <input type="number" class="form-input" id="eWage" placeholder="12.50" step="0.01" min="0"></div>
+    <div id="eGuestWrap">
+    <label class="worker-check" style="margin-bottom:2px">
+      <input type="checkbox" id="eGuest" onchange="document.getElementById('eGuestUntilWrap').style.display=this.checked?'block':'none'">
+      <div class="worker-check-info"><div class="worker-check-name">Tijdelijk gastaccount</div><div class="worker-check-sub">Voor iemand die eenmalig meehelpt — het account werkt vanzelf niet meer na de einddatum.</div></div>
+    </label>
+    <div class="form-section" id="eGuestUntilWrap" style="display:none">
+      <label class="form-label">Toegang tot en met</label>
+      <input type="date" class="form-input" id="eGuestUntil" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,10)}">
+    </div></div>
     <button class="btn btn-yellow btn-full" onclick="createInvite()">Link genereren</button>
     <div id="inviteResult" style="margin-top:14px;display:none"></div>
   `);
@@ -2862,8 +3120,19 @@ async function createInvite(){
   const roleVal=($('eRole')&&$('eRole').value)||'employee';
   const wage=roleVal==='employee'?(parseFloat($('eWage').value)||0):0;
   if(!name||!email){toast('Naam en e-mail verplicht','err');return;}
+  const isGuest=roleVal==='employee'&&!!$('eGuest')?.checked;
+  let guestUntil=null;
+  if(isGuest){
+    const dv=$('eGuestUntil')?.value;
+    if(!dv){toast('Kies een einddatum voor het gastaccount','err');return;}
+    // Eind van die dag, lokale tijd — zodat de laatste dag nog volledig bruikbaar is.
+    const[gy,gm,gd]=dv.split('-').map(Number);
+    guestUntil=new Date(gy,gm-1,gd,23,59,59,999).getTime();
+  }
   const{db,collection,addDoc,serverTimestamp}=window._f;
-  const ref=await addDoc(collection(db,'invites'),{name,email,wage,role:roleVal,used:false,createdBy:U.uid,createdAt:serverTimestamp()});
+  const payload={name,email,wage,role:roleVal,used:false,createdBy:U.uid,createdAt:serverTimestamp()};
+  if(guestUntil) payload.guestUntil=guestUntil;
+  const ref=await addDoc(collection(db,'invites'),payload);
   const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
   const link=`${base}/register.html?invite=${ref.id}`;
   const r=$('inviteResult');
@@ -5594,6 +5863,7 @@ function renderIdlePage(){
   const now=new Date();
   $('idleClock').textContent=now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
   $('idleDate').textContent=now.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const imEl=$('idleMatches'); if(imEl) imEl.innerHTML=idleMatchesHtml();
   const today=nowKey();
   // Losse dienst-blokken blijven bewust losse blokken (ook als ze overlappen in tijd, bv. een
   // feestavond met bar + deur tegelijk) — nooit samenvoegen, dat was expliciet gevraagd.
