@@ -19,7 +19,7 @@ jobs:
           node-version: '20'
 
       - name: Installeer dependencies
-        wworking-directory: .
+        working-directory: .
         run: npm install
 
       - name: Synchroniseer wedstrijden
