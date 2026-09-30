@@ -1,11 +1,4 @@
 ```js
-// ═══════════════════════════════════════════
-// Synchroniseert de thuiswedstrijden van MHV vanuit de openbare LISA-feed
-// naar de Firestore-collectie 'matches' van MHVwork.
-//
-// Draait via GitHub Actions, niet vanuit de browser.
-// ═══════════════════════════════════════════
-
 import admin from 'firebase-admin';
 
 const LISA_BASE =
@@ -26,9 +19,19 @@ function log(...args) {
 }
 
 async function lisaGet(collectionName, pageNumber) {
+  const encodedCollectionName =
+    encodeURIComponent(collectionName);
+
   const url =
-    `${LISA_BASE}/${encodeURIComponent(collectionName)}/query-data` +
-    `?pageSize=${PAGE_SIZE}&pageNumber=${pageNumber}&query=()&language=ENGLISH`;
+    LISA_BASE +
+    '/' +
+    encodedCollectionName +
+    '/query-data' +
+    '?pageSize=' +
+    PAGE_SIZE +
+    '&pageNumber=' +
+    pageNumber +
+    '&query=()&language=ENGLISH';
 
   const res = await fetch(url, {
     headers: {
@@ -46,15 +49,25 @@ async function lisaGet(collectionName, pageNumber) {
     try {
       responseText = await res.text();
     } catch {
-      // Geen response-body beschikbaar.
+      responseText = '';
     }
 
     const details = responseText
-      ? ` — ${responseText.slice(0, 500).replace(/\s+/g, ' ')}`
+      ? ' - ' +
+        responseText
+          .slice(0, 500)
+          .replace(/\s+/g, ' ')
       : '';
 
     throw new Error(
-      `LISA HTTP ${res.status} voor ${collectionName} (pagina ${pageNumber})${details}`
+      'LISA HTTP ' +
+        res.status +
+        ' voor ' +
+        collectionName +
+        ' (pagina ' +
+        pageNumber +
+        ')' +
+        details
     );
   }
 
@@ -65,23 +78,40 @@ async function lisaGetAllPages(collectionName) {
   const values = [];
   const seenIds = new Set();
 
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const result = await lisaGet(collectionName, page);
-    const batch = result.values || [];
+  for (
+    let page = 0;
+    page < MAX_PAGES;
+    page++
+  ) {
+    const result =
+      await lisaGet(
+        collectionName,
+        page
+      );
+
+    const batch =
+      Array.isArray(result.values)
+        ? result.values
+        : [];
 
     let newCount = 0;
 
     for (const item of batch) {
       const id = item?.data?.id;
 
-      if (id && !seenIds.has(id)) {
+      if (
+        id &&
+        !seenIds.has(id)
+      ) {
         seenIds.add(id);
         values.push(item);
         newCount++;
       }
     }
 
-    if (batch.length < PAGE_SIZE) {
+    if (
+      batch.length < PAGE_SIZE
+    ) {
       break;
     }
 
@@ -94,11 +124,16 @@ async function lisaGetAllPages(collectionName) {
 }
 
 async function discoverMatchCollections() {
-  const items = await lisaGetAllPages('Toekomstige_wedstrijden');
+  const items =
+    await lisaGetAllPages(
+      'Toekomstige_wedstrijden'
+    );
+
   const names = new Set();
 
   for (const item of items) {
-    const name = item?.data?.collectionname;
+    const name =
+      item?.data?.collectionname;
 
     if (
       typeof name === 'string' &&
@@ -108,83 +143,198 @@ async function discoverMatchCollections() {
     }
   }
 
-  return [...names];
+  return Array.from(names);
 }
 
-function normalizeDate(ddmmyyyy) {
-  if (!ddmmyyyy) return null;
-
-  const [d, m, y] = String(ddmmyyyy).split('-');
-
-  if (!d || !m || !y) return null;
-
-  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-}
-
-function normalizeTime(raw) {
-  if (!raw) return null;
-
-  const match = String(raw).match(/^(\d{1,2}):(\d{2})/);
-
-  if (!match) return null;
-
-  return `${match[1].padStart(2, '0')}:${match[2]}`;
-}
-
-function buildStartMs(date, time) {
-  if (!date) return null;
-
-  const [y, m, d] = date.split('-').map(Number);
-
-  if (time) {
-    const [h, mi] = time.split(':').map(Number);
-
-    return new Date(y, m - 1, d, h, mi).getTime();
+function normalizeDate(value) {
+  if (!value) {
+    return null;
   }
 
-  return new Date(y, m - 1, d, 0, 0).getTime();
-}
+  const parts =
+    String(value).split('-');
 
-function formatAddress(addr) {
-  if (!addr) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
 
-  const parts = [
-    [addr.street, addr.house_number]
-      .filter(Boolean)
-      .join(' '),
+  const day = parts[0];
+  const month = parts[1];
+  const year = parts[2];
 
-    [addr.zip_code, addr.city]
-      .filter(Boolean)
-      .join(' '),
-  ].filter(Boolean);
+  if (
+    !day ||
+    !month ||
+    !year
+  ) {
+    return null;
+  }
 
-  return parts.length ? parts.join(', ') : null;
-}
-
-function isMhvHomeMatch(raw) {
   return (
-    raw?.is_home_match === true &&
-    MHV_CLUB_NAMES.has(
-      String(raw?.home_team_club_name || '').trim()
-    )
+    year +
+    '-' +
+    month.padStart(2, '0') +
+    '-' +
+    day.padStart(2, '0')
   );
 }
 
-function normalizeMatch(raw, collectionName) {
-  const date = normalizeDate(raw.date);
-  const startTime = normalizeTime(raw.time);
+function normalizeTime(value) {
+  if (!value) {
+    return null;
+  }
+
+  const match =
+    String(value).match(
+      /^(\d{1,2}):(\d{2})/
+    );
+
+  if (!match) {
+    return null;
+  }
+
+  return (
+    match[1].padStart(2, '0') +
+    ':' +
+    match[2]
+  );
+}
+
+function buildStartMs(
+  date,
+  time
+) {
+  if (!date) {
+    return null;
+  }
+
+  const parts =
+    date.split('-').map(Number);
+
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+
+  if (
+    !year ||
+    !month ||
+    !day
+  ) {
+    return null;
+  }
+
+  if (time) {
+    const timeParts =
+      time.split(':').map(Number);
+
+    const hour = timeParts[0];
+    const minute = timeParts[1];
+
+    return new Date(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute
+    ).getTime();
+  }
+
+  return new Date(
+    year,
+    month - 1,
+    day,
+    0,
+    0
+  ).getTime();
+}
+
+function formatAddress(address) {
+  if (!address) {
+    return null;
+  }
+
+  const first =
+    [
+      address.street,
+      address.house_number,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+  const second =
+    [
+      address.zip_code,
+      address.city,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+  const parts =
+    [first, second]
+      .filter(Boolean);
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return parts.join(', ');
+}
+
+function isMhvHomeMatch(raw) {
+  if (!raw) {
+    return false;
+  }
+
+  if (raw.is_home_match !== true) {
+    return false;
+  }
+
+  const clubName =
+    String(
+      raw.home_team_club_name || ''
+    ).trim();
+
+  return MHV_CLUB_NAMES.has(
+    clubName
+  );
+}
+
+function normalizeMatch(
+  raw,
+  collectionName
+) {
+  const date =
+    normalizeDate(raw.date);
+
+  const startTime =
+    normalizeTime(raw.time);
 
   const payload = {
     source: 'lisa',
-    lisaId: raw.id,
-    lisaCollection: collectionName,
 
-    date,
-    startTime,
-    startMs: buildStartMs(date, startTime),
+    lisaId:
+      raw.id,
 
-    homeTeam: raw.home_team_name || null,
-    awayTeam: raw.away_team_name || null,
+    lisaCollection:
+      collectionName,
+
+    date:
+      date,
+
+    startTime:
+      startTime,
+
+    startMs:
+      buildStartMs(
+        date,
+        startTime
+      ),
+
+    homeTeam:
+      raw.home_team_name || null,
+
+    awayTeam:
+      raw.away_team_name || null,
 
     field:
       raw.field ||
@@ -196,7 +346,9 @@ function normalizeMatch(raw, collectionName) {
       null,
 
     address:
-      formatAddress(raw.location?.address),
+      formatAddress(
+        raw.location?.address
+      ),
 
     category:
       raw.sub_category ||
@@ -211,11 +363,16 @@ function normalizeMatch(raw, collectionName) {
       raw.away_team_club_logo_url ||
       null,
 
-    updatedAt: Date.now(),
-    updatedBy: 'lisa-sync',
+    updatedAt:
+      Date.now(),
+
+    updatedBy:
+      'lisa-sync',
   };
 
-  if (raw.is_cancelled === true) {
+  if (
+    raw.is_cancelled === true
+  ) {
     payload.status = 'canceled';
   }
 
@@ -223,32 +380,51 @@ function normalizeMatch(raw, collectionName) {
 }
 
 async function main() {
-  const svcJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+  const serviceAccountJson =
+    process.env.FIREBASE_SERVICE_ACCOUNT;
 
-  if (!svcJson) {
+  if (!serviceAccountJson) {
     throw new Error(
       'FIREBASE_SERVICE_ACCOUNT secret ontbreekt'
     );
   }
 
-  const serviceAccount = JSON.parse(svcJson);
+  let serviceAccount;
+
+  try {
+    serviceAccount =
+      JSON.parse(
+        serviceAccountJson
+      );
+  } catch (error) {
+    throw new Error(
+      'FIREBASE_SERVICE_ACCOUNT bevat geen geldige JSON'
+    );
+  }
 
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential:
+      admin.credential.cert(
+        serviceAccount
+      ),
   });
 
-  const db = admin.firestore();
+  const db =
+    admin.firestore();
 
-  log('LISA synchronisatie gestart');
+  log(
+    'LISA synchronisatie gestart'
+  );
 
   let collections;
 
   try {
-    collections = await discoverMatchCollections();
-  } catch (e) {
+    collections =
+      await discoverMatchCollections();
+  } catch (error) {
     log(
       'KON GEEN COLLECTIES ONTDEKKEN, stoppen:',
-      e.message
+      error.message
     );
 
     process.exitCode = 1;
@@ -256,7 +432,8 @@ async function main() {
   }
 
   log(
-    `${collections.length} maandcollecties gevonden:`,
+    collections.length +
+      ' maandcollecties gevonden:',
     collections.join(', ')
   );
 
@@ -265,29 +442,46 @@ async function main() {
   let skipped = 0;
   let failedCollections = 0;
 
-  for (const collectionName of collections) {
+  for (
+    const collectionName
+    of collections
+  ) {
     try {
       const records =
-        await lisaGetAllPages(collectionName);
+        await lisaGetAllPages(
+          collectionName
+        );
 
       log(
-        `LISA collection ${collectionName}: ${records.length} records (alle clubs)`
+        'LISA collection ' +
+          collectionName +
+          ': ' +
+          records.length +
+          ' records (alle clubs)'
       );
 
-      let batch = db.batch();
+      let batch =
+        db.batch();
+
       let batchCount = 0;
 
-      for (const item of records) {
-        const raw = item?.data;
+      for (
+        const item of records
+      ) {
+        const raw =
+          item?.data;
 
-        if (!raw || !isMhvHomeMatch(raw)) {
+        if (
+          !raw ||
+          !isMhvHomeMatch(raw)
+        ) {
           skipped++;
           continue;
         }
 
         if (!raw.id) {
           log(
-            '  overgeslagen: record zonder id',
+            'overgeslagen: record zonder id',
             raw.home_team_name,
             raw.away_team_name
           );
@@ -303,52 +497,72 @@ async function main() {
           );
 
         log(
-          `  MHV thuiswedstrijd: ${normalized.date} ${
-            normalized.startTime || '(tijd volgt)'
-          } — ${normalized.homeTeam} vs ${normalized.awayTeam}`
+          'MHV thuiswedstrijd: ' +
+            normalized.date +
+            ' ' +
+            (normalized.startTime ||
+              '(tijd volgt)') +
+            ' — ' +
+            normalized.homeTeam +
+            ' vs ' +
+            normalized.awayTeam
         );
 
-        const ref = db
-          .collection('matches')
-          .doc(raw.id);
+        const ref =
+          db
+            .collection('matches')
+            .doc(raw.id);
 
         batch.set(
           ref,
           normalized,
-          { merge: true }
+          {
+            merge: true,
+          }
         );
 
         batchCount++;
         written++;
 
-        // Veilig onder de Firestore-limiet van 500 writes blijven.
-        if (batchCount >= 400) {
+        if (
+          batchCount >= 400
+        ) {
           await batch.commit();
 
-          batch = db.batch();
+          batch =
+            db.batch();
+
           batchCount = 0;
         }
       }
 
-      if (batchCount > 0) {
+      if (
+        batchCount > 0
+      ) {
         await batch.commit();
       }
-    } catch (e) {
+    } catch (error) {
       failedCollections++;
 
       log(
-        `FOUT bij collection ${collectionName}, ga door met de rest:`,
-        e.message
+        'FOUT bij collection ' +
+          collectionName +
+          ', ga door met de rest:',
+        error.message
       );
     }
   }
 
   log(
-    `LISA synchronisatie klaar — ` +
-    `${found} MHV-thuiswedstrijden gevonden, ` +
-    `${written} weggeschreven, ` +
-    `${skipped} niet-MHV/uit overgeslagen, ` +
-    `${failedCollections} collecties mislukt`
+    'LISA synchronisatie klaar — ' +
+      found +
+      ' MHV-thuiswedstrijden gevonden, ' +
+      written +
+      ' weggeschreven, ' +
+      skipped +
+      ' niet-MHV/uit overgeslagen, ' +
+      failedCollections +
+      ' collecties mislukt'
   );
 
   if (
@@ -359,10 +573,10 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+main().catch((error) => {
   console.error(
     'Onverwachte fout:',
-    e
+    error
   );
 
   process.exitCode = 1;
