@@ -1,19 +1,9 @@
-```javascript
+```js
 // ═══════════════════════════════════════════
-// Synchroniseert de thuiswedstrijden van MHV vanuit de openbare LISA-feed van meppelerhv.nl
-// naar de Firestore-collectie 'matches' die MHVwork zelf al gebruikt.
+// Synchroniseert de thuiswedstrijden van MHV vanuit de openbare LISA-feed
+// naar de Firestore-collectie 'matches' van MHVwork.
 //
-// Draait via GitHub Actions (zie .github/workflows/sync-matches.yml), NIET vanuit de browser —
-// dat voorkomt eventuele CORS-problemen en heeft geen Cloud Functions (Blaze-plan) nodig.
-//
-// Belangrijk, expres zo gekozen:
-// - Dit is geen officieel gedocumenteerde API. Alles staat defensief: ontbrekende velden,
-//   onverwachte responses en een falende maandcollectie mogen de rest nooit laten crashen.
-// - We slaan bewust NIET de volledige LISA-data op (die sleept een complete standenlijst met
-//   logo's per wedstrijd mee) — alleen de velden die de app ook echt gebruikt.
-// - We overschrijven nooit een handmatig ingevoerde uitslag/status. Alleen bij een wedstrijd die
-//   de bron zelf als afgelast meldt, zetten we status:'canceled'. Voor de rest laten we het
-//   status-veld met rust (Firestore's merge:true behoudt dan gewoon wat er al stond).
+// Draait via GitHub Actions, niet vanuit de browser.
 // ═══════════════════════════════════════════
 
 import admin from 'firebase-admin';
@@ -24,7 +14,6 @@ const LISA_BASE =
 const PAGE_SIZE = 100;
 const MAX_PAGES = 30;
 
-// Kleine variaties op de clubnaam opvangen, voor de zekerheid.
 const MHV_CLUB_NAMES = new Set([
   'Meppeler H.V.',
   'Meppeler HV',
@@ -57,11 +46,11 @@ async function lisaGet(collectionName, pageNumber) {
     try {
       responseText = await res.text();
     } catch {
-      // Response body is niet beschikbaar; statuscode is voldoende.
+      // Geen response-body beschikbaar.
     }
 
     const details = responseText
-      ? ` — ${responseText.slice(0, 300).replace(/\s+/g, ' ')}`
+      ? ` — ${responseText.slice(0, 500).replace(/\s+/g, ' ')}`
       : '';
 
     throw new Error(
@@ -73,15 +62,6 @@ async function lisaGet(collectionName, pageNumber) {
 }
 
 async function lisaGetAllPages(collectionName) {
-  // Let op: bij handmatig testen leek pageNumber soms genegeerd te worden
-  // (twee opeenvolgende pagina's gaven identieke eerste records).
-  //
-  // Onschadelijk hier: elke wedstrijd wordt opgeslagen onder zijn eigen LISA-id,
-  // dus dubbele/overbodige reads geven nooit dubbele Firestore-documenten.
-  //
-  // In het ergste geval mist een run wedstrijden voorbij de honderdste.
-  // Dat aantal staat gewoon in de log hieronder.
-
   const values = [];
   const seenIds = new Set();
 
@@ -132,7 +112,6 @@ async function discoverMatchCollections() {
 }
 
 function normalizeDate(ddmmyyyy) {
-  // LISA levert 'DD-MM-YYYY', MHVwork gebruikt 'YYYY-MM-DD'
   if (!ddmmyyyy) return null;
 
   const [d, m, y] = String(ddmmyyyy).split('-');
@@ -163,8 +142,6 @@ function buildStartMs(date, time) {
     return new Date(y, m - 1, d, h, mi).getTime();
   }
 
-  // Geen bekende tijd: middernacht als sorteer-/query-anker.
-  // De UI toont hierbij expliciet 'tijd volgt'.
   return new Date(y, m - 1, d, 0, 0).getTime();
 }
 
@@ -172,8 +149,13 @@ function formatAddress(addr) {
   if (!addr) return null;
 
   const parts = [
-    [addr.street, addr.house_number].filter(Boolean).join(' '),
-    [addr.zip_code, addr.city].filter(Boolean).join(' '),
+    [addr.street, addr.house_number]
+      .filter(Boolean)
+      .join(' '),
+
+    [addr.zip_code, addr.city]
+      .filter(Boolean)
+      .join(' '),
   ].filter(Boolean);
 
   return parts.length ? parts.join(', ') : null;
@@ -196,25 +178,43 @@ function normalizeMatch(raw, collectionName) {
     source: 'lisa',
     lisaId: raw.id,
     lisaCollection: collectionName,
+
     date,
     startTime,
     startMs: buildStartMs(date, startTime),
+
     homeTeam: raw.home_team_name || null,
     awayTeam: raw.away_team_name || null,
-    field: raw.field || raw.location?.name || null,
-    locationName: raw.location?.name || null,
-    address: formatAddress(raw.location?.address),
-    category: raw.sub_category || raw.category || null,
 
-    // Alleen de linkjes — de afbeelding wordt niet gedownload.
-    homeLogo: raw.home_team_club_logo_url || null,
-    awayLogo: raw.away_team_club_logo_url || null,
+    field:
+      raw.field ||
+      raw.location?.name ||
+      null,
+
+    locationName:
+      raw.location?.name ||
+      null,
+
+    address:
+      formatAddress(raw.location?.address),
+
+    category:
+      raw.sub_category ||
+      raw.category ||
+      null,
+
+    homeLogo:
+      raw.home_team_club_logo_url ||
+      null,
+
+    awayLogo:
+      raw.away_team_club_logo_url ||
+      null,
 
     updatedAt: Date.now(),
     updatedBy: 'lisa-sync',
   };
 
-  // Alleen expliciet afgelast overschrijven.
   if (raw.is_cancelled === true) {
     payload.status = 'canceled';
   }
@@ -267,13 +267,14 @@ async function main() {
 
   for (const collectionName of collections) {
     try {
-      const records = await lisaGetAllPages(collectionName);
+      const records =
+        await lisaGetAllPages(collectionName);
 
       log(
         `LISA collection ${collectionName}: ${records.length} records (alle clubs)`
       );
 
-      const batch = db.batch();
+      let batch = db.batch();
       let batchCount = 0;
 
       for (const item of records) {
@@ -295,10 +296,11 @@ async function main() {
 
         found++;
 
-        const normalized = normalizeMatch(
-          raw,
-          collectionName
-        );
+        const normalized =
+          normalizeMatch(
+            raw,
+            collectionName
+          );
 
         log(
           `  MHV thuiswedstrijd: ${normalized.date} ${
@@ -310,16 +312,20 @@ async function main() {
           .collection('matches')
           .doc(raw.id);
 
-        batch.set(ref, normalized, {
-          merge: true,
-        });
+        batch.set(
+          ref,
+          normalized,
+          { merge: true }
+        );
 
         batchCount++;
         written++;
 
-        // Firestore batches zijn gelimiteerd tot 500 writes.
+        // Veilig onder de Firestore-limiet van 500 writes blijven.
         if (batchCount >= 400) {
           await batch.commit();
+
+          batch = db.batch();
           batchCount = 0;
         }
       }
@@ -338,16 +344,27 @@ async function main() {
   }
 
   log(
-    `LISA synchronisatie klaar — ${found} MHV-thuiswedstrijden gevonden, ${written} weggeschreven, ${skipped} niet-MHV/uit overgeslagen, ${failedCollections} collecties mislukt`
+    `LISA synchronisatie klaar — ` +
+    `${found} MHV-thuiswedstrijden gevonden, ` +
+    `${written} weggeschreven, ` +
+    `${skipped} niet-MHV/uit overgeslagen, ` +
+    `${failedCollections} collecties mislukt`
   );
 
-  if (failedCollections > 0 && written === 0) {
+  if (
+    failedCollections > 0 &&
+    written === 0
+  ) {
     process.exitCode = 1;
   }
 }
 
 main().catch((e) => {
-  console.error('Onverwachte fout:', e);
+  console.error(
+    'Onverwachte fout:',
+    e
+  );
+
   process.exitCode = 1;
 });
 ```
