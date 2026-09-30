@@ -612,7 +612,12 @@ select.form-input option { background:var(--bg3); }
 .match-card{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--separator);border-radius:12px;padding:11px 14px;margin-bottom:8px;}
 .match-card.live{border-color:var(--green);background:var(--green-dim);}
 .match-card.off{opacity:.6;}
+.match-logos{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.match-logos img,.match-logo-ph{width:22px;height:22px;border-radius:50%;object-fit:contain;background:var(--bg3);}
+.match-logo-vs{font-size:10px;color:var(--text3);}
 .match-time{font-size:13px;font-weight:700;color:var(--mhv-yellow);min-width:44px;}
+.match-time.tbd{font-weight:500;font-style:italic;color:var(--text3);min-width:60px;}
+.idle-match-time.tbd{font-style:italic;color:rgba(255,255,255,.4);}
 .match-main{flex:1;min-width:0;}
 .match-teams{font-size:14px;font-weight:600;}
 .match-sub{font-size:11.5px;color:var(--text3);margin-top:1px;}
@@ -1471,11 +1476,20 @@ function matchPhase(m,now){
   now=now||Date.now();
   if(matchIsOff(m)) return 'off';
   if(m.status==='result'||m.status==='final') return 'done';
+  // Geen bekende aanvangstijd (LISA levert die soms pas later aan) — nooit 'bezig' of 'gespeeld'
+  // afleiden uit een placeholder-tijdstip, dan liever gewoon 'nog te spelen' tonen.
+  if(!m.startTime) return 'upcoming';
   if(now<m.startMs) return 'upcoming';
   if(now<matchEndMs(m)) return 'live';
   return 'done';
 }
-function matchesOnDay(k){ return allMatches.filter(m=>m.date===k).sort((a,b)=>a.startMs-b.startMs); }
+function matchesOnDay(k){
+  return allMatches.filter(m=>m.date===k).sort((a,b)=>{
+    if(!a.startTime&&b.startTime) return 1;
+    if(a.startTime&&!b.startTime) return -1;
+    return a.startMs-b.startMs;
+  });
+}
 function shiftWindowMs(s){
   const k=dKey(s.date);
   const st=localMs(k,s.startTime);
@@ -1502,8 +1516,14 @@ function matchStatusBadge(m){
 function matchCardHtml(m){
   const ph=matchPhase(m);
   const sub=[m.field,m.competition].filter(Boolean).map(escAnn).join(' · ');
+  const logos=(m.homeLogo||m.awayLogo)?`<div class="match-logos">
+      ${m.homeLogo?`<img src="${escAnn(m.homeLogo)}" alt="" loading="lazy">`:'<span class="match-logo-ph"></span>'}
+      <span class="match-logo-vs">–</span>
+      ${m.awayLogo?`<img src="${escAnn(m.awayLogo)}" alt="" loading="lazy">`:'<span class="match-logo-ph"></span>'}
+    </div>`:'';
   return `<div class="match-card${ph==='live'?' live':''}${ph==='off'?' off':''}">
-    <div class="match-time">${escAnn(m.startTime||'')}</div>
+    ${logos}
+    <div class="match-time${m.startTime?'':' tbd'}">${escAnn(m.startTime||'tijd volgt')}</div>
     <div class="match-main"><div class="match-teams">${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}</div>${sub?`<div class="match-sub">${sub}</div>`:''}</div>
     ${matchStatusBadge(m)}
   </div>`;
@@ -1519,7 +1539,7 @@ window.setRosterView=(v)=>{ rosterView=v; try{localStorage.setItem('mhv_roster_v
 function idleMatchRow(m,cls){
   const sc=matchScoreText(m);
   const sub=m.status==='canceled'?'afgelast':m.status==='postponed'?'uitgesteld':m.status==='discontinued'?'gestaakt':sc?`uitslag ${sc}`:'';
-  return `<div class="idle-match ${cls||''}"><span class="idle-match-time">${escAnn(m.startTime||'')}</span><span>${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}</span>${sub?`<span class="idle-match-sub">${sub}</span>`:''}</div>`;
+  return `<div class="idle-match ${cls||''}"><span class="idle-match-time${m.startTime?'':' tbd'}">${escAnn(m.startTime||'tijd volgt')}</span><span>${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}</span>${sub?`<span class="idle-match-sub">${sub}</span>`:''}</div>`;
 }
 function idleMatchesHtml(){
   if(!featureOn('matches')) return '';
@@ -1612,8 +1632,8 @@ function adminMatchesListHtml(){
   if(!ms.length) return '<p style="font-size:13px;color:var(--text3)">Nog geen wedstrijden.</p>';
   return ms.map(m=>`<div class="card-row" style="align-items:center">
     <div style="flex:1;min-width:0">
-      <div style="font-size:14px;font-weight:600">${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}</div>
-      <div style="font-size:12px;color:var(--text3)">${fmtDate(m.date)} · ${escAnn(m.startTime||'')}${matchScoreText(m)?' · '+matchScoreText(m):''}${matchIsOff(m)?' · '+(m.status==='canceled'?'afgelast':m.status==='postponed'?'uitgesteld':'gestaakt'):''}</div>
+      <div style="font-size:14px;font-weight:600">${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}${m.source==='lisa'?' <span class="badge badge-gray" style="font-size:9px;vertical-align:middle">auto</span>':''}</div>
+      <div style="font-size:12px;color:var(--text3)">${fmtDate(m.date)} · ${escAnn(m.startTime||'tijd volgt')}${matchScoreText(m)?' · '+matchScoreText(m):''}${matchIsOff(m)?' · '+(m.status==='canceled'?'afgelast':m.status==='postponed'?'uitgesteld':'gestaakt'):''}</div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="openMatchModal('${m.id}')"><span class="ic" data-icon="edit"></span></button>
     <button class="btn btn-ghost btn-sm" onclick="deleteMatch('${m.id}')"><span class="ic" data-icon="trash"></span></button>
@@ -1624,7 +1644,8 @@ window.openMatchModal=function(id){
   modal(`<div class="modal-handle"></div>
     <div class="modal-title">${m?'Wedstrijd bewerken':'Wedstrijd toevoegen'}</div>
     <div class="form-section"><label class="form-label">Datum</label><input type="date" class="form-input" id="mmDate" value="${m?m.date:nowKey()}"></div>
-    <div class="form-section"><label class="form-label">Aanvangstijd</label><input type="time" class="form-input" id="mmTime" value="${m?m.startTime:'14:00'}"></div>
+    <div class="form-section"><label class="form-label">Aanvangstijd</label><input type="time" class="form-input" id="mmTime" value="${m&&m.startTime?m.startTime:(m?'':'14:00')}"></div>
+    ${m&&m.source==='lisa'?'<p style="font-size:11.5px;color:var(--text3);margin:-4px 0 14px">Automatisch aangeleverd door de KNHB-wedstrijdfeed. Wat je hier wijzigt, blijft staan totdat de bron zelf een andere waarde geeft.</p>':''}
     <div class="form-section"><label class="form-label">Thuisteam</label><input type="text" class="form-input" id="mmHome" placeholder="MHV 1931 H1" value="${escAnn(m?.homeTeam||'')}"></div>
     <div class="form-section"><label class="form-label">Uitteam</label><input type="text" class="form-input" id="mmAway" placeholder="Bv. HC Zwolle H1" value="${escAnn(m?.awayTeam||'')}"></div>
     <div class="form-section"><label class="form-label">Veld / competitie (optioneel)</label><input type="text" class="form-input" id="mmField" placeholder="Veld 2 · Hoofdklasse" value="${escAnn(m?.field||'')}"></div>
@@ -1649,12 +1670,12 @@ window.openMatchModal=function(id){
   if(sel) sel.onchange=()=>{ document.getElementById('mmScoreWrap').style.display=sel.value==='result'?'block':'none'; };
 };
 window.saveMatch=async function(id){
-  const date=$('mmDate').value, time=$('mmTime').value;
+  const date=$('mmDate').value, time=$('mmTime').value||null;
   const home=$('mmHome').value.trim(), away=$('mmAway').value.trim();
-  if(!date||!time||!home||!away){ toast('Vul in elk geval datum, tijd en beide teams in','err'); return; }
+  if(!date||!home||!away){ toast('Vul in elk geval datum en beide teams in','err'); return; }
   const status=$('mmStatus').value;
   const payload={
-    date, startTime:time, startMs:localMs(date,time),
+    date, startTime:time, startMs:localMs(date,time||'00:00'),
     homeTeam:home, awayTeam:away, field:$('mmField').value.trim()||null,
     status, updatedAt:Date.now(), updatedBy:U.uid
   };

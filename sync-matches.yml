@@ -1,0 +1,29 @@
+name: Wedstrijden synchroniseren (LISA)
+
+# Draait elke 6 uur automatisch, en is ook met de hand te starten via het tabblad "Actions" op
+# GitHub (rechtsboven "Run workflow") — handig om meteen te testen zonder 6 uur te wachten.
+# Kost niets: deze repository is publiek, dus GitHub Actions-minuten zijn hier onbeperkt gratis.
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installeer dependencies
+        working-directory: scripts
+        run: npm install
+
+      - name: Synchroniseer wedstrijden
+        working-directory: scripts
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node sync-lisa-matches.mjs
