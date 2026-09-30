@@ -47,6 +47,7 @@
     'beer': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M6 9.5h9v9.5a1.5 1.5 0 0 1-1.5 1.5H7.5A1.5 1.5 0 0 1 6 19z"/><path d="M15 11h1.5a2.5 2.5 0 0 1 0 5H15"/><path d="M6 9.5c0-3.5 1.3-6 4.5-6 1.1 0 1.5.8 2.4.8.9 0 1.1-.8 2-.4 1 .4 1 1.7.2 2.2" stroke-width="1.4"/></svg>',
     'home': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M4 11.5L12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V10"/><path d="M10 20.5V15h4v5.5"/></svg>',
     'compass': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>',
+    'play': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.3v7.4a.6.6 0 0 0 .92.5l5.9-3.7a.6.6 0 0 0 0-1l-5.9-3.7a.6.6 0 0 0-.92.5z" fill="currentColor" stroke="none"/></svg>',
     'tv': '<svg class="ic-svg" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="12.5" rx="2"/><path d="M8.5 21h7"/></svg>',
     'x-circle': '<svg class="ic-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>',
     'mobile': '<svg class="ic-svg" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 19h2"/></svg>',
