@@ -22,6 +22,10 @@ jobs:
         working-directory: .
         run: npm install
 
+      - name: Installeer Chromium voor Playwright
+        working-directory: .
+        run: npx playwright install --with-deps chromium
+
       - name: Synchroniseer wedstrijden
         working-directory: .
         env:
