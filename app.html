@@ -4730,7 +4730,7 @@ async function notifyUsers(uids, title, body, emailBody, opts){
 // ═══════════════════════════════════════════════════════════════
 function subChat(){
   const{db,collection,onSnapshot,query,limit}=window._f;
-  // Geen orderBy = geen composite index vereist, sorteer client-side fout gevonden door de constante zelf data sort wss reload
+  // Geen orderBy = geen composite index vereist, sorteer client-side. De reload fout zit hier tussen 4230 en 4757
   const q=query(collection(db,'chat'),limit(200));
   unsubChat=onSnapshot(q,snap=>{
     allChat=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deleted)
@@ -4741,7 +4741,7 @@ function subChat(){
       });
     // Render altijd als chatMsgs bestaat
     const msgs=document.getElementById('chatMsgs');
-    if(msgs){ _renderChatMsgs(); msgs.scrollTop=msgs.scrollHeight; }
+    // if(msgs){ _renderChatMsgs(); msgs.scrollTop=msgs.scrollHeight; }
     if(document.querySelector('#view-chat.active')) markChatRead();
     // Badge op chat tab
     const last=allChat[allChat.length-1];
