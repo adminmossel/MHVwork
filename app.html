@@ -4730,15 +4730,15 @@ async function notifyUsers(uids, title, body, emailBody, opts){
 // ═══════════════════════════════════════════════════════════════
 function subChat(){
   const{db,collection,onSnapshot,query,limit}=window._f;
-  // Geen orderBy = geen composite index vereist, sorteer client-side
+  // Geen orderBy = geen composite index vereist, sorteer client-side fout gevonden door de constante zelf data sort wss reload
   const q=query(collection(db,'chat'),limit(200));
   unsubChat=onSnapshot(q,snap=>{
-    allChat=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deleted)
-      .sort((a,b)=>{
-        const ta=a.createdAt?.toDate?.()?.getTime()||0;
-        const tb=b.createdAt?.toDate?.()?.getTime()||0;
-        return ta-tb;
-      });
+    // allChat=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deleted)
+    //   .sort((a,b)=>{
+    //     const ta=a.createdAt?.toDate?.()?.getTime()||0;
+    //     const tb=b.createdAt?.toDate?.()?.getTime()||0;
+    //     return ta-tb;
+    //   });
     // Render altijd als chatMsgs bestaat
     const msgs=document.getElementById('chatMsgs');
     if(msgs){ _renderChatMsgs(); msgs.scrollTop=msgs.scrollHeight; }
@@ -4751,7 +4751,7 @@ function subChat(){
       if(!active2) dot.style.display='block';
     }
   }, function(err){
-    console.error('Chat Firestore error:', err.code, err.message);
+    console.error('Firestore error:', err.code, err.message);
     toast('Chat fout: '+err.message,'err');
   });
 }
