@@ -9,9 +9,12 @@
 // User-Agent-header — het vereist dat er daadwerkelijk JavaScript wordt uitgevoerd zoals een
 // echte browser dat doet. Een kale fetch()/curl/axios-aanroep kan dat principieel nooit omzeilen,
 // ongeacht welke headers je meestuurt (dat is al geprobeerd en faalde voorspelbaar). Playwright
-// start daarom een echte (headless) Chromium, bezoekt de site één keer om de controle te
-// doorlopen, en doet de API-aanroepen daarna via diezelfde browsersessie (met de cookie die
-// Cloudflare na de controle meegeeft).
+// start daarom een echte (headless) Chromium. De hoofdpagina zelf bleek niet beschermd, maar het
+// API-pad onder /rts/collections/ wél — dus elke aanroep daarheen gebeurt via een echte
+// paginanavigatie (page.goto), niet via een los verzoek dat alleen cookies leent van de
+// browsersessie (context.request). Dat laatste leek logisch maar gaf zelf ook een 403: Cloudflare
+// controleert hier kennelijk mee of het verzoek ook echt via de render-/netwerkmotor van de
+// browser loopt, niet alleen of het de juiste cookie heeft.
 //
 // Draait via GitHub Actions, NIET vanuit de browser van de gebruiker — dat voorkomt CORS-
 // problemen en heeft geen Cloud Functions (Blaze-plan) nodig.
@@ -45,30 +48,49 @@ async function openBrowserSession() {
     locale: 'nl-NL',
   });
   const page = await context.newPage();
-  log('Open de site om Cloudflare-controle te doorlopen…');
+  log('Open de site om een sessie/cookies op te bouwen…');
   await page.goto(SITE_ORIGIN, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await waitOutChallenge(page);
+  await page.close();
+  log('Hoofdpagina geladen.');
+}
+
+async function waitOutChallenge(page) {
   // De 'Just a moment...'-pagina lost zichzelf na een paar seconden op en herlaadt de pagina.
-  // Wacht tot de titel niet meer 'Just a moment' is, met een redelijke marge.
   for (let i = 0; i < 20; i++) {
     const title = await page.title().catch(() => '');
-    if (!/just a moment/i.test(title)) break;
+    if (!/just a moment/i.test(title)) return;
     await page.waitForTimeout(1000);
   }
-  await page.close();
-  log('Cloudflare-controle doorlopen (of was niet nodig).');
 }
 
 async function lisaGet(collectionName, pageNumber) {
   const url = `${LISA_BASE}/${encodeURIComponent(collectionName)}/query-data` +
     `?pageSize=${PAGE_SIZE}&pageNumber=${pageNumber}&query=()&language=ENGLISH`;
-  // context.request deelt de cookies (incl. eventuele cf_clearance) met de browsersessie hierboven.
-  const res = await context.request.get(url, { headers: { 'Accept': 'application/json' } });
-  if (!res.ok()) {
-    const bodyText = await res.text().catch(() => '');
-    const details = bodyText ? ' - ' + bodyText.slice(0, 300).replace(/\s+/g, ' ') : '';
-    throw new Error(`LISA HTTP ${res.status()} voor ${collectionName} (pagina ${pageNumber})${details}`);
+  // BELANGRIJK: dit gaat via page.goto() (een echte paginanavigatie), niet via context.request.
+  // De eerdere versie gebruikte context.request.get(), die wel de cookies deelt met de browser
+  // maar niet via Chromium's eigen render-/netwerkmotor loopt — en Cloudflare controleert hier
+  // kennelijk ook dát mee, specifiek op dit API-pad (de hoofdpagina zelf bleek niet beschermd).
+  const page = await context.newPage();
+  try {
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await waitOutChallenge(page);
+    const status = response ? response.status() : 0;
+    const bodyText = await page.evaluate(() => {
+      const pre = document.querySelector('pre');
+      return pre ? pre.innerText : document.body.innerText;
+    }).catch(() => '');
+    if (status >= 400) {
+      throw new Error(`LISA HTTP ${status} voor ${collectionName} (pagina ${pageNumber}) - ${bodyText.slice(0, 300).replace(/\s+/g, ' ')}`);
+    }
+    try {
+      return JSON.parse(bodyText);
+    } catch (e) {
+      throw new Error(`Kon de respons niet als JSON lezen voor ${collectionName} (pagina ${pageNumber}): ${bodyText.slice(0, 200).replace(/\s+/g, ' ')}`);
+    }
+  } finally {
+    await page.close();
   }
-  return res.json();
 }
 
 async function lisaGetAllPages(collectionName) {
