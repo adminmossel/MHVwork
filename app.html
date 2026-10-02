@@ -4740,20 +4740,23 @@ function subChat(){
         return ta-tb;
       });
     // Render altijd als chatMsgs bestaat
-    const msgs=document.getElementById('chatMsgs');
-    // if(msgs){ _renderChatMsgs(); msgs.scrollTop=msgs.scrollHeight; }
-    if(document.querySelector('#view-chat.active')) markChatRead();
-    // Badge op chat tab
+    const chatActive=!!document.querySelector('#view-chat.active'); // Badge op chat tab
     const last=allChat[allChat.length-1];
     const dot=document.getElementById('chat-dot');
-    if(dot&&last&&last.uid!==U.uid){
-      const active2=document.querySelector('#view-chat.active');
-      if(!active2) dot.style.display='block';
+
+    if(chatActive){
+      _renderChatMsgs();
+      if(dot) dot.style.display='none';
+      markChatRead();
+    }else if(dot&&last&&last.uid!==U.uid){
+      dot.style.display='block';  
     }
-  }, function(err){
-    console.error('Firestore error:', err.code, err.message);
-    toast('Chat fout: '+err.message,'err');
-  });
+  },
+    err=>{
+      console.error('Firestore error:',err.code,err.message);
+      toast('Chat fout: '+err.message,'err');
+    }
+  );
 }
 
 // "Gezien door" — ieders laatste leesmoment van de groepschat, gebruikt om onder je laatste
