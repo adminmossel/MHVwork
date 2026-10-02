@@ -30,6 +30,13 @@ import admin from 'firebase-admin';
 import { chromium } from 'playwright';
 
 const SITE_ORIGIN = 'https://www.meppelerhv.nl';
+// De echte pagina die dit wedstrijdschema toont ("Powered by LISA", met filters en een
+// scheidsrechters-kolom) — niet de kale hoofdpagina. Eerder gaf dat exact genoeg sessie/cookies
+// om Cloudflare te passeren, maar blijkbaar niet genoeg om de site zelf bruikbare data te laten
+// teruggeven: elk verzoek kwam terug als geldige, maar lege JSON. De API-aanroepen hieronder
+// imiteren nu hoe een echte bezoeker hier komt: eerst deze pagina laden (incl. de Referer die
+// daarbij hoort), pas daarna de wedstrijd-data zelf opvragen.
+const WIDGET_PAGE = `${SITE_ORIGIN}/wedstrijdschema`;
 const LISA_BASE = `${SITE_ORIGIN}/rts/collections/public/32c872e6/runtime/collection`;
 const PAGE_SIZE = 100;
 const MAX_PAGES = 30; // veiligheidsgrens, voorkomt een oneindige lus bij een onverwachte response
@@ -46,13 +53,17 @@ async function openBrowserSession() {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 },
     locale: 'nl-NL',
+    extraHTTPHeaders: { 'Referer': WIDGET_PAGE },
   });
   const page = await context.newPage();
-  log('Open de site om een sessie/cookies op te bouwen…');
-  await page.goto(SITE_ORIGIN, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  log(`Open ${WIDGET_PAGE} om een echte sessie op te bouwen…`);
+  await page.goto(WIDGET_PAGE, { waitUntil: 'networkidle', timeout: 45000 });
   await waitOutChallenge(page);
+  // De widget op deze pagina haalt zijn eigen data asynchroon op na het laden — een paar
+  // seconden extra geven zodat die aanroep (en de cookies/state die daarbij horen) echt voltooid is.
+  await page.waitForTimeout(3000);
   await page.close();
-  log('Hoofdpagina geladen.');
+  log('Wedstrijdschema-pagina geladen.');
 }
 
 async function waitOutChallenge(page) {
@@ -96,11 +107,19 @@ async function lisaGet(collectionName, pageNumber) {
     if (status >= 400 || looksLikeChallenge(bodyText)) {
       throw new Error(`LISA HTTP ${status} voor ${collectionName} (pagina ${pageNumber}) - ${bodyText.slice(0, 300).replace(/\s+/g, ' ')}`);
     }
+    let parsed;
     try {
-      return JSON.parse(bodyText);
+      parsed = JSON.parse(bodyText);
     } catch (e) {
       throw new Error(`Kon de respons niet als JSON lezen voor ${collectionName} (pagina ${pageNumber}), lengte ${bodyText.length}: ${bodyText.slice(0, 200).replace(/\s+/g, ' ')}`);
     }
+    // Tijdelijke diagnose: als er geen (of geen bruikbare) 'values' in zitten, laat dan zien hoe
+    // de respons er écht uitziet — zodat we de volgende keer de structuur zien i.p.v. te gokken.
+    if (!Array.isArray(parsed?.values) || parsed.values.length === 0) {
+      log(`  (${collectionName} p${pageNumber}) geen bruikbare 'values' — sleutels op het toplevel: [${Object.keys(parsed || {}).join(', ')}], status ${status}, lengte ${bodyText.length}`);
+      log(`  ruwe respons (eerste 600 tekens): ${bodyText.slice(0, 600).replace(/\s+/g, ' ')}`);
+    }
+    return parsed;
   } finally {
     await page.close();
   }
