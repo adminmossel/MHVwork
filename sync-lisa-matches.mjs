@@ -53,8 +53,12 @@ async function openBrowserSession() {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 },
     locale: 'nl-NL',
-    extraHTTPHeaders: { 'Referer': WIDGET_PAGE },
   });
+  // BELANGRIJK: geen Referer hier op context-niveau — dat zou ook het allereerste bezoek aan
+  // de widget-pagina zelf meekrijgen, alsof die pagina naar zichzelf verwijst nog vóór hij ooit
+  // geladen is. Geen enkele echte browser doet dat, en dat soort onnatuurlijke header is precies
+  // het type signaal waar Cloudflare op reageert. De Referer wordt daarom pas gezet per pagina,
+  // ná dit eerste bezoek, alleen voor de API-aanroepen hieronder (zie lisaGet()).
   const page = await context.newPage();
   log(`Open ${WIDGET_PAGE} om een echte sessie op te bouwen…`);
   await page.goto(WIDGET_PAGE, { waitUntil: 'networkidle', timeout: 45000 });
@@ -91,6 +95,9 @@ async function lisaGet(collectionName, pageNumber) {
   // gevonden' zonder enige foutmelding). response.text() geeft altijd de exacte ruwe tekst die
   // binnenkwam, ongeacht hoe Chrome die daarna toont.
   const page = await context.newPage();
+  // Dit is een XHR/fetch-achtige aanroep die de widget op WIDGET_PAGE normaal zelf doet — die
+  // Referer hoort hier dus wél thuis (in tegenstelling tot bij het laden van de pagina zelf).
+  await page.setExtraHTTPHeaders({ 'Referer': WIDGET_PAGE });
   try {
     let response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     let bodyText = response ? await response.text() : '';
