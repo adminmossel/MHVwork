@@ -64,29 +64,42 @@ async function waitOutChallenge(page) {
   }
 }
 
+function looksLikeChallenge(text) {
+  return /just a moment/i.test(text) || /<html/i.test(String(text).slice(0, 200));
+}
+
 async function lisaGet(collectionName, pageNumber) {
   const url = `${LISA_BASE}/${encodeURIComponent(collectionName)}/query-data` +
     `?pageSize=${PAGE_SIZE}&pageNumber=${pageNumber}&query=()&language=ENGLISH`;
-  // BELANGRIJK: dit gaat via page.goto() (een echte paginanavigatie), niet via context.request.
-  // De eerdere versie gebruikte context.request.get(), die wel de cookies deelt met de browser
-  // maar niet via Chromium's eigen render-/netwerkmotor loopt — en Cloudflare controleert hier
-  // kennelijk ook dát mee, specifiek op dit API-pad (de hoofdpagina zelf bleek niet beschermd).
+  // BELANGRIJK: dit gaat via page.goto() (een echte paginanavigatie), niet via context.request —
+  // dat laatste gaf zelf nog een 403 (zie commit-geschiedenis). Maar de JSON-tekst lezen we nu
+  // rechtstreeks van het netwerkantwoord (response.text()), NIET uit de weergegeven pagina
+  // (document.querySelector('pre')): Chrome rendert een JSON-respons als een interactieve,
+  // inklapbare boomstructuur met meerdere losse <pre>-elementen — het eerste dat querySelector
+  // oppikt is vrijwel leeg, wat parste als geldige maar lege JSON (vandaar '0 collecties
+  // gevonden' zonder enige foutmelding). response.text() geeft altijd de exacte ruwe tekst die
+  // binnenkwam, ongeacht hoe Chrome die daarna toont.
   const page = await context.newPage();
   try {
-    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await waitOutChallenge(page);
+    let response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    let bodyText = response ? await response.text() : '';
+    if (looksLikeChallenge(bodyText)) {
+      // Cloudflare's 'Just a moment'-pagina lost zichzelf intern op en herlaadt — ons eerder
+      // vastgelegde 'response' is dan nog de uitdagingspagina zelf. Wachten en opnieuw navigeren
+      // om de respons ná de controle te pakken.
+      await waitOutChallenge(page);
+      await page.waitForTimeout(1500);
+      response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      bodyText = response ? await response.text() : '';
+    }
     const status = response ? response.status() : 0;
-    const bodyText = await page.evaluate(() => {
-      const pre = document.querySelector('pre');
-      return pre ? pre.innerText : document.body.innerText;
-    }).catch(() => '');
-    if (status >= 400) {
+    if (status >= 400 || looksLikeChallenge(bodyText)) {
       throw new Error(`LISA HTTP ${status} voor ${collectionName} (pagina ${pageNumber}) - ${bodyText.slice(0, 300).replace(/\s+/g, ' ')}`);
     }
     try {
       return JSON.parse(bodyText);
     } catch (e) {
-      throw new Error(`Kon de respons niet als JSON lezen voor ${collectionName} (pagina ${pageNumber}): ${bodyText.slice(0, 200).replace(/\s+/g, ' ')}`);
+      throw new Error(`Kon de respons niet als JSON lezen voor ${collectionName} (pagina ${pageNumber}), lengte ${bodyText.length}: ${bodyText.slice(0, 200).replace(/\s+/g, ' ')}`);
     }
   } finally {
     await page.close();
@@ -115,6 +128,7 @@ async function lisaGetAllPages(collectionName) {
 
 async function discoverMatchCollections() {
   const items = await lisaGetAllPages('Toekomstige_wedstrijden');
+  log(`Toekomstige_wedstrijden: ${items.length} ruwe items ontvangen`);
   const names = new Set();
   for (const item of items) {
     const name = item?.data?.collectionname;
