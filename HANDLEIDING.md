@@ -409,41 +409,29 @@ De app werkt als Progressive Web App (PWA) — je kunt hem als een echte app ins
 
 ---
 
-## STAP 8 — Wedstrijden synchroniseren (optioneel)
+## STAP 8 — Wedstrijden importeren (optioneel)
 
-MHVwork kan automatisch de thuiswedstrijden van MHV ophalen uit de openbare wedstrijdfeed van
+MHVwork kan de thuiswedstrijden van MHV ophalen vanaf de openbare wedstrijdpagina van
 meppelerhv.nl en die laten zien bij Rooster, Home en de idle-modus. Dit is optioneel en staat
 standaard uit (dev zet het aan bij Beheer → Instellingen → Functies tijdelijk uitzetten →
-"Wedstrijden"). Voor de synchronisatie zelf heb je eenmalig dit nodig:
+"Wedstrijden"). Er is verder niets in te stellen — geen sleutel, geen geheime gegevens, geen
+account.
 
-1. Ga naar de [Firebase Console](https://console.firebase.google.com) → je project → het
-   tandwiel-icoontje linksboven → **Projectinstellingen**.
-2. Ga naar het tabblad **Service accounts**.
-3. Klik op **Genereer nieuwe privésleutel** (Node.js staat al geselecteerd) en bevestig. Er
-   downloadt een `.json`-bestand — bewaar dat nergens los op, het komt zo direct in GitHub.
-4. Open je bestand in een teksteditor en **kopieer de hele inhoud** (van `{` tot `}`).
-5. Ga naar je GitHub-repository → **Settings** → **Secrets and variables** → **Actions**.
-6. Klik op **New repository secret**.
-   - Name: `FIREBASE_SERVICE_ACCOUNT`
-   - Secret: plak hier de hele inhoud van het `.json`-bestand
-   - Klik op **Add secret**
-7. Verwijder het gedownloade `.json`-bestand van je computer — het staat nu veilig, versleuteld,
-   in GitHub Secrets, en hoort nergens anders meer te staan.
+Zodra de functie aanstaat, ziet een beheerder of dev bij Beheer → Instellingen → Wedstrijden een
+knop **"Wedstrijden importeren vanaf de MHV-website"**. Die haalt bij het klikken de actuele
+thuiswedstrijden op en zet ze klaar in de app. Dit is bewust een knop en geen automatische,
+geplande synchronisatie: de MHV-website bleek verzoeken vanaf geautomatiseerde achtergrondtaken
+(zoals GitHub Actions) niet te vertrouwen, maar verzoeken vanuit een gewone browser — zoals die
+van de beheerder die de knop gebruikt — werken wél gewoon. Klik de knop daarom af en toe aan,
+bijvoorbeeld aan het begin van een nieuw seizoen of na een roosterwijziging.
 
-**⚠️ Deze sleutel geeft volledige toegang tot je hele Firestore-database, alle beveiligingsregels
-genegeerd.** Zet 'm nooit in een bestand dat je commit, nooit in een chatbericht, deel 'm met
-niemand. Zie je 'm per ongeluk ergens anders terug, genereer dan direct een nieuwe sleutel in de
-Firebase Console (bij hetzelfde tabblad) en verwijder de oude.
+Lukt het een keer niet (bijvoorbeeld een foutmelding over een geblokkeerd verzoek), dan blijft de
+handmatige invoer — net als bij elke andere wedstrijd — gewoon beschikbaar in hetzelfde scherm.
 
-Klaar? Ga naar het tabblad **Actions** in je repository, kies **"Wedstrijden synchroniseren
-(LISA)"** in de lijst links, en klik rechts op **Run workflow** om 'm direct te testen — daarna
-draait hij vanzelf elke 6 uur. Bij Beheer → Instellingen zie je naast de schakelaar of, en
-wanneer, de laatste synchronisatie is gelukt.
-
-Dit is een openbare, niet-officieel-gedocumenteerde feed van de website van MHV zelf — geen
+Dit is een openbare, niet-officieel-gedocumenteerde pagina van de website van MHV zelf — geen
 KNHB-token nodig, geen kosten. Precies daarom kan de vorm van de data ooit veranderen zonder
-aankondiging; als dat gebeurt faalt de synchronisatie gewoon stil (te zien in de Actions-log),
-zonder de rest van de app te raken.
+aankondiging; als dat gebeurt geeft de knop een duidelijke foutmelding, zonder de rest van de
+app te raken.
 
 ---
 
@@ -455,7 +443,6 @@ zonder de rest van de app te raken.
 | Firebase Auth | Onbeperkt | 10 gebruikers ✅ |
 | EmailJS | 200 emails/maand | < 50/maand ✅ |
 | GitHub Pages | Onbeperkt | — ✅ |
-| GitHub Actions (wedstrijden-sync) | Onbeperkt (publieke repo) | Elke 6 uur, enkele seconden ✅ |
 
 **Conclusie: Dit blijft altijd gratis voor jullie gebruik.**
 

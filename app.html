@@ -1620,6 +1620,117 @@ window.saveClosingChecklist=async function(){
     toast('Sluitchecklist opgeslagen','ok');
   }catch(e){ toast('Opslaan mislukt','err'); }
 };
+// ═══════════════════════════════════════════
+// LISA-IMPORT — rechtstreeks vanuit de browser van de beheerder/dev, met een knop.
+//
+// Waarom geen automatische achtergrond-synchronisatie (GitHub Actions): geprobeerd, en
+// herhaaldelijk stukgelopen op Cloudflare's bescherming van dit specifieke API-pad op
+// meppelerhv.nl. Een test rechtstreeks vanuit een gewone browser liet zien dat dit prima werkt
+// zodra het verzoek van een gewoon (niet-datacenter) IP-adres komt — vandaar deze knop i.p.v.
+// een geplande taak. Dit is bewust GEEN automatische achtergrondsync: een beheerder/dev klikt 'm
+// aan wanneer nodig.
+// ═══════════════════════════════════════════
+const LISA_SITE_ORIGIN='https://www.meppelerhv.nl';
+const LISA_WIDGET_PAGE=LISA_SITE_ORIGIN+'/wedstrijdschema';
+const LISA_BASE=LISA_SITE_ORIGIN+'/rts/collections/public/32c872e6/runtime/collection';
+const LISA_PAGE_SIZE=100, LISA_MAX_PAGES=30;
+const LISA_MHV_CLUB_NAMES=new Set(['Meppeler H.V.','Meppeler HV','Meppeler Hockey Vereniging','M.H.V.']);
+
+async function lisaFetchJson(collectionName,pageNumber){
+  const url=`${LISA_BASE}/${encodeURIComponent(collectionName)}/query-data?pageSize=${LISA_PAGE_SIZE}&pageNumber=${pageNumber}&query=()&language=ENGLISH`;
+  const res=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!res.ok) throw new Error(`LISA HTTP ${res.status} voor ${collectionName} (pagina ${pageNumber})`);
+  return res.json();
+}
+async function lisaFetchAllPages(collectionName){
+  const values=[]; const seen=new Set();
+  for(let page=0;page<LISA_MAX_PAGES;page++){
+    const result=await lisaFetchJson(collectionName,page);
+    const batch=Array.isArray(result.values)?result.values:[];
+    let n=0;
+    for(const item of batch){ const id=item?.data?.id; if(id&&!seen.has(id)){ seen.add(id); values.push(item); n++; } }
+    if(batch.length<LISA_PAGE_SIZE||n===0) break;
+  }
+  return values;
+}
+async function lisaDiscoverCollections(){
+  const items=await lisaFetchAllPages('Toekomstige_wedstrijden');
+  const names=new Set();
+  for(const item of items){ const n=item?.data?.collectionname; if(typeof n==='string'&&n.startsWith('matches_')) names.add(n); }
+  return [...names];
+}
+function lisaNormalizeDate(ddmmyyyy){
+  if(!ddmmyyyy) return null;
+  const[d,m,y]=String(ddmmyyyy).split('-'); if(!d||!m||!y) return null;
+  return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+function lisaNormalizeTime(raw){
+  if(!raw) return null;
+  const mm=String(raw).match(/^(\d{1,2}):(\d{2})/); if(!mm) return null;
+  return `${mm[1].padStart(2,'0')}:${mm[2]}`;
+}
+function lisaFormatAddress(addr){
+  if(!addr) return null;
+  const parts=[[addr.street,addr.house_number].filter(Boolean).join(' '),[addr.zip_code,addr.city].filter(Boolean).join(' ')].filter(Boolean);
+  return parts.length?parts.join(', '):null;
+}
+function lisaIsMhvHome(raw){
+  return raw?.is_home_match===true && LISA_MHV_CLUB_NAMES.has(String(raw?.home_team_club_name||'').trim());
+}
+function lisaNormalizeMatch(raw){
+  const date=lisaNormalizeDate(raw.date), startTime=lisaNormalizeTime(raw.time);
+  const payload={
+    source:'lisa', lisaId:raw.id,
+    date, startTime, startMs:localMs(date,startTime||'00:00'),
+    homeTeam:raw.home_team_name||null, awayTeam:raw.away_team_name||null,
+    field:raw.field||raw.location?.name||null, locationName:raw.location?.name||null,
+    address:lisaFormatAddress(raw.location?.address),
+    category:raw.sub_category||raw.category||null,
+    homeLogo:raw.home_team_club_logo_url||null, awayLogo:raw.away_team_club_logo_url||null,
+    updatedAt:Date.now(), updatedBy:(U?U.uid:'lisa-import'),
+  };
+  if(raw.is_cancelled===true) payload.status='canceled';
+  return payload;
+}
+window.importLisaMatches=async function(){
+  const btn=$('lisaImportBtn'); const statusEl=$('lisaImportStatus');
+  if(btn){ btn.disabled=true; btn.textContent='Bezig met importeren…'; }
+  if(statusEl) statusEl.textContent='';
+  try{
+    const collections=await lisaDiscoverCollections();
+    if(!collections.length){ throw new Error('Geen maandcollecties gevonden op de MHV-website.'); }
+    const{db,doc,setDoc}=window._f;
+    let found=0, written=0, skipped=0, failedCollections=0;
+    for(const name of collections){
+      try{
+        const records=await lisaFetchAllPages(name);
+        for(const item of records){
+          const raw=item?.data;
+          if(!raw||!lisaIsMhvHome(raw)){ skipped++; continue; }
+          if(!raw.id) continue;
+          found++;
+          await setDoc(doc(db,'matches',raw.id), lisaNormalizeMatch(raw), {merge:true});
+          written++;
+        }
+      }catch(e){ failedCollections++; console.warn('LISA-collectie mislukt:',name,e); }
+    }
+    const msg=`${written} wedstrijden geïmporteerd (${found} gevonden, ${skipped} niet-thuis overgeslagen${failedCollections?`, ${failedCollections} collecties mislukt`:''})`;
+    toast(msg,written>0?'ok':'err');
+    if(statusEl) statusEl.textContent=msg;
+    renderAdminSettings(document.getElementById('view-admin-settings')||document.getElementById('view-admin'));
+  }catch(e){
+    console.error(e);
+    const isCors = e instanceof TypeError; // 'Failed to fetch' in de browser is meestal een CORS- of netwerkblokkade
+    const msg = isCors
+      ? 'Import mislukt — waarschijnlijk blokkeert de MHV-website verzoeken vanaf dit domein (CORS). Gebruik dan de handmatige invoer hieronder.'
+      : 'Import mislukt: '+e.message;
+    toast(msg,'err');
+    if(statusEl) statusEl.textContent=msg;
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Wedstrijden importeren vanaf de MHV-website'; }
+  }
+};
+
 function matchSyncStatusText(){
   if(!allMatches.length) return 'Nog geen wedstrijden ingevoerd.';
   const last=Math.max(...allMatches.map(m=>m.updatedAt||0));
@@ -3098,9 +3209,10 @@ function renderAdminSettings(c){
     ${featureOn('matches')?`
     <div class="section-label">Wedstrijden</div>
     <div class="card" style="margin-bottom:16px"><div style="padding:16px">
-      <p style="font-size:13px;color:var(--text3);margin-bottom:4px;line-height:1.5">Handmatig ingevoerd — er is geen automatische koppeling met de KNHB. Deze wedstrijden verschijnen bij Rooster, Home en de idle-modus.</p>
-      <p style="font-size:11.5px;color:var(--text3);margin-bottom:14px">${escAnn(matchSyncStatusText())}</p>
-      <button class="btn btn-ghost btn-full" style="margin-bottom:12px" onclick="openMatchModal()">+ Wedstrijd toevoegen</button>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:4px;line-height:1.5">Deze wedstrijden verschijnen bij Rooster, Home en de idle-modus. Importeer ze vanaf de MHV-website, of voeg er zelf één toe.</p>
+      <p style="font-size:11.5px;color:var(--text3);margin-bottom:14px" id="lisaImportStatus">${escAnn(matchSyncStatusText())}</p>
+      <button class="btn btn-yellow btn-full" style="margin-bottom:8px" id="lisaImportBtn" onclick="importLisaMatches()">Wedstrijden importeren vanaf de MHV-website</button>
+      <button class="btn btn-ghost btn-full" style="margin-bottom:12px" onclick="openMatchModal()">+ Wedstrijd handmatig toevoegen</button>
       ${adminMatchesListHtml()}
     </div></div>`:''}
     <div class="section-label">Sluitchecklist</div>
