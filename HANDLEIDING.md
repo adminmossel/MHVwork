@@ -417,16 +417,21 @@ standaard uit (dev zet het aan bij Beheer → Instellingen → Functies tijdelij
 "Wedstrijden"). Er is verder niets in te stellen — geen sleutel, geen geheime gegevens, geen
 account.
 
-Zodra de functie aanstaat, ziet een beheerder of dev bij Beheer → Instellingen → Wedstrijden een
-knop **"Wedstrijden importeren vanaf de MHV-website"**. Die haalt bij het klikken de actuele
-thuiswedstrijden op en zet ze klaar in de app. Dit is bewust een knop en geen automatische,
-geplande synchronisatie: de MHV-website bleek verzoeken vanaf geautomatiseerde achtergrondtaken
-(zoals GitHub Actions) niet te vertrouwen, maar verzoeken vanuit een gewone browser — zoals die
-van de beheerder die de knop gebruikt — werken wél gewoon. Klik de knop daarom af en toe aan,
-bijvoorbeeld aan het begin van een nieuw seizoen of na een roosterwijziging.
+Dit gaat helaas niet met één druk op de knop: de MHV-website laat geen verzoeken vanaf andere
+websites toe (CORS), en blokkeert bovendien geautomatiseerde achtergrondtaken. Het enige dat
+betrouwbaar werkt, is het verzoek echt vanaf de MHV-website zelf laten gebeuren. Daarom werkt
+het bij Beheer → Instellingen → Wedstrijden in drie stapjes:
 
-Lukt het een keer niet (bijvoorbeeld een foutmelding over een geblokkeerd verzoek), dan blijft de
-handmatige invoer — net als bij elke andere wedstrijd — gewoon beschikbaar in hetzelfde scherm.
+1. Klik op **"Codeblokje kopiëren"**.
+2. Ga naar [meppelerhv.nl/wedstrijdschema](https://www.meppelerhv.nl/wedstrijdschema), open de
+   Developer Tools (F12, of rechtermuisknop → Inspecteren) → tabblad **Console**, plak het
+   codeblokje en druk op Enter. Na een paar seconden verschijnt een melding met het aantal
+   gevonden wedstrijden, en staat het resultaat al op je klembord.
+3. Ga terug naar MHVwork, plak het resultaat in het invoerveld, en klik op **Importeren**.
+
+Herhaal dit af en toe, bijvoorbeeld aan het begin van een nieuw seizoen of na een
+roosterwijziging bij MHV zelf. Lukt een stap niet, dan blijft de handmatige invoer — net als bij
+elke andere wedstrijd — gewoon beschikbaar in hetzelfde scherm.
 
 Dit is een openbare, niet-officieel-gedocumenteerde pagina van de website van MHV zelf — geen
 KNHB-token nodig, geen kosten. Precies daarom kan de vorm van de data ooit veranderen zonder
