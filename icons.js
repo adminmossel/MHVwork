@@ -26,6 +26,7 @@
     'mail': '<svg class="ic-svg" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 6.5L12 13l8.5-6.5"/></svg>',
     'galaxy': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 6.1L20 11l-6.1 1.9L12 19l-1.9-6.1L4 11l6.1-1.9z" stroke-linejoin="round"/></svg>',
     'pin': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M12 21s6-5.4 6-10.5a6 6 0 0 0-12 0C6 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></svg>',
+    'search': '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
     'party': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M5 19.5l2.7-7.8L16 15z" stroke-linejoin="round"/><circle cx="16.5" cy="5" r="1.1" fill="currentColor" stroke="none"/><circle cx="20" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12.5" cy="4" r="1.1" fill="currentColor" stroke="none"/><path d="M19.5 13.5l1.8 1.8" stroke-linecap="round"/></svg>',
     'mobile-down': '<svg class="ic-svg" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="16.5" rx="2"/><path d="M12 19v2.5M9.5 20.3l2.5 1.7 2.5-1.7"/></svg>',
     'siren': '<svg class="ic-svg" viewBox="0 0 24 24"><path d="M4 21l1.2-7a6.8 6.8 0 0 1 13.6 0l1.2 7z"/><path d="M12 3.5v2.3M6.5 6l1.4 1.6M17.5 6l-1.4 1.6" stroke-linecap="round"/><path d="M2.5 21h19"/></svg>',

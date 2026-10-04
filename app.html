@@ -22,7 +22,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
-  updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion, increment }
+  updateDoc, deleteDoc, deleteField, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getMessaging, getToken, isSupported as fcmIsSupported }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
@@ -76,7 +76,7 @@ async function registerPushToken(uid){
   }catch(e){ console.warn('FCM-token registreren mislukt (niet kritiek):',e.message); }
 }
 
-window._f = { auth, db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc,
+window._f = { auth, db, doc, getDoc, setDoc, deleteField, collection, query, where, getDocs, addDoc,
   updateDoc, deleteDoc, onSnapshot, orderBy, limit, Timestamp, serverTimestamp, writeBatch, arrayUnion, increment,
   signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail,
   EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TPL_INVITE, EMAILJS_TPL_NOTIF, EMAILJS_TPL_PAYMENT,
@@ -555,25 +555,34 @@ select.form-input option { background:var(--bg3); }
 .pill-tab.active { background:var(--bg2); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,0.4); }
 
 /* ── CALENDAR ─── */
-.cal-nav { display:flex; align-items:center; margin-bottom:14px; }
-.cal-nav h3 { flex:1; text-align:center; font-size:17px; font-weight:700; }
-.cal-arrow { width:32px; height:32px; border-radius:50%; background:var(--glass2); display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--text2); }
-.cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
-.cal-dn { text-align:center; font-size:10px; font-weight:700; color:var(--text3); padding:4px 0 8px; min-width:0; }
+#offlineBar{ position:sticky; top:0; z-index:40; padding:8px 16px; font-size:12.5px; font-weight:600; text-align:center; color:#1a1000; background:var(--mhv-yellow); animation:fadeSlide .2s ease; }
+#offlineBar.syncing{ background:var(--mhv-blue); color:#fff; }
+.cal-nav { display:flex; align-items:center; margin-bottom:16px; }
+.cal-nav h3 { flex:1; text-align:center; font-size:17px; font-weight:800; letter-spacing:.2px; }
+.cal-arrow { width:34px; height:34px; border-radius:50%; background:var(--glass2); display:flex; align-items:center; justify-content:center; font-size:17px; color:var(--text2); border:none; cursor:pointer; transition:transform .15s,background .15s; }
+.cal-arrow:active { transform:scale(.9); background:var(--bg3); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; animation:calFade .22s ease; }
+@keyframes calFade{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.cal-dn { text-align:center; font-size:10.5px; font-weight:800; color:var(--text3); padding:2px 0 10px; min-width:0; letter-spacing:.3px; text-transform:uppercase; }
+.cal-dn.weekend { color:var(--mhv-yellow); opacity:.75; }
 .cal-d {
-  aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; font-size:13px; font-weight:500;
-  cursor:pointer; position:relative; transition:background 0.15s; min-width:0;
+  aspect-ratio:1; border-radius:12px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-size:13.5px; font-weight:600; color:var(--text2);
+  cursor:pointer; position:relative; transition:background .15s,transform .1s,box-shadow .15s; min-width:0;
 }
-.cal-d:active { background:var(--bg3); }
-.cal-d.today { background:var(--mhv-yellow); color:#1a1000; font-weight:800; }
-.cal-d.selected:not(.today) { background:var(--bg3); outline:2px solid var(--mhv-yellow); }
-.cal-d.has-shift::after {
-  content:''; position:absolute; bottom:3px;
-  width:4px; height:4px; border-radius:50%; background:var(--mhv-blue);
-}
-.cal-d.today.has-shift::after { background:rgba(29,63,187,0.6); }
+.cal-d:active { transform:scale(.92); }
+.cal-d:not(.empty):hover { background:var(--bg3); }
+.cal-d.weekend:not(.today):not(.selected) { color:var(--text1); }
+.cal-d.today { background:linear-gradient(145deg,var(--mhv-yellow),#e0b400); color:#1a1000; font-weight:800; box-shadow:0 3px 10px rgba(245,200,0,.35); }
+.cal-d.selected:not(.today) { background:var(--bg3); box-shadow:inset 0 0 0 2px var(--mhv-yellow); }
+.cal-d .cal-dots { position:absolute; bottom:5px; display:flex; gap:2.5px; }
+.cal-d .cal-dot { width:4.5px; height:4.5px; border-radius:50%; }
+.cal-d .cal-dot.shift { background:var(--mhv-blue); }
+.cal-d .cal-dot.match { background:var(--mhv-yellow); box-shadow:0 0 0 1px rgba(0,0,0,.25); }
+.cal-d.today .cal-dot.shift { background:rgba(26,16,0,.55); }
+.cal-d.today .cal-dot.match { background:rgba(26,16,0,.35); box-shadow:none; }
 .cal-d.blocked:not(.today) { color:var(--red); }
+.cal-d.blocked:not(.today)::before { content:''; position:absolute; inset:3px; border-radius:9px; border:1.5px dashed rgba(255,69,58,.4); }
 .cal-d.empty { cursor:default; }
 
 /* ── AVAILABILITY ROW ─── */
@@ -877,6 +886,8 @@ select.form-input option { background:var(--bg3); }
     </button>
   </div>
 
+  <div id="offlineBar" style="display:none"></div>
+
   <!-- SCROLL AREA -->
   <div id="scroll">
 
@@ -1073,11 +1084,13 @@ window.addEventListener('mhv:ready', async ()=>{
     if(Notification.permission==='granted') { try{ registerPushToken(U.uid); }catch(e){} }
     try { subChat(); subChatReads(); } catch(e){}
     if(U.role!=='software'){ try { subShifts(); } catch(e){} }
-    try { subMatches(); subChecklist(); } catch(e){}
+    try { subMatches(); subChecklist(); subMatchImportLog(); } catch(e){}
     try { subNotifs(); } catch(e){}
     try { subDMs(); } catch(e){}
     if(U.role!=='software'){ try { subAvail(); } catch(e){} }
     try { render(U.role==='software'?'devacc':'home'); } catch(e){ console.warn('render:',e); }
+    try { setTimeout(maybeAskTeam,400); } catch(e){}
+    try { updateOfflineBanner(); } catch(e){}
     // Ververst Home elke minuut zolang je erop staat — puur voor de live voortgangsbalk/
     // countdown tijdens een lopende dienst, geen extra netwerkverkeer (leest gewoon opnieuw
     // uit het al geladen allShifts).
@@ -1477,9 +1490,44 @@ async function ensureAllPublicProfiles(){
 // Een wedstrijd duurt 4 x 17,5 min + pauzes van 2, 2 en 5 min = 79 min. De bron levert geen
 // live-status, dus "bezig" is AFGELEID uit aanvangstijd + deze duur en wordt ook zo gelabeld.
 const MATCH_MIN=79;
+let allMatchImportLog=[]; let unsubMatchImportLog;
+function subMatchImportLog(){
+  if(U.role!=='software') return;
+  const{db,collection,onSnapshot,orderBy,query,limit}=window._f;
+  const q=query(collection(db,'matchImportLog'),orderBy('at','desc'),limit(20));
+  unsubMatchImportLog=onSnapshot(q,s=>{ allMatchImportLog=s.docs.map(d=>({id:d.id,...d.data()})); try{rerender();}catch(e){} });
+}
 let allMatches=[], unsubMatches, closingChecklist={items:[]}, unsubChecklist;
 let rosterView=(function(){ try{ return localStorage.getItem('mhv_roster_view')||'both'; }catch(e){ return 'both'; } })();
 
+function matchImportLogHtml(){
+  if(U.role!=='software') return '';
+  return `<div class="section-label" style="margin-top:20px">Importlog <span style="font-weight:400;color:var(--text3);font-size:11px">(alleen zichtbaar voor dev)</span></div>
+    ${!allMatchImportLog.length?'<p style="font-size:13px;color:var(--text3)">Nog geen imports gelogd.</p>':
+    `<div style="background:var(--bg2);border-radius:12px;overflow:hidden">${allMatchImportLog.map(l=>{
+      const t=l.at&&l.at.toDate?l.at.toDate():null;
+      return `<div style="padding:12px 14px;border-bottom:1px solid var(--separator)">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <div style="font-size:13px;min-width:0"><b>${escAnn(l.byName||'onbekend')}</b><br><span style="color:var(--text3);font-size:11.5px">${t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span></div>
+          ${l.undone?'<span class="badge badge-gray" style="font-size:10px;flex-shrink:0">Ongedaan gemaakt</span>':`<button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="undoMatchImport('${l.id}')">Ongedaan maken</button>`}
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">${l.createdCount||0} nieuw, ${l.updatedCount||0} bijgewerkt${l.skippedCount?', '+l.skippedCount+' overgeslagen':''}</div>
+      </div>`;
+    }).join('')}</div>`}`;
+}
+window.undoMatchImport=async function(logId){
+  const entry=allMatchImportLog.find(x=>x.id===logId); if(!entry)return;
+  const ok=await confirm2('Import ongedaan maken','Wedstrijden uit deze import worden teruggezet naar hun vorige staat, of verwijderd als ze nieuw waren.','Ongedaan maken','btn-red'); if(!ok)return;
+  try{
+    const{db,doc,setDoc,deleteDoc,updateDoc}=window._f;
+    for(const it of (entry.items||[])){
+      if(it.prev) await setDoc(doc(db,'matches',it.key),it.prev);
+      else await deleteDoc(doc(db,'matches',it.key));
+    }
+    await updateDoc(doc(db,'matchImportLog',logId),{undone:true,undoneAt:Date.now(),undoneBy:U.uid,undoneByName:U.name});
+    toast('Import ongedaan gemaakt','ok');
+  }catch(e){ toast('Mislukt: '+(e.message||''),'err'); }
+};
 function subMatches(){
   const {db,collection,onSnapshot,orderBy,query,where}=window._f;
   const from=Date.now()-14*24*3600*1000;
@@ -1498,6 +1546,8 @@ function localMs(k,hhmm){
   return new Date(y,m-1,d,h,mi||0,0,0).getTime();
 }
 function hmFromMs(ms){ return new Date(ms).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+function _slug(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+function matchKey(date,home,away){ return `${date}__${_slug(home)}__${_slug(away)}`; }
 function matchEndMs(m){ return m.startMs+MATCH_MIN*60000; }
 function matchIsOff(m){ return m.status==='canceled'||m.status==='postponed'||m.status==='discontinued'; }
 function matchPhase(m,now){
@@ -1711,18 +1761,33 @@ window.importLisaFromPaste=async function(){
   if(!arr.length){ toast('Niets om te importeren (lege lijst)','err'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Bezig met importeren…'; }
   try{
-    const{db,doc,setDoc}=window._f;
-    let written=0, skipped=0;
+    const{db,doc,setDoc,deleteDoc}=window._f;
+    let written=0, skipped=0, created=0, updated=0, merged=0;
+    const logItems=[];
     for(const raw of arr){
-      if(!raw||!raw.lisaId||!raw.date){ skipped++; continue; }
+      if(!raw||!raw.date||!raw.homeTeam||!raw.awayTeam){ skipped++; continue; }
+      const key=matchKey(raw.date,raw.homeTeam,raw.awayTeam);
+      const existed=allMatches.some(m=>m.id===key);
+      // Opschonen: een eerdere import (vóór deze update) sloeg dit mogelijk op onder een ander,
+      // willekeurig LISA-record-id op — die oude losse kopie verwijderen we, zodat hij niet als
+      // dubbele wedstrijd blijft staan naast de nieuwe, stabiele sleutel.
+      const oldDupes=allMatches.filter(m=>m.id!==key && m.date===raw.date && matchKey(m.date,m.homeTeam,m.awayTeam)===key);
+      for(const d of oldDupes){ try{ await deleteDoc(doc(db,'matches',d.id)); merged++; }catch(e){} }
+      const prevObj=allMatches.find(m=>m.id===key);
+      const prev=prevObj?Object.assign({},prevObj):null; if(prev) delete prev.id;
       const payload=Object.assign({},raw,{
         startMs:localMs(raw.date,raw.startTime||'00:00'),
         updatedAt:Date.now(), updatedBy:(U?U.uid:'lisa-import'), updatedByName:(U?U.name:null),
       });
-      await setDoc(doc(db,'matches',raw.lisaId),payload,{merge:true});
-      written++;
+      await setDoc(doc(db,'matches',key),payload,{merge:true});
+      written++; if(existed) updated++; else created++;
+      logItems.push({key,date:raw.date,homeTeam:raw.homeTeam,awayTeam:raw.awayTeam,prev});
     }
-    const msg=`${written} wedstrijden geïmporteerd${skipped?`, ${skipped} overgeslagen (onvolledig)`:''}.`;
+    try{
+      const{collection,addDoc,serverTimestamp}=window._f;
+      await addDoc(collection(db,'matchImportLog'),{by:U?U.uid:'lisa-import',byName:U?U.name:'automatische sync',at:serverTimestamp(),createdCount:created,updatedCount:updated,skippedCount:skipped,items:logItems});
+    }catch(e){}
+    const msg=`${written} wedstrijden geïmporteerd (${created} nieuw, ${updated} bijgewerkt)${merged?`, ${merged} oude dubbele kopie(ën) opgeschoond`:''}${skipped?`, ${skipped} overgeslagen (onvolledig)`:''}.`;
     toast(msg,'ok');
     if(statusEl) statusEl.textContent=msg;
     if(ta) ta.value='';
@@ -1769,20 +1834,24 @@ function shiftAdviceHtml(){
   if(!featureOn('matches')||restricted('editShift')) return '';
   const items=shiftAdviceItems();
   if(!items.length) return '';
-  return `<div class="section-label" style="margin-top:0">Dienstadvies</div>
-    <div class="card" style="margin-bottom:16px">${items.map(a=>`<div class="card-row" style="align-items:center">
+  const open=window._adviceOpen;
+  return `<div class="card" style="margin-bottom:16px;overflow:hidden">
+    <button onclick="window._adviceOpen=!window._adviceOpen;refreshMatchesUI()" style="width:100%;display:flex;align-items:center;gap:10px;padding:14px 16px;background:none;border:none;cursor:pointer;text-align:left">
+      <span style="font-size:14px;font-weight:700;flex:1">Dienstadvies <span class="badge badge-yellow" style="font-size:10px;vertical-align:middle">${items.length}</span></span>
+      <span style="color:var(--text3);transition:transform .2s;transform:rotate(${open?'180':'0'}deg)">▾</span>
+    </button>
+    <div style="display:${open?'block':'none'};padding:0 16px 14px">${items.map(a=>`<div class="card-row" style="align-items:center">
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:600">${fmtDate(new Date(a.k.split('-')[0],a.k.split('-')[1]-1,a.k.split('-')[2]))} · ${a.start}–${a.end}</div>
         <div style="font-size:12px;color:var(--text3)">${a.ms.map(m=>escAnn(m.startTime+' '+(m.homeTeam||'?')+' – '+(m.awayTeam||'?'))).join('<br>')}</div>
         <div style="font-size:12px;color:var(--mhv-yellow);margin-top:3px">Advies: ${a.need} ${a.need===1?'persoon':'personen'} (${a.have} ingepland) · ${escAnn(a.reason)}</div>
       </div>
       <button class="btn btn-yellow btn-sm" onclick="openAdviceShift('${a.k}')">Maak dienst aan</button>
-    </div>`).join('')}</div>`;
+    </div>`).join('')}</div>
+  </div>`;
 }
 window.openAdviceShift=function(k){ const a=adviceForDay(k); if(a) openAddShift({date:k,start:a.start,end:a.end,note:a.note,need:a.need,reason:a.reason}); };
-function refreshMatchesUI(){
-  try{ if(U.role==='software') renderDevAcc(); else renderAdminTab(); }catch(e){}
-}
+function refreshMatchesUI(){ try{ rerender(); }catch(e){} }
 function matchSyncStatusText(){
   if(!allMatches.length) return 'Nog geen wedstrijden ingevoerd.';
   const lastM=allMatches.reduce((a,m)=>(m.updatedAt||0)>(a.updatedAt||0)?m:a,allMatches[0]);
@@ -1799,7 +1868,8 @@ function matchSyncStatusText(){
 function adminMatchesListHtml(){
   const ms=[...allMatches].sort((a,b)=>b.startMs-a.startMs);
   if(!ms.length) return '<p style="font-size:13px;color:var(--text3)">Nog geen wedstrijden.</p>';
-  return ms.map(m=>`<div class="card-row" style="align-items:center">
+  const open=window._matchesListOpen;
+  const rows=ms.map(m=>`<div class="card-row" style="align-items:center">
     <div style="flex:1;min-width:0">
       <div style="font-size:14px;font-weight:600">${escAnn(m.homeTeam||'?')} – ${escAnn(m.awayTeam||'?')}${m.source==='lisa'?' <span class="badge badge-gray" style="font-size:9px;vertical-align:middle">auto</span>':''}</div>
       <div style="font-size:12px;color:var(--text3)">${fmtDate(m.date)} · ${escAnn(m.startTime||'tijd volgt')}${matchScoreText(m)?' · '+matchScoreText(m):''}${matchIsOff(m)?' · '+(m.status==='canceled'?'afgelast':m.status==='postponed'?'uitgesteld':'gestaakt'):''}</div>
@@ -1807,6 +1877,8 @@ function adminMatchesListHtml(){
     <button class="btn btn-ghost btn-sm" onclick="openMatchModal('${m.id}')"><span class="ic" data-icon="edit"></span></button>
     <button class="btn btn-ghost btn-sm" onclick="deleteMatch('${m.id}')"><span class="ic" data-icon="trash"></span></button>
   </div>`).join('');
+  return `<button class="btn btn-ghost btn-full" style="margin-bottom:${open?'8px':'0'}" onclick="window._matchesListOpen=!window._matchesListOpen;refreshMatchesUI()">${open?'Lijst inklappen':'Bekijk alle wedstrijden ('+ms.length+')'} <span style="transition:transform .2s;display:inline-block;transform:rotate(${open?'180':'0'}deg)">▾</span></button>
+    ${open?`<div style="background:var(--bg2);border-radius:12px;overflow:hidden">${rows}</div>`:''}`;
 }
 window.openMatchModal=function(id){
   const m=id?allMatches.find(x=>x.id===id):null;
@@ -1853,10 +1925,14 @@ window.saveMatch=async function(id){
     if(isNaN(payload.homeScore)||isNaN(payload.awayScore)){ toast('Vul de uitslag in, of kies een andere status','err'); return; }
   }
   try{
-    const{db,doc,collection,addDoc,setDoc}=window._f;
-    if(id) await setDoc(doc(db,'matches',id),payload,{merge:true});
-    else await addDoc(collection(db,'matches'),payload);
-    closeModal(); toast('Wedstrijd opgeslagen','ok');
+    const{db,doc,setDoc,deleteDoc}=window._f;
+    const key=id||matchKey(date,home,away);
+    if(!id){
+      const oldDupes=allMatches.filter(m=>m.id!==key && matchKey(m.date,m.homeTeam,m.awayTeam)===key);
+      for(const d of oldDupes){ try{ await deleteDoc(doc(db,'matches',d.id)); }catch(e){} }
+    }
+    await setDoc(doc(db,'matches',key),payload,{merge:true});
+    closeModal(); toast(id?'Wedstrijd opgeslagen':(allMatches.some(m=>m.id===key)?'Bestaande wedstrijd bijgewerkt':'Wedstrijd opgeslagen'),'ok');
   }catch(e){ toast('Opslaan mislukt','err'); }
 };
 window.deleteMatch=async function(id,fromModal){
@@ -2012,6 +2088,109 @@ async function applyApodBackground(){
 }
 
 // Afbeelding verkleinen naar een JPEG-dataURL (voor chat/DM/achtergrond) — houdt Firestore klein.
+// ═══ Eigen team — nodig om bij het inroosteren te kunnen waarschuwen voor een eigen wedstrijd ═══
+function knownTeamNames(){ return [...new Set(allMatches.map(m=>m.homeTeam).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl')); }
+function teamSelectOptionsHtml(current){
+  const names=knownTeamNames();
+  const opts=['<option value="">— Kies je team —</option>']
+    .concat(names.map(n=>`<option value="${escAnn(n)}" ${current===n?'selected':''}>${escAnn(n)}</option>`))
+    .concat([`<option value="__none__" ${current===''?'selected':''}>Ik speel niet bij MHV / geen team</option>`,
+             `<option value="__other__" ${(current&&!names.includes(current))?'selected':''}>Anders, namelijk…</option>`]);
+  return opts.join('');
+}
+function maybeAskTeam(){
+  if(U.role==='software') return; // dev heeft geen rooster
+  if(U.team!==undefined && U.team!==null) return; // al eerder gekozen (ook '' = bewust geen team)
+  modal(`<div class="modal-handle"></div>
+    <div class="modal-title">Bij welk team speel je?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6;margin:-6px 0 14px">Zo weet de app wanneer je zelf een thuiswedstrijd hebt en kan die je waarschuwen als een dienst daar te dicht op zit. Speel je niet bij MHV, kies dan "geen team".</p>
+    <div class="form-section"><label class="form-label">Team</label>
+      <select class="form-input" id="teamSel" style="padding:10px 12px" onchange="document.getElementById('teamOtherWrap').style.display=this.value==='__other__'?'block':'none'">${teamSelectOptionsHtml(null)}</select>
+    </div>
+    <div class="form-section" id="teamOtherWrap" style="display:none"><label class="form-label">Teamnaam</label><input type="text" class="form-input" id="teamOther" placeholder="Bv. MHV 1931 H1"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveMyTeam()">Opslaan</button>`,{dismissible:false});
+}
+window.saveMyTeam=async function(){
+  const sel=$('teamSel')?.value;
+  let team;
+  if(sel==='__none__') team='';
+  else if(sel==='__other__'){ team=($('teamOther')?.value||'').trim(); if(!team){ toast('Vul je teamnaam in','err'); return; } }
+  else if(sel){ team=sel; }
+  else { toast('Kies een optie','err'); return; }
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'users',U.uid),{team});
+    U.team=team; closeModal(); toast('Opgeslagen','ok'); try{rerender();}catch(e){}
+  }catch(e){ toast('Opslaan mislukt','err'); }
+};
+window.openChangeTeam=function(){
+  modal(`<div class="modal-handle"></div><div class="modal-title">Team wijzigen</div>
+    <div class="form-section"><label class="form-label">Team</label>
+      <select class="form-input" id="teamSel" style="padding:10px 12px" onchange="document.getElementById('teamOtherWrap').style.display=this.value==='__other__'?'block':'none'">${teamSelectOptionsHtml(U.team)}</select>
+    </div>
+    <div class="form-section" id="teamOtherWrap" style="display:${(U.team&&!knownTeamNames().includes(U.team))?'block':'none'}"><label class="form-label">Teamnaam</label><input type="text" class="form-input" id="teamOther" value="${(U.team&&!knownTeamNames().includes(U.team))?escAnn(U.team):''}" placeholder="Bv. MHV 1931 H1"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveMyTeam()">Opslaan</button>`);
+};
+// Wedstrijd(en) van een gebruiker op een dag, en tot hoe laat hij/zij vermoedelijk kan werken
+// (= aanvangstijd van de wedstrijd, exclusief reistijd/verzameltijd — dat weten wij hier niet).
+function userMatchOnDay(uid,k){
+  const u=allUsers.find(x=>x.uid===uid)||(uid===U.uid?U:null);
+  if(!u||!u.team) return null;
+  return matchesOnDay(k).find(m=>m.homeTeam===u.team && !matchIsOff(m) && m.startTime) || null;
+}
+function teamWarningLine(uid,k){
+  const m=userMatchOnDay(uid,k);
+  if(!m) return '';
+  return `<span class="ic" data-icon="warning"></span> Heeft zelf een wedstrijd om ${m.startTime} — waarschijnlijk tot dat tijdstip beschikbaar (excl. reis-/verzameltijd). Dit komt niet 1-op-1 overeen met hoe hij/zij moet verzamelen — check dit zelf in de Lisa-app.`;
+}
+// ═══ Offline-indicator + later-alsnog-versturen (groepschat & privéberichten) ═══
+function pendingOutboxCount(){
+  return (window._pendingChat||[]).length + Object.values(window._pendingDM||{}).reduce((n,a)=>n+a.length,0);
+}
+function updateOfflineBanner(){
+  const el=document.getElementById('offlineBar'); if(!el) return;
+  const n=pendingOutboxCount();
+  if(!navigator.onLine){
+    el.className=''; el.style.display='block';
+    el.textContent='Geen internetverbinding'+(n?` — ${n} bericht${n===1?'':'en'} ${n===1?'wacht':'wachten'} tot je weer bereik hebt`:'');
+  } else if(n>0){
+    el.className='syncing'; el.style.display='block';
+    el.textContent=`Verbinding terug — ${n} bericht${n===1?'':'en'} versturen…`;
+  } else {
+    el.style.display='none';
+  }
+}
+let _flushingOutbox=false;
+async function flushOutbox(){
+  if(!navigator.onLine||_flushingOutbox) return;
+  if(!pendingOutboxCount()) return;
+  _flushingOutbox=true;
+  updateOfflineBanner();
+  try{
+    while(window._pendingChat&&window._pendingChat.length&&navigator.onLine){
+      const it=window._pendingChat[0];
+      try{ await _commitChatMessage(it.text,it.imgData,it.mentionUids); window._pendingChat.shift(); _renderChatMsgs(); }
+      catch(e){ break; }
+    }
+    for(const tid of Object.keys(window._pendingDM||{})){
+      while(window._pendingDM[tid]&&window._pendingDM[tid].length&&navigator.onLine){
+        const it=window._pendingDM[tid][0];
+        try{
+          await _commitDM(it.otherUid,it.text,it.file);
+          window._pendingDM[tid].shift();
+          if(activeDMThread===tid){ const t=allDMs.find(x=>x.id===tid); if(t)_renderDMMessages(t); }
+        }catch(e){ break; }
+      }
+    }
+  } finally {
+    _flushingOutbox=false;
+    updateOfflineBanner();
+    if(pendingOutboxCount()===0 && navigator.onLine){} // stil, banner verdwijnt vanzelf
+  }
+}
+window.addEventListener('online',()=>{ updateOfflineBanner(); flushOutbox(); });
+window.addEventListener('offline',updateOfflineBanner);
+setInterval(flushOutbox,8000); // vangnet: het 'online'-event is niet overal even betrouwbaar (vooral PWA/mobiel)
 function compressImageFile(file,maxDim,q){
   return new Promise((res,rej)=>{
     const fr=new FileReader();
@@ -3076,6 +3255,10 @@ function renderEmployeeRoster(c){
         <button class="cal-arrow" onclick="calNav(1)">›</button>
       </div>
       <div class="cal-grid" id="calGrid"></div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--separator);font-size:11px;color:var(--text3)">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--mhv-blue);display:inline-block"></span> Dienst</span>
+        ${featureOn('matches')?'<span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--mhv-yellow);display:inline-block"></span> Thuiswedstrijd</span>':''}
+      </div>
     </div>
     <div id="calDayTitle" class="section-label" style="margin-top:4px"></div>
     <div id="calDayList"></div>
@@ -3091,7 +3274,7 @@ function renderCal(){
   const today=nowKey();
   const first=new Date(calY,calM,1).getDay();
   const days=new Date(calY,calM+1,0).getDate();
-  let html=DN.map(d=>`<div class="cal-dn">${d}</div>`).join('');
+  let html=DN.map((d,i)=>`<div class="cal-dn${(i===0||i===6)?' weekend':''}">${d}</div>`).join('');
   for(let i=0;i<first;i++)html+=`<div class="cal-d empty"></div>`;
   for(let d=1;d<=days;d++){
     const dt=new Date(calY,calM,d);
@@ -3103,12 +3286,15 @@ function renderCal(){
       return rosterTab==='all'?true:s.workers?.includes(U.uid);
     });
     const isBlocked=allAvail.some(a=>dKey(a.date)===k&&a.uid===U.uid);
+    const hasMatch=featureOn('matches')&&allMatches.some(m=>m.date===k&&!matchIsOff(m));
+    const dow=dt.getDay();
     let cls='cal-d';
     if(isTod)cls+=' today';
     if(isSel&&!isTod)cls+=' selected';
-    if(hasShift)cls+=' has-shift';
     if(isBlocked&&!isTod)cls+=' blocked';
-    html+=`<div class="${cls}" onclick="selCalDay('${k}')">${d}</div>`;
+    if(dow===0||dow===6)cls+=' weekend';
+    const dots=(hasShift||hasMatch)?`<div class="cal-dots">${hasShift?'<span class="cal-dot shift"></span>':''}${hasMatch?'<span class="cal-dot match"></span>':''}</div>`:'';
+    html+=`<div class="${cls}" onclick="selCalDay('${k}')"><span>${d}</span>${dots}</div>`;
   }
   $('calGrid').innerHTML=html;
   if(selDay)renderDayShifts(selDay);
@@ -3351,6 +3537,7 @@ function matchesPanelHtml(){
       </div>
       <button class="btn btn-ghost btn-full" style="margin-bottom:12px" onclick="openMatchModal()">+ Wedstrijd handmatig toevoegen</button>
       ${adminMatchesListHtml()}
+      ${matchImportLogHtml()}
     </div></div>`;
 }
 function renderAdminSettings(c){
@@ -3708,12 +3895,14 @@ function buildWorkerList(dayKey, preChecked){
     // beschikbaar staan — anders zou je ze bij bewerken per ongeluk kwijtraken. Nieuw
     // toevoegen van iemand die niet beschikbaar is, is en blijft geblokkeerd.
     const isBlocked=bl.includes(u.uid) && !isPreChecked;
+    const teamWarn=teamWarningLine(u.uid,dayKey);
     return `<label class="worker-check ${isBlocked?'blocked':''}">
       <input type="checkbox" value="${u.uid}" ${isPreChecked?'checked':''} ${isBlocked?'disabled':''}>
       <div class="avatar" style="${isBlocked?'background:var(--red);opacity:0.6':''}">${userAvatarHtml(u.uid)}</div>
       <div class="worker-check-info">
         <div class="worker-check-name">${u.name}</div>
         <div class="worker-check-wage">${isBlocked?'<span class="ic" data-icon="forbidden"></span> Niet beschikbaar':(bl.includes(u.uid)?'<span class="ic" data-icon="warning"></span> Was niet beschikbaar':fmtMoney(u.wage||0)+'/uur')}</div>
+        ${teamWarn?`<div style="font-size:11.5px;color:var(--orange);margin-top:3px;line-height:1.4">${teamWarn}</div>`:''}
       </div>
     </label>`;
   }).join('');
@@ -4129,7 +4318,7 @@ function subDMs(){
     if(av&&av.classList.contains('active')) renderMeldingen();
     if(activeDMThread){
       const t=allDMs.find(x=>x.id===activeDMThread);
-      if(t) _renderDMMessages(t);
+      if(t){ _renderDMMessages(t); updateDmTypingUI(t); }
     }
     updateNotifDot();
   });
@@ -4247,6 +4436,7 @@ async function openDMThread(otherUid,otherName){
 }
 function renderDmThreadPage(){
   const v=document.getElementById('view-dmthread'); if(!v)return;
+  clearTimeout(_dmTypingTimer);
   const otherUid=_activeDMOtherUid, otherName=_activeDMOtherName||'…';
   const otherUser=allUsers.find(x=>x.uid===otherUid);
   const showLogRequestBtn = U.role==='admin' && otherUser && otherUser.role==='software';
@@ -4262,11 +4452,12 @@ function renderDmThreadPage(){
     <div id="dmMsgs" class="chat-msgs" style="flex:1;overflow-y:auto;padding:14px 12px">
       <p style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">Laden…</p>
     </div>
+    <div id="dmTypingRow" style="display:none;padding:0 16px 2px;font-size:12px;color:var(--text3);font-style:italic">aan het typen…</div>
     <div class="chat-input-wrap">
       <div class="chat-input-row">
         <button class="btn" style="width:36px;height:36px;padding:0;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="pickDmFile()" title="Bijlage of foto (max 700 KB)"><span class="ic" data-icon="paperclip"></span></button>
         <input type="file" id="dmFileInput" style="display:none" onchange="handleDmFile(this.files[0],this)">
-        <input type="text" class="form-input" id="dmInput" placeholder="Typ een bericht…" style="flex:1" onkeydown="if(event.key==='Enter'){sendDM('${otherUid}','${(otherName||'').replace(/'/g,"\\'")}')}">
+        <input type="text" class="form-input" id="dmInput" placeholder="Typ een bericht…" style="flex:1" oninput="dmTypingHandler('${otherUid}')" onkeydown="if(event.key==='Enter'){sendDM('${otherUid}','${(otherName||'').replace(/'/g,"\\'")}')}">
         <button class="chat-send" onclick="sendDM('${otherUid}','${(otherName||'').replace(/'/g,"\\'")}')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -4302,10 +4493,16 @@ function _renderDMMessages(t){
     }else{
       html+=`<div style="align-self:${mine?'flex-end':'flex-start'};max-width:80%;margin-top:${sameGroup?'2px':'10px'}">
         <div style="background:${mine?'var(--mhv-blue)':'var(--bg3)'};color:${mine?'#fff':'var(--text1)'};padding:9px 13px;border-radius:16px;${mine?'border-bottom-right-radius:5px':'border-bottom-left-radius:5px'};font-size:14.5px;line-height:1.4">${(m.text||'').replace(/</g,'&lt;')}${m.file?dmFileHtml(m.file):''}</div>
-        ${time?`<div style="font-size:10px;color:var(--text3);margin-top:3px;text-align:${mine?'right':'left'};padding:0 4px">${time}</div>`:''}
+        ${time?`<div style="font-size:10px;color:var(--text3);margin-top:3px;text-align:${mine?'right':'left'};padding:0 4px">${time}${(mine&&i===msgs.length-1&&(t.readBy||[]).includes(t.participants.find(p=>p!==U.uid)))?' · Gezien':''}</div>`:''}
       </div>`;
       lastFrom=m.from; lastTs=m.ts||0;
     }
+  });
+  (window._pendingDM[t.id]||[]).forEach(p=>{
+    html+=`<div style="align-self:flex-end;max-width:80%;margin-top:6px;opacity:.55">
+      <div style="background:var(--mhv-blue);color:#fff;padding:9px 13px;border-radius:16px;border-bottom-right-radius:5px;font-size:14.5px;line-height:1.4">${(p.text||'').replace(/</g,'&lt;')}${p.file?'<div style="margin-top:4px;font-size:12.5px">'+escAnn(p.file.name)+'</div>':''}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;text-align:right;padding:0 4px"><span class="ic" data-icon="hourglass"></span> wordt verzonden zodra je weer bereik hebt…</div>
+    </div>`;
   });
   c.innerHTML=html;
   c.scrollTop=c.scrollHeight;
@@ -4429,32 +4626,52 @@ function showDmPending(){
   el.innerHTML=f?`<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:10px;padding:6px 10px;margin-bottom:6px;font-size:12.5px"><span class="ic" data-icon="paperclip"></span><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escAnn(f.name)} · ${fmtFileSize(f.size)}</span><button onclick="clearDmPending()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px">✕</button></div>`:'';
 }
 window.clearDmPending=function(){ window._dmPending=null; showDmPending(); };
+window._pendingDM=window._pendingDM||{};
+async function _commitDM(otherUid,text,file){
+  const id=dmThreadId(U.uid,otherUid);
+  const{db,doc,updateDoc,addDoc,collection,serverTimestamp}=window._f;
+  let fileRef=null;
+  if(file){
+    const fr=await addDoc(collection(db,'dmFiles'),{threadId:id,participants:[U.uid,otherUid],from:U.uid,name:file.name,type:file.type,size:file.size,dataUrl:file.dataUrl,createdAt:serverTimestamp()});
+    fileRef={id:fr.id,name:file.name,type:file.type,size:file.size};
+    window._dmFileCache[fr.id]=file.dataUrl;
+  }
+  const msg={from:U.uid,text,ts:Date.now()}; if(fileRef) msg.file=fileRef;
+  await updateDoc(doc(db,'dms',id),{
+    messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),msg],
+    lastText:text||('Bijlage: '+(file?file.name:'')), lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
+  });
+  // Privéberichten zijn altijd ALLEEN een pushmelding — nooit een e-mail, geen keuze meer.
+  await notifyUsers([otherUid],'Bericht van '+U.name,text||('Bijlage: '+(file?file.name:'')),text||('Bijlage: '+(file?file.name:'')),{type:'message',email:false});
+}
 async function sendDM(otherUid,otherName){
   const inp=document.getElementById('dmInput'); if(!inp)return;
   const text=inp.value.trim(); const file=window._dmPending||null;
   if(!text&&!file)return;
   inp.value='';
   const id=dmThreadId(U.uid,otherUid);
-  try{
-    const{db,doc,updateDoc,addDoc,collection,serverTimestamp}=window._f;
-    let fileRef=null;
-    if(file){
-      const fr=await addDoc(collection(db,'dmFiles'),{threadId:id,participants:[U.uid,otherUid],from:U.uid,name:file.name,type:file.type,size:file.size,dataUrl:file.dataUrl,createdAt:serverTimestamp()});
-      fileRef={id:fr.id,name:file.name,type:file.type,size:file.size};
-      window._dmFileCache[fr.id]=file.dataUrl;
-    }
-    const msg={from:U.uid,text,ts:Date.now()}; if(fileRef) msg.file=fileRef;
-    await updateDoc(doc(db,'dms',id),{
-      messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),msg],
-      lastText:text||('Bijlage: '+file.name), lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
-    });
+  clearTimeout(_dmTypingTimer); setTypingState(id,false);
+  if(!navigator.onLine){
+    (window._pendingDM[id]=window._pendingDM[id]||[]).push({otherUid,text,file,ts:Date.now()});
     if(file) clearDmPending();
-    // Privéberichten zijn altijd ALLEEN een pushmelding — nooit een e-mail, geen keuze meer.
-    await notifyUsers([otherUid],'Bericht van '+U.name,text||('Bijlage: '+file.name),text||('Bijlage: '+file.name),{type:'message',email:false});
+    const t=allDMs.find(x=>x.id===id); if(t) _renderDMMessages(t);
+    updateOfflineBanner();
+    return;
+  }
+  try{
+    await _commitDM(otherUid,text,file);
+    if(file) clearDmPending();
   }catch(e){
-    console.error('sendDM FOUT:',e);
-    inp.value=text; // teruggeven zodat het niet kwijt is
-    toast('Versturen mislukt: '+(e.message||'onbekende fout'),'err');
+    if(!navigator.onLine){
+      (window._pendingDM[id]=window._pendingDM[id]||[]).push({otherUid,text,file,ts:Date.now()});
+      if(file) clearDmPending();
+      const t=allDMs.find(x=>x.id===id); if(t) _renderDMMessages(t);
+      updateOfflineBanner();
+    } else {
+      console.error('sendDM FOUT:',e);
+      inp.value=text; // teruggeven zodat het niet kwijt is
+      toast('Versturen mislukt: '+(e.message||'onbekende fout'),'err');
+    }
   }
 }
 async function getDmFile(fid){
@@ -4485,6 +4702,22 @@ window.openDmImage=async function(fid){
   const d=await getDmFile(fid); if(!d) return;
   modal(`<div class="modal-handle"></div><img src="${d}" style="width:100%;border-radius:12px;display:block"><button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="downloadDmFile('${fid}','foto.jpg')">Opslaan</button>`);
 };
+let _dmTypingTimer=null;
+window.dmTypingHandler=function(otherUid){
+  const id=dmThreadId(U.uid,otherUid);
+  clearTimeout(_dmTypingTimer);
+  setTypingState(id,true);
+  _dmTypingTimer=setTimeout(()=>setTypingState(id,false),3000);
+};
+async function setTypingState(id,on){
+  try{ const{db,doc,updateDoc}=window._f; await updateDoc(doc(db,'dms',id),{['typing.'+U.uid]:on?Date.now():0}); }catch(e){}
+}
+function updateDmTypingUI(t){
+  const row=$('dmTypingRow'); if(!row||!activeDMThread) return;
+  const otherUid=_activeDMOtherUid;
+  const ts=t&&t.typing?t.typing[otherUid]:0;
+  row.style.display=(ts && Date.now()-ts<4000)?'block':'none';
+}
 async function markDMRead(id){
   const{db,doc,updateDoc,arrayUnion}=window._f;
   try{ await updateDoc(doc(db,'dms',id),{readBy:arrayUnion(U.uid)}); }catch(e){}
@@ -4774,6 +5007,10 @@ function renderProfile(){
         <div class="card-row-label"><span class="ic" data-icon="users"></span> Andere gebruikers</div>
         <div style="color:var(--text3)">›</div>
       </div>
+      ${U.role!=='software'?`<div class="card-row" style="cursor:pointer" onclick="openChangeTeam()">
+        <div class="card-row-label">Mijn team</div>
+        <div style="color:var(--text3);display:flex;align-items:center;gap:6px">${U.team?escAnn(U.team):(U.team===''?'Geen team':'Nog niet ingesteld')} ›</div>
+      </div>`:''}
     </div>
 
     <div class="section-label">Weergave</div>
@@ -4966,11 +5203,12 @@ async function doLogout(){
 // ═══════════════════════════════════════════
 // MODAL HELPERS
 // ═══════════════════════════════════════════
-function modal(html){
+function modal(html,opts){
+  window._modalNoDismiss=!!(opts&&opts.dismissible===false);
   $('modal-root').innerHTML=`<div class="modal-bg open" id="mBg" onclick="handleModalClick(event)"><div class="modal-box">${html}</div></div>`;
 }
 function closeModal(){$('modal-root').innerHTML='';}
-function handleModalClick(e){if(e.target.id==='mBg')closeModal();}
+function handleModalClick(e){if(e.target.id==='mBg'&&!window._modalNoDismiss)closeModal();}
 // Lightbox voor afbeeldingen — window.open() op een data:-URI faalde regelmatig met een
 // zwart/leeg scherm (vooral in de geïnstalleerde PWA). Dit toont de foto gewoon direct in de app.
 function openImageLightbox(src){
@@ -5141,15 +5379,46 @@ async function toggleReaction(msgId,key){
 const REACTION_ICONS={like:'thumbsup',check:'check',heart:'heart'};
 
 
+window._chatSearch='';
+window.toggleChatSearch=function(){
+  const b=$('chatSearchBar'); if(!b)return;
+  const show=b.style.display==='none';
+  b.style.display=show?'block':'none';
+  if(show){ setTimeout(()=>$('chatSearchIn')?.focus(),50); }
+  else { window._chatSearch=''; if($('chatSearchIn'))$('chatSearchIn').value=''; _renderChatMsgs(); }
+};
+window.chatSearchInput=function(v){ window._chatSearch=(v||'').trim().toLowerCase(); _renderChatMsgs(); };
+window.openPinnedArchive=function(){
+  const pinned=[...allChat].filter(m=>m.pinned).sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+  const canPin=(U.role==='admin'||U.role==='software');
+  modal(`<div class="modal-handle"></div><div class="modal-title"><span class="ic" data-icon="pin"></span> Vastgepinde berichten</div>
+    ${!pinned.length?'<p style="font-size:13px;color:var(--text3);text-align:center;padding:20px 0">Nog niets vastgepind.</p>':
+    `<div style="max-height:55vh;overflow-y:auto">${pinned.map(m=>{
+      const txt=m.text?_formatMentions(m.text):(m.imageData?'<span class="ic" data-icon="camera"></span> Foto':'');
+      const t=m.createdAt&&m.createdAt.toDate?m.createdAt.toDate():null;
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--separator)">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:2px">${escAnn(m.name)}${t?' · '+t.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):''}</div>
+        <div style="font-size:14px;line-height:1.4">${txt}</div>
+        ${canPin?`<button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pinChatMsg('${m.id}',true);closeModal();openPinnedArchive()">Losmaken</button>`:''}
+      </div>`;
+    }).join('')}</div>`}`);
+};
 function renderChat(){
   const v=document.getElementById('view-chat'); if(!v)return;
-  window._chatSeen=null;
+  window._chatSeen=null; window._chatSearch='';
   document.getElementById('chat-dot')&&(document.getElementById('chat-dot').style.display='none');
   v.innerHTML='<div class="chat-wrap">'
     +'<div style="padding:12px 14px 8px;border-bottom:1px solid var(--separator);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">'
     +'<div><div style="font-size:19px;font-weight:800;letter-spacing:-.4px"><span class="ic" data-icon="chat"></span> Groepschat</div>'
     +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Iedereen ziet mee</div></div>'
-    +(U.role==='employee'?'<button class="btn btn-yellow btn-sm" onclick="openSwapModal()" style="font-size:12px"><span class="ic" data-icon="swap"></span> Dienst ruilen</button>':'')
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<button class="btn" style="width:34px;height:34px;padding:0;border-radius:50%;background:none;border:none;color:var(--text3)" onclick="toggleChatSearch()" title="Zoeken"><span class="ic" data-icon="search"></span></button>'
+    +'<button class="btn" style="width:34px;height:34px;padding:0;border-radius:50%;background:none;border:none;color:var(--text3)" onclick="openPinnedArchive()" title="Vastgepinde berichten"><span class="ic" data-icon="pin"></span></button>'
+    +(U.role==='employee'?'<button class="btn btn-yellow btn-sm" onclick="openSwapModal()" style="font-size:12px">Dienst ruilen</button>':'')
+    +'</div>'
+    +'</div>'
+    +'<div id="chatSearchBar" style="display:none;padding:8px 12px;border-bottom:1px solid var(--separator);flex-shrink:0">'
+    +'<input type="text" class="form-input" id="chatSearchIn" placeholder="Zoeken in groepschat…" oninput="chatSearchInput(this.value)" style="padding:8px 12px;font-size:13.5px">'
     +'</div>'
     +'<div id="pinnedBar"></div>'
     +'<div class="chat-msgs" id="chatMsgs" style="flex:1;overflow-y:auto;padding:10px 12px"></div>'
@@ -5259,8 +5528,13 @@ function _renderChatMsgs(){
     c.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text3)"><div style="font-size:36px;margin-bottom:10px"><span class="ic" data-icon="chat"></span></div><p>Nog geen berichten</p></div>';
     return;
   }
+  if(window._chatSearch && !allChat.filter(m=>(m.text||'').toLowerCase().includes(window._chatSearch)||(m.name||'').toLowerCase().includes(window._chatSearch)).length){
+    c.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text3)"><p>Niets gevonden voor "'+escAnn(window._chatSearch)+'"</p></div>';
+    return;
+  }
   const canPin=(U.role==='admin'||U.role==='software');
-  const rest=allChat; // pinned berichten staan nu in de vaste #pinnedBar, niet meer dubbel hierin
+  const q=window._chatSearch||'';
+  const rest=q?allChat.filter(m=>(m.text||'').toLowerCase().includes(q)||(m.name||'').toLowerCase().includes(q)):allChat; // pinned berichten staan nu in de vaste #pinnedBar, niet meer dubbel hierin
 
   function renderMsg(msg,idx,grouped,isLastMine){
     const t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
@@ -5336,6 +5610,7 @@ function _renderChatMsgs(){
   const nearBottom=firstRender||(c.scrollHeight-c.scrollTop-c.clientHeight)<120;
   const hasNew=!firstRender&&rest.some(m=>!window._chatSeen.has(m.id));
   const prevTop=c.scrollTop;
+  html+=_pendingChatHtml();
   c.innerHTML=html;
   window._chatSeen=new Set(rest.map(m=>m.id));
   if(firstRender){ c.scrollTop=c.scrollHeight; }
@@ -5393,14 +5668,8 @@ function insertAtSign(){
 }
 
 
-async function sendChat(){
-  const ta=document.getElementById('chatTa');
-  const text=ta?ta.value.trim():'';
-  const imgData=window._chatImgData||null;
-  if(!text&&!imgData)return;
-  ta.value=''; ta.style.height='auto'; hideMentionList();
-  const{db,collection,addDoc,serverTimestamp}=window._f;
-  // Detecteer mentions
+window._pendingChat=window._pendingChat||[];
+function _chatMentionUids(text){
   const rawMentions=[...text.matchAll(/@(\S+)/g)].map(m=>m[1].toLowerCase());
   const mentionUids=[];
   rawMentions.forEach(function(m){
@@ -5412,13 +5681,41 @@ async function sendChat(){
       if(u&&!mentionUids.includes(u.uid)) mentionUids.push(u.uid);
     }
   });
+  return mentionUids;
+}
+async function _commitChatMessage(text,imgData,mentionUids){
+  const{db,collection,addDoc,serverTimestamp}=window._f;
   await addDoc(collection(db,'chat'),{
     uid:U.uid, name:U.name, role:U.role||'employee',
     text, imageData:imgData, mentions:mentionUids, type:'message',
     deleted:false, createdAt:serverTimestamp()
   });
+  await _notifyChatMentions(text,mentionUids);
+}
+async function sendChat(){
+  const ta=document.getElementById('chatTa');
+  const text=ta?ta.value.trim():'';
+  const imgData=window._chatImgData||null;
+  if(!text&&!imgData)return;
+  ta.value=''; ta.style.height='auto'; hideMentionList();
+  const mentionUids=_chatMentionUids(text);
+  if(!navigator.onLine){
+    window._pendingChat.push({clientId:'p'+Date.now()+Math.random().toString(36).slice(2),text,imgData,mentionUids,ts:Date.now()});
+    clearChatImage(); _renderChatMsgs(); updateOfflineBanner();
+    return;
+  }
+  try{
+    await _commitChatMessage(text,imgData,mentionUids);
+  }catch(e){
+    if(!navigator.onLine){
+      window._pendingChat.push({clientId:'p'+Date.now()+Math.random().toString(36).slice(2),text,imgData,mentionUids,ts:Date.now()});
+      _renderChatMsgs(); updateOfflineBanner();
+    } else { toast('Versturen mislukt: '+(e.message||'onbekende fout'),'err'); }
+    clearChatImage(); return;
+  }
   clearChatImage();
-  // Notificaties versturen
+}
+async function _notifyChatMentions(text,mentionUids){
   let notifTargets=[];
   if(mentionUids.includes('all')){
     // Als een BEHEERDER @iedereen tagt, telt dat niet als de dev — een dev moet zelf getagd worden.
@@ -5440,6 +5737,14 @@ async function sendChat(){
   // bij elk willekeurig bericht.
   // @tag in de chat -> ALLEEN een pushmelding, nooit een e-mail
   if(notifTargets.length) await notifyUsers(notifTargets,''+U.name+' in de chat',text||'Foto',text||'Foto',{type:'tag',email:false});
+}
+function _pendingChatHtml(){
+  return window._pendingChat.map(p=>`<div class="chat-row me" style="opacity:.55">
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;max-width:78%;margin-left:auto">
+      <div class="chat-bubble" style="background:var(--mhv-blue);color:#fff;padding:9px 13px;border-radius:16px;border-bottom-right-radius:5px;font-size:14.5px;line-height:1.4">${(p.text||'').replace(/</g,'&lt;')}${p.imgData?'<div style="margin-top:4px"><span class="ic" data-icon="camera"></span> Foto</div>':''}</div>
+      <div style="font-size:10.5px;color:var(--text3)"><span class="ic" data-icon="hourglass"></span> wordt verzonden zodra je weer bereik hebt…</div>
+    </div>
+  </div>`).join('');
 }
 
 async function pinChatMsg(id,currentlyPinned){
@@ -5832,10 +6137,19 @@ function devGuestsHtml(){
     const st=u.guestPending?'<span class="badge badge-orange">Wacht op goedkeuring</span>':exp?'<span class="badge badge-red">Verlopen</span>':'<span class="badge badge-green">Actief</span>';
     const btns=u.guestPending
       ?`<button class="btn btn-green btn-sm" style="flex:1" onclick="approveGuest('${u.uid}')">✓ Goedkeuren</button><button class="btn btn-red btn-sm" style="flex:1" onclick="rejectGuest('${u.uid}')">Afwijzen</button>`
-      :`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="extendGuest('${u.uid}')">+7 dagen</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="openGuestDate('${u.uid}')">Datum</button>${exp?'':`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="endGuest('${u.uid}')">Intrekken</button>`}<button class="btn btn-red btn-sm" onclick="rejectGuest('${u.uid}')"><span class="ic" data-icon="trash"></span></button>`;
+      :`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="extendGuest('${u.uid}')">+7 dagen</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="openGuestDate('${u.uid}')">Datum</button>${exp?'':`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="endGuest('${u.uid}')">Intrekken</button>`}<button class="btn btn-yellow btn-sm" style="flex:1" onclick="makeGuestPermanent('${u.uid}')">Definitief maken</button><button class="btn btn-red btn-sm" onclick="rejectGuest('${u.uid}')"><span class="ic" data-icon="trash"></span></button>`;
     return `<div style="padding:13px 16px;border-bottom:1px solid var(--separator)"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${escAnn(u.name)}</div><div style="font-size:12px;color:var(--text3)">${escAnn(u.email||'—')} · t/m ${fmt(u.guestUntil)}</div></div>${st}</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">${btns}</div></div>`;
   }).join('')+'</div>';
 }
+window.makeGuestPermanent=async function(uid){
+  const u=allUsers.find(x=>x.uid===uid); if(!u)return;
+  const ok=await confirm2('Definitief maken','"'+u.name+'" wordt een gewoon medewerkersaccount, zonder vervaldatum.','Definitief maken'); if(!ok)return;
+  try{
+    const{db,doc,updateDoc,deleteField}=window._f;
+    await updateDoc(doc(db,'users',uid),{guestUntil:deleteField(),guestPending:deleteField(),guestApprovedBy:deleteField()});
+    toast('Account is nu definitief','ok');
+  }catch(e){ toast('Mislukt: '+(e.message||''),'err'); }
+};
 window.approveGuest=async function(uid){
   try{
     const{db,doc,updateDoc}=window._f;

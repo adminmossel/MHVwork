@@ -1,3 +1,25 @@
+# CHANGELOG — update oktober 2026 (deel 2)
+
+### ✅ Opgelost
+- **Wedstrijden dubbel bij herimporteren.** Elke wedstrijd krijgt nu een vaste sleutel (datum + thuisteam + uitteam) in plaats van het wisselende LISA-record-id. Een herhaalde import of sync werkt dezelfde wedstrijd bij. Bestaande dubbelingen van vóór deze update worden bij de eerstvolgende import automatisch opgeruimd.
+
+### ✨ Nieuw
+- **Dienstadvies en wedstrijdenlijst ingeklapt** — namen te veel ruimte in op Home/Rooster en bij Instellingen.
+- **Gastaccount definitief maken** (dev): verwijdert de vervaldatum, wordt een gewoon account.
+- **Zoeken in de groepschat** + een apart **archief van vastgepinde berichten**.
+- **Leesbevestiging ("Gezien") en "aan het typen…"** in de privéchat.
+- **Kalender vernieuwd**: eigen stijl per stip (dienst/wedstrijd), rustigere maand-animatie, legenda.
+- **Eigen team per account** (verplicht bij eerste login, ook voor bestaande accounts, wijzigbaar in Profiel). Bij het samenstellen van een dienst waarschuwt de app als iemand die dag een eigen wedstrijd heeft, met het advies dit in de Lisa-app te checken.
+- **Wedstrijd-importlog (alleen dev)**, met een knop om een hele import in één keer ongedaan te maken.
+- **Offline-indicator** + berichten (groepschat en privé) die automatisch alsnog verstuurd worden zodra er weer verbinding is.
+
+### ⚠️ Na het updaten
+- Publiceer de nieuwe `firestore.rules` opnieuw (regels voor `matchImportLog` en het `typing`-veld bij privéberichten).
+- Zet ook de nieuwe `sync-lisa-matches.mjs` in de GitHub Actions-workflow, anders blijft de automatische sync het oude, dubbel-gevoelige ID gebruiken.
+- Eerste keer inloggen na deze update vraagt iedereen (behalve dev) om een team te kiezen — dat gebeurt automatisch, geen actie nodig.
+
+---
+
 # CHANGELOG — update oktober 2026
 
 ### ✅ Opgelost

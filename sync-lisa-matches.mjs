@@ -196,6 +196,16 @@ function formatAddress(addr) {
   return parts.length ? parts.join(', ') : null;
 }
 
+// Stabiele sleutel i.p.v. het LISA-record-id: datum + thuisteam + uitteam. Zo overschrijft een
+// herhaalde sync altijd dezelfde wedstrijd (ook als LISA zelf ooit een ander record-id teruggeeft),
+// en botst dit nooit met een wedstrijd die een beheerder/dev handmatig met dezelfde teams/datum
+// invoerde — die gebruikt in app.html exact dezelfde sleutel.
+function slug(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function matchKey(date, home, away) { return `${date}__${slug(home)}__${slug(away)}`; }
+
 function isMhvHomeMatch(raw) {
   return raw?.is_home_match === true && MHV_CLUB_NAMES.has(String(raw?.home_team_club_name || '').trim());
 }
@@ -246,7 +256,8 @@ async function main() {
   }
   log(`${collections.length} maandcollecties gevonden:`, collections.join(', '));
 
-  let found = 0, written = 0, skipped = 0, failedCollections = 0;
+  let found = 0, written = 0, created = 0, updated = 0, skipped = 0, failedCollections = 0;
+  const logItems = [];
 
   for (const collectionName of collections) {
     try {
@@ -261,14 +272,33 @@ async function main() {
         if (!raw || !isMhvHomeMatch(raw)) { skipped++; continue; }
         if (!raw.id) { log('  overgeslagen: record zonder id', raw.home_team_name, raw.away_team_name); continue; }
 
+        if (!raw.home_team_name || !raw.away_team_name) { log('  overgeslagen: record zonder teamnaam', raw.id); skipped++; continue; }
         found++;
         const normalized = normalizeMatch(raw, collectionName);
+        const key = matchKey(normalized.date, normalized.homeTeam, normalized.awayTeam);
         log(`  MHV thuiswedstrijd: ${normalized.date} ${normalized.startTime || '(tijd volgt)'} — ${normalized.homeTeam} vs ${normalized.awayTeam}`);
 
-        const ref = db.collection('matches').doc(raw.id);
+        const ref = db.collection('matches').doc(key);
+        const existedSnap = await ref.get();
+        if (existedSnap.exists) updated++; else created++;
+        // Opschonen: een eerdere sync (vóór deze update) sloeg dit mogelijk op onder het oude,
+        // wisselende LISA-record-id op als sleutel — die losse kopie verwijderen, anders staat
+        // hij dubbel naast de nieuwe, stabiele sleutel.
+        try {
+          const legacySnap = await db.collection('matches').where('date', '==', normalized.date).get();
+          for (const d of legacySnap.docs) {
+            if (d.id === key) continue;
+            const dd = d.data();
+            if (matchKey(dd.date, dd.homeTeam, dd.awayTeam) === key) { batch.delete(d.ref); }
+          }
+        } catch (e) { log('  kon niet op oude dubbele kopie checken:', e.message); }
         batch.set(ref, normalized, { merge: true });
         batchCount++;
         written++;
+        logItems.push({
+          key, date: normalized.date, homeTeam: normalized.homeTeam, awayTeam: normalized.awayTeam,
+          prev: existedSnap.exists ? existedSnap.data() : null,
+        });
 
         if (batchCount >= 400) { await batch.commit(); batchCount = 0; }
       }
@@ -279,7 +309,17 @@ async function main() {
     }
   }
 
-  log(`LISA synchronisatie klaar — ${found} MHV-thuiswedstrijden gevonden, ${written} weggeschreven, ${skipped} niet-MHV/uit overgeslagen, ${failedCollections} collecties mislukt`);
+  log(`LISA synchronisatie klaar — ${found} MHV-thuiswedstrijden gevonden, ${written} weggeschreven (${created} nieuw, ${updated} bijgewerkt), ${skipped} niet-MHV/uit/onvolledig overgeslagen, ${failedCollections} collecties mislukt`);
+  if (written > 0) {
+    try {
+      await db.collection('matchImportLog').add({
+        by: 'lisa-sync', byName: 'automatische sync',
+        at: admin.firestore.FieldValue.serverTimestamp(),
+        createdCount: created, updatedCount: updated, skippedCount: skipped,
+        items: logItems,
+      });
+    } catch (e) { log('Kon import-logregel niet wegschrijven:', e.message); }
+  }
   await browser?.close();
   if (failedCollections > 0 && written === 0) process.exitCode = 1;
 }

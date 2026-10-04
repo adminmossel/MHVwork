@@ -64,8 +64,11 @@ altijd een actueel overzicht.
 - Notitie + foto per dienst
 - Live voortgangsbalk en countdown op Home zodra een dienst bezig is
 - Export naar de eigen agenda (`.ics`) of Excel
-- **Thuiswedstrijden** van de MHV-website (import via de console of automatische sync): tijd, logo's, wie tegen wie en waar — zichtbaar bij Rooster, Home en idle-modus. Beheerder én dev kunnen ze importeren of handmatig invoeren; bij de laatste import staat wie het deed
-- **Dienstadvies** (beheerder): per wedstrijddag een voorstel voor tijden en aantal mensen (Heren 1 druk, onder-11 rustig, minimaal 2 — behalve een rustige ochtendwedstrijd), met één knop "Maak dienst aan" die het formulier voorinvult. Handmatig een dienst aanmaken blijft kunnen
+- **Thuiswedstrijden** van de MHV-website (import via de console of automatische sync): tijd, logo's, wie tegen wie en waar — zichtbaar bij Rooster, Home en idle-modus. Beheerder én dev kunnen ze importeren of handmatig invoeren; bij de laatste import staat wie het deed. Een herhaalde import maakt nooit een dubbele wedstrijd aan: elke wedstrijd krijgt een vaste sleutel (datum + beide teams), dus een nieuwe import werkt de bestaande wedstrijd bij in plaats van er een tweede naast te zetten. Lijst met ingevoerde wedstrijden staat standaard ingeklapt
+- **Wedstrijd-importlog (alleen dev)**: elke import staat genoteerd (door wie, wanneer, hoeveel nieuw/bijgewerkt), met een knop om een hele import in één keer ongedaan te maken
+- **Eigen team**: iedereen geeft bij de eerste keer inloggen (ook bestaande accounts) aan bij welk team hij/zij speelt, of "geen team". Zodra die persoon op een dag een eigen wedstrijd heeft, waarschuwt de app bij het samenstellen van een dienst dat diegene waarschijnlijk maar tot het begin van de wedstrijd kan werken (exclusief reis-/verzameltijd) — met het advies dit in de Lisa-app te checken
+- **Dienstadvies** (beheerder): per wedstrijddag een voorstel voor tijden en aantal mensen (Heren 1 druk, onder-11 rustig, minimaal 2 — behalve een rustige ochtendwedstrijd), met één knop "Maak dienst aan" die het formulier voorinvult. Handmatig een dienst aanmaken blijft kunnen. Staat standaard ingeklapt (met een telbadge) op Home en Rooster
+- **Kalender** vernieuwd: duidelijke stippen voor dienst (blauw) en eigen thuiswedstrijd (geel), rustigere animatie, legenda onderin
 
 </td>
 <td width="50%" valign="top">
@@ -84,8 +87,9 @@ altijd een actueel overzicht.
 ### 💬 Groepschat & privéberichten
 - `@naam`, `@iedereen`, `@beheerder`, `@dev` — direct een pushmelding
 - Foto's, automatisch gecomprimeerd — vloeiende animatie, alleen nieuwe berichten schuiven in
+- Zoeken in de groepschat, en een apart archief van alle vastgepinde berichten
 - Berichten vastpinnen of verwijderen
-- Privéberichten (DM) tussen medewerker en beheerder/dev, nu met foto's en bijlagen (max 700 KB, opgeslagen in Firestore — geen Storage/Blaze nodig)
+- Privéberichten (DM) tussen medewerker en beheerder/dev, nu met foto's en bijlagen (max 700 KB, opgeslagen in Firestore — geen Storage/Blaze nodig), leesbevestiging ("Gezien") en "aan het typen…"
 
 </td>
 <td valign="top">
@@ -143,7 +147,12 @@ bij aanmaken én wijzigen. **Eigen achtergrond**: kies een foto uit je galerij, 
 ---
 
 ### 🛠 Dev-beheer
-Tabs voor **Accounts**, **Gasten**, **Wedstrijden**, **Berichten** en **Instellingen** (Aankondigingen en Logboek blijven eigen tabbladen). Tijdelijke gastaccounts die een beheerder aanmaakt moeten door dev worden **goedgekeurd** voordat ze kunnen inloggen; dev kan ze verlengen, een datum instellen, intrekken of verwijderen.
+Tabs voor **Accounts**, **Gasten**, **Wedstrijden**, **Berichten** en **Instellingen** (Aankondigingen en Logboek blijven eigen tabbladen). Tijdelijke gastaccounts die een beheerder aanmaakt moeten door dev worden **goedgekeurd** voordat ze kunnen inloggen; dev kan ze verlengen, een datum instellen, intrekken, **definitief maken** (geen vervaldatum meer) of verwijderen.
+
+---
+
+### 📶 Offline
+Geen bereik tijdens het typen? Een bericht in de groepschat of een privébericht wordt dan lokaal vastgehouden (herkenbaar aan een lichter bolletje met een klokje) en automatisch alsnog verstuurd zodra er weer verbinding is — boven in beeld staat intussen een balkje met het aantal wachtende berichten.
 
 ---
 

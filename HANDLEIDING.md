@@ -486,3 +486,13 @@ app te raken.
 2. **Foto in de e-mail (aankondigingen)**: EmailJS (gratis) accepteert maximaal 50 KB per verzoek en bijlagen zitten alleen in betaalde plannen. MHVwork stuurt daarom een klein miniatuur mee als variabele `image_html`. Zet `{{{image_html}}}` (drie accolades) in je aankondigingstemplate. Let op: sommige mailprogramma's (o.a. Gmail) tonen ingebedde afbeeldingen niet; de volledige foto staat altijd in de app.
 3. **Gastaccounts**: een gast kan pas inloggen nadat dev hem bij Beheer → Gasten heeft goedgekeurd. Accounts die vóór deze update zijn aangemaakt blijven gewoon werken.
 4. **Eigen achtergrond** staat per toestel (Profiel → Weergave → camera-icoon).
+
+
+---
+
+## Update oktober 2026 (deel 2)
+
+1. Vervang `app.html`, `firestore.rules`, `icons.js` én `sync-lisa-matches.mjs`, en publiceer de Firestore-regels.
+2. **GitHub Actions**: geen actie nodig — het script heet nog hetzelfde, alleen de inhoud is aangepast. De eerstvolgende geplande run ruimt automatisch oude dubbele wedstrijden op.
+3. **Eigen team**: iedereen kiest dit bij de eerste keer inloggen. Er is geen manier om dit over te slaan — kiest iemand "geen team", dan krijgt die persoon nooit een wedstrijd-waarschuwing bij het inroosteren.
+4. **Offline-berichten** blijven alleen bewaard zolang de app open staat (niet na het volledig sluiten van de app/tab) — bedoeld voor een kort wifi-wegvallend moment, niet als permanente wachtrij.

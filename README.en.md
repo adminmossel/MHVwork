@@ -60,8 +60,11 @@ up-to-date overview.
 <td width="50%" valign="top">
 
 ### 📅 Schedule & shifts
-- Home matches imported from the MHV site (time, logos, teams, venue); admin and dev can import/enter them, with a tag showing who ran the last import
-- Shift advice (admin): per match day a suggested time window and head count, with a one-click "Create shift"
+- Home matches imported from the MHV site (time, logos, teams, venue); admin and dev can import/enter them, with a tag showing who ran the last import. Re-importing never creates a duplicate — every match gets a stable key (date + both teams), so a repeat import updates the existing match instead of adding a second one. The imported list is collapsed by default
+- Import log (dev only): every import is logged (who, when, how many created/updated), with a one-click full undo
+- Everyone states which team they play for (or none) the first time they log in, including existing accounts; the app then warns when building a shift that person likely can only work until that match's kick-off (excluding travel/warm-up time) and suggests double-checking in the Lisa app
+- Shift advice (admin): per match day a suggested time window and head count, with a one-click "Create shift". Collapsed by default (with a count badge) on Home and Schedule
+- Calendar redesigned: clear dots for shifts (blue) and home matches (yellow), smoother month transitions, legend
 - Create shifts — even without assigning someone right away
 - A "Close" end time for shifts with an unknown closing time, only counted once the staff
   member reports the actual time worked
@@ -86,7 +89,9 @@ up-to-date overview.
 
 ### 💬 Group chat & DMs
 - Smooth animation: only new messages slide in
-- DMs support photos and attachments (max 700 KB, stored in Firestore — no Storage/Blaze needed)
+- Search within the group chat, plus a separate archive of all pinned messages
+- DMs support photos and attachments (max 700 KB, stored in Firestore — no Storage/Blaze needed), read receipts ("Seen") and a typing indicator
+- Offline: a message is held locally (shown dimmed with a clock icon) and sent automatically once you're back online; a banner at the top shows how many are waiting
 - `@name`, `@everyone`, `@admin`, `@dev` — triggers an instant push notification
 - Photos, compressed automatically
 - Pin or delete messages
@@ -150,7 +155,7 @@ strength meter when creating or changing a password.
 ---
 
 ### 🛠 Dev management
-Tabs for Accounts, Guests, Matches, Messages and Settings. Temporary guest accounts created by an admin must be approved by dev before they can sign in; dev can extend, set a date, revoke or delete them.
+Tabs for Accounts, Guests, Matches, Messages and Settings. Temporary guest accounts created by an admin must be approved by dev before they can sign in; dev can extend, set a date, revoke, make permanent (removes the expiry) or delete them.
 
 ---
 

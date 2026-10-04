@@ -154,7 +154,7 @@ service cloud.firestore {
       allow read: if isAuth() && (resource == null || resource.data.participants.hasAny([request.auth.uid]));
       allow create: if isAuth() && request.resource.data.participants.hasAny([request.auth.uid]);
       allow update: if isAuth() && resource.data.participants.hasAny([request.auth.uid])
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages','updatedAt','readBy','lastText','lastFrom']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages','updatedAt','readBy','lastText','lastFrom','typing']);
       allow delete: if isStaff();
     }
 
@@ -189,6 +189,16 @@ service cloud.firestore {
     match /matches/{id} {
       allow read: if isAuth();
       allow write: if isStaff();
+    }
+
+    // Logregel van elke wedstrijd-import (console-plak of automatische sync) — alleen zichtbaar
+    // en te beheren door dev. De automatische sync schrijft via de Firebase Admin SDK, die altijd
+    // buiten deze regels om werkt (Admin-rechten), dus dit raakt alleen de app zelf.
+    match /matchImportLog/{id} {
+      allow read: if isSoftware();
+      allow create: if isStaff();
+      allow delete: if isSoftware();
+      allow update: if isSoftware();
     }
 
     // Sluitchecklist: de takenlijst zelf ('closing'). Beheerder/dev passen 'm aan, iedereen leest 'm.
