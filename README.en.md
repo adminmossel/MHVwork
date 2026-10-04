@@ -60,6 +60,8 @@ up-to-date overview.
 <td width="50%" valign="top">
 
 ### 📅 Schedule & shifts
+- Home matches imported from the MHV site (time, logos, teams, venue); admin and dev can import/enter them, with a tag showing who ran the last import
+- Shift advice (admin): per match day a suggested time window and head count, with a one-click "Create shift"
 - Create shifts — even without assigning someone right away
 - A "Close" end time for shifts with an unknown closing time, only counted once the staff
   member reports the actual time worked
@@ -83,6 +85,8 @@ up-to-date overview.
 <td valign="top">
 
 ### 💬 Group chat & DMs
+- Smooth animation: only new messages slide in
+- DMs support photos and attachments (max 700 KB, stored in Firestore — no Storage/Blaze needed)
 - `@name`, `@everyone`, `@admin`, `@dev` — triggers an instant push notification
 - Photos, compressed automatically
 - Pin or delete messages
@@ -92,6 +96,7 @@ up-to-date overview.
 <td valign="top">
 
 ### 📢 Announcements
+- Formatting toolbar with live preview: bold, italic, underline, strikethrough, highlight, headings, lists, links; optional photo thumbnail in the e-mail
 - Only the title shows on Home — the full text opens on its own page
 - Basic formatting (bold, tabs, line breaks) when writing one
 - Special announcements get their own colour and an instant in-app pop-up
@@ -136,9 +141,16 @@ up-to-date overview.
 </table>
 
 ### 🎨 Look & feel
+Custom background: pick a photo, stored on that device only (IndexedDB) so it costs no database space.
+
 A floating, glass-style navigation bar, or the classic full-width bar — a per-account choice.
 Light, dark, or a hidden NASA-APOD theme, independent of the system setting. A password
 strength meter when creating or changing a password.
+
+---
+
+### 🛠 Dev management
+Tabs for Accounts, Guests, Matches, Messages and Settings. Temporary guest accounts created by an admin must be approved by dev before they can sign in; dev can extend, set a date, revoke or delete them.
 
 ---
 

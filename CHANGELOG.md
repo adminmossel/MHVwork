@@ -1,3 +1,24 @@
+# CHANGELOG — update oktober 2026
+
+### ✅ Opgelost
+- **Groepschat stotterde na het versturen** — de hele lijst werd bij elke update opnieuw getekend, met bij elk bericht de intro-animatie en een sprong naar beneden. Nu animeert alleen een écht nieuw bericht, en blijft je scrollpositie staan als je omhoog scrolt.
+
+### ✨ Nieuw
+- **Dev-beheer met tabs** (Accounts · Gasten · Wedstrijden · Berichten · Instellingen), net als bij beheerder. Logboek en Aankondigingen blijven eigen tabbladen.
+- **Dev kan wedstrijden importeren en invoeren**; bij de laatste import staat wie het deed (of "automatische sync").
+- **Wedstrijdkaart** toont alleen tijd, logo's, wie tegen wie en waar.
+- **Dienstadvies** voor beheerders (Rooster en Home) op basis van wedstrijden, met "Maak dienst aan" (voorinvuller). Regels staan bovenaan als `ADVICE_RULES` in `app.html`.
+- **Tijdelijke accounts moeten door dev worden goedgekeurd**; dev beheert ze in de tab Gasten. Beheerders kunnen een gastaccount niet meer zelf verlengen (ook afgedwongen in de Firestore-regels).
+- **Foto's en bijlagen in privéberichten** (max 700 KB, nieuwe collectie `dmFiles`).
+- **Aankondigingen**: werkbalk met live voorbeeld (vet, schuin, onderstreept, doorgehaald, markeren, kop, lijst, link). Foto mee in de e-mail als miniatuur.
+- **Eigen achtergrond** — lokaal op het toestel, kost geen database-opslag.
+
+### ⚠️ Na het updaten
+- Publiceer de nieuwe `firestore.rules` (regels voor `dmFiles` en gastaccount-velden).
+- Voor de foto in de e-mail: voeg `{{{image_html}}}` toe aan je EmailJS-aankondigingstemplate (zie HANDLEIDING).
+
+---
+
 # CHANGELOG — update augustus 2026
 
 Puntsgewijs, gekoppeld aan de oorspronkelijke lijst.

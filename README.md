@@ -64,6 +64,8 @@ altijd een actueel overzicht.
 - Notitie + foto per dienst
 - Live voortgangsbalk en countdown op Home zodra een dienst bezig is
 - Export naar de eigen agenda (`.ics`) of Excel
+- **Thuiswedstrijden** van de MHV-website (import via de console of automatische sync): tijd, logo's, wie tegen wie en waar — zichtbaar bij Rooster, Home en idle-modus. Beheerder én dev kunnen ze importeren of handmatig invoeren; bij de laatste import staat wie het deed
+- **Dienstadvies** (beheerder): per wedstrijddag een voorstel voor tijden en aantal mensen (Heren 1 druk, onder-11 rustig, minimaal 2 — behalve een rustige ochtendwedstrijd), met één knop "Maak dienst aan" die het formulier voorinvult. Handmatig een dienst aanmaken blijft kunnen
 
 </td>
 <td width="50%" valign="top">
@@ -81,16 +83,17 @@ altijd een actueel overzicht.
 
 ### 💬 Groepschat & privéberichten
 - `@naam`, `@iedereen`, `@beheerder`, `@dev` — direct een pushmelding
-- Foto's, automatisch gecomprimeerd
+- Foto's, automatisch gecomprimeerd — vloeiende animatie, alleen nieuwe berichten schuiven in
 - Berichten vastpinnen of verwijderen
-- Privéberichten (DM) tussen medewerker en beheerder/dev
+- Privéberichten (DM) tussen medewerker en beheerder/dev, nu met foto's en bijlagen (max 700 KB, opgeslagen in Firestore — geen Storage/Blaze nodig)
 
 </td>
 <td valign="top">
 
 ### 📢 Aankondigingen
 - Op Home alleen de titel, volledige tekst pas na aantikken
-- Basisopmaak (vet, tabs, witregels) bij het aanmaken
+- Opmaak met werkbalk en live voorbeeld: **vet**, *schuin*, onderstreept, doorgehaald, markeren, koppen, lijstjes en links
+- Foto mee in de e-mail (als miniatuur — zie HANDLEIDING)
 - Speciale aankondigingen met eigen kleur en directe pop-up
 
 </td>
@@ -135,7 +138,12 @@ altijd een actueel overzicht.
 ### 🎨 Weergave
 Zwevende, glazen navigatie of de klassieke volle-breedte-balk — naar keuze per account. Licht,
 donker of een verborgen NASA-APOD-thema, los van de systeeminstelling. Wachtwoord-sterktemeter
-bij aanmaken én wijzigen.
+bij aanmaken én wijzigen. **Eigen achtergrond**: kies een foto uit je galerij, die alleen op dat toestel wordt bewaard (IndexedDB) en dus geen databaseruimte kost.
+
+---
+
+### 🛠 Dev-beheer
+Tabs voor **Accounts**, **Gasten**, **Wedstrijden**, **Berichten** en **Instellingen** (Aankondigingen en Logboek blijven eigen tabbladen). Tijdelijke gastaccounts die een beheerder aanmaakt moeten door dev worden **goedgekeurd** voordat ze kunnen inloggen; dev kan ze verlengen, een datum instellen, intrekken of verwijderen.
 
 ---
 

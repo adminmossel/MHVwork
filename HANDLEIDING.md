@@ -476,3 +476,13 @@ app te raken.
 ---
 
 *MHVwork v1.0 — Gebouwd voor MHV*
+
+
+---
+
+## Update oktober 2026
+
+1. Vervang `app.html`, `register.html` en `firestore.rules`, en publiceer de regels in de Firebase Console.
+2. **Foto in de e-mail (aankondigingen)**: EmailJS (gratis) accepteert maximaal 50 KB per verzoek en bijlagen zitten alleen in betaalde plannen. MHVwork stuurt daarom een klein miniatuur mee als variabele `image_html`. Zet `{{{image_html}}}` (drie accolades) in je aankondigingstemplate. Let op: sommige mailprogramma's (o.a. Gmail) tonen ingebedde afbeeldingen niet; de volledige foto staat altijd in de app.
+3. **Gastaccounts**: een gast kan pas inloggen nadat dev hem bij Beheer → Gasten heeft goedgekeurd. Accounts die vóór deze update zijn aangemaakt blijven gewoon werken.
+4. **Eigen achtergrond** staat per toestel (Profiel → Weergave → camera-icoon).

@@ -285,7 +285,8 @@ async function doRegister() {
       termsAcceptedAt: serverTimestamp(),
       termsVersion: 'v1-2026'
     };
-    if (inv.guestUntil) userDoc.guestUntil = inv.guestUntil;
+    if (inv.guestUntil) { userDoc.guestUntil = inv.guestUntil; userDoc.guestPending = !inv.guestApproved; }
+    userDoc.inviteId = window._inviteId;
     await setDoc(doc(db, 'users', cred.user.uid), userDoc);
     // Beperkte, publieke spiegel — zodat collega's deze persoon kunnen herkennen in chat/rooster
     // zonder toegang te hebben tot e-mail of loon.

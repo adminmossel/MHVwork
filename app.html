@@ -103,6 +103,12 @@ onAuthStateChanged(auth, async (user) => {
     window.dispatchEvent(new Event("mhv:suspended"));
     return;
   }
+  if (userData.guestUntil && userData.guestPending) {
+    _authHandled = true;
+    window._user = { uid: user.uid, email: user.email, ...userData };
+    window.dispatchEvent(new Event("mhv:guestPending"));
+    return;
+  }
   if (userData.guestUntil && Date.now() > userData.guestUntil) {
     _authHandled = true;
     window._user = { uid: user.uid, email: user.email, ...userData };
@@ -191,6 +197,18 @@ html[data-theme="apod"] {
 }
 html[data-theme="apod"] #topbar, html[data-theme="apod"] #tabbar{ background:rgba(0,0,0,0.4)!important; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
 html[data-theme="apod"] .card, html[data-theme="apod"] .prof-card, html[data-theme="apod"] .stat-tile, html[data-theme="apod"] .chat-bubble{
+  background:rgba(20,20,25,0.55)!important; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.12);
+}
+
+/* ── Geheim thema — donkere basis, achtergrondfoto wordt via JS toegepast (applyApodBackground) ── */
+html[data-theme="custom"] {
+  --bg:transparent; --bg2:rgba(20,20,25,0.55); --bg3:rgba(20,20,25,0.4); --bg4:rgba(255,255,255,0.12);
+  --glass:rgba(255,255,255,0.08); --glass2:rgba(255,255,255,0.14);
+  --text:#fff; --text2:rgba(255,255,255,0.8); --text3:rgba(255,255,255,0.55); --text4:rgba(255,255,255,0.3);
+  --separator:rgba(255,255,255,0.14);
+}
+html[data-theme="custom"] #topbar, html[data-theme="custom"] #tabbar{ background:rgba(0,0,0,0.4)!important; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+html[data-theme="custom"] .card, html[data-theme="custom"] .prof-card, html[data-theme="custom"] .stat-tile, html[data-theme="custom"] .chat-bubble{
   background:rgba(20,20,25,0.55)!important; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.12);
 }
 
@@ -399,6 +417,8 @@ html.nav-bar-classic #toast { bottom:calc(var(--tab-h) + 12px + env(safe-area-in
 .chat-row.me .chat-bubble { animation: slideInRight .28s cubic-bezier(.22,.68,0,1.15) both; }
 .chat-row:not(.me) .chat-bubble { animation: slideInLeft .28s cubic-bezier(.22,.68,0,1.15) both; }
 @keyframes slideInRight { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
+.chat-new{animation:chatIn .26s cubic-bezier(.22,.68,0,1) both}
+@keyframes chatIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes slideInLeft  { from{opacity:0;transform:translateX(-14px)} to{opacity:1;transform:translateX(0)} }
 #toast { transition: transform .3s cubic-bezier(.22,.68,0,1.2), opacity .3s ease; }
 #pinnedBar { animation: fadeSlide .25s ease; }
@@ -994,6 +1014,14 @@ window.addEventListener('mhv:suspended', ()=>{
       <button onclick="window._f.signOut(window._f.auth).then(()=>window.location.href='index.html')" style="padding:13px 28px;border-radius:12px;background:var(--mhv-yellow);color:#000;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Uitloggen</button>
     </div>`;
 });
+window.addEventListener('mhv:guestPending', ()=>{
+  document.body.innerHTML=`
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;background:var(--bg)">
+      <div style="font-size:22px;font-weight:800;margin-bottom:10px;color:var(--text)">Wacht op goedkeuring</div>
+      <p style="font-size:14px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:24px">Je gastaccount is aangemaakt, maar moet nog door de beheerder van de app worden goedgekeurd. Probeer het later opnieuw.</p>
+      <button onclick="window._f.signOut(window._f.auth).then(()=>window.location.href='index.html')" style="padding:13px 28px;border-radius:12px;background:var(--mhv-yellow);color:#000;border:none;font-weight:700;font-size:15px;cursor:pointer">Uitloggen</button>
+    </div>`;
+});
 window.addEventListener('mhv:guestExpired', ()=>{
   U = window._user;
   document.body.innerHTML=`
@@ -1515,7 +1543,7 @@ function matchStatusBadge(m){
 }
 function matchCardHtml(m){
   const ph=matchPhase(m);
-  const sub=[m.field,m.competition].filter(Boolean).map(escAnn).join(' · ');
+  const sub=[m.field||m.locationName].filter(Boolean).map(escAnn).join(' · ');
   const logos=(m.homeLogo||m.awayLogo)?`<div class="match-logos">
       ${m.homeLogo?`<img src="${escAnn(m.homeLogo)}" alt="" loading="lazy">`:'<span class="match-logo-ph"></span>'}
       <span class="match-logo-vs">–</span>
@@ -1689,7 +1717,7 @@ window.importLisaFromPaste=async function(){
       if(!raw||!raw.lisaId||!raw.date){ skipped++; continue; }
       const payload=Object.assign({},raw,{
         startMs:localMs(raw.date,raw.startTime||'00:00'),
-        updatedAt:Date.now(), updatedBy:(U?U.uid:'lisa-import'),
+        updatedAt:Date.now(), updatedBy:(U?U.uid:'lisa-import'), updatedByName:(U?U.name:null),
       });
       await setDoc(doc(db,'matches',raw.lisaId),payload,{merge:true});
       written++;
@@ -1698,7 +1726,7 @@ window.importLisaFromPaste=async function(){
     toast(msg,'ok');
     if(statusEl) statusEl.textContent=msg;
     if(ta) ta.value='';
-    renderAdminSettings(document.getElementById('view-admin-settings')||document.getElementById('view-admin'));
+    refreshMatchesUI();
   }catch(e){
     toast('Importeren mislukt: '+e.message,'err');
   }finally{
@@ -1706,10 +1734,65 @@ window.importLisaFromPaste=async function(){
   }
 };
 
+
+// ── Dienstadvies op basis van thuiswedstrijden (alleen een voorstel — de beheerder beslist) ──
+// Regels (aan te passen): Heren 1 is druk, onder-11 en jonger rustig; altijd minimaal 2 mensen,
+// behalve bij één rustige ochtendwedstrijd (start voor 12:00) — dan is 1 genoeg.
+const ADVICE_RULES={bufferMin:60,busyNeed:3,normalNeed:2,manyMatches:4,morningBefore:'12:00'};
+function matchLevel(m){
+  const t=((m.homeTeam||'')+' '+(m.category||'')).toLowerCase();
+  if(/\b(h|heren)\s?1\b/.test(t)) return 'busy';
+  if(/\b(jo|mo|o)\s?-?\s?([5-9]|1[01])\b|onder\s?([5-9]|1[01])\b/.test(t)) return 'calm';
+  return 'normal';
+}
+function adviceForDay(k){
+  const ms=matchesOnDay(k).filter(m=>!matchIsOff(m)&&m.startTime);
+  if(!ms.length) return null;
+  const st=Math.min(...ms.map(m=>m.startMs))-ADVICE_RULES.bufferMin*60000;
+  const en=Math.max(...ms.map(matchEndMs))+ADVICE_RULES.bufferMin*60000;
+  const lv=ms.map(matchLevel);
+  let need=lv.includes('busy')?ADVICE_RULES.busyNeed:ADVICE_RULES.normalNeed;
+  if(ms.length>=ADVICE_RULES.manyMatches) need=Math.max(need,3);
+  let reason=lv.includes('busy')?'Heren 1 trekt veel publiek':(ms.length>=ADVICE_RULES.manyMatches?'veel wedstrijden op één dag':'standaard bezetting');
+  if(ms.length===1&&lv[0]!=='busy'&&ms[0].startTime<ADVICE_RULES.morningBefore){ need=1; reason='rustige ochtendwedstrijd, 1 persoon is genoeg'; }
+  const workers=new Set();
+  allShifts.filter(x=>dKey(x.date)===k).forEach(x=>{ const w=shiftWindowMs(x); if(w.st<en&&w.en>st) (x.workers||[]).forEach(u=>workers.add(u)); });
+  const note='Thuiswedstrijd'+(ms.length>1?'en':'')+': '+ms.map(m=>m.startTime+' '+(m.homeTeam||'?')+' – '+(m.awayTeam||'?')).join(' | ');
+  return {k,start:hmFromMs(st),end:hmFromMs(en),need,have:workers.size,reason,ms,note};
+}
+function shiftAdviceItems(){
+  const today=nowKey();
+  return [...new Set(allMatches.map(m=>m.date))].filter(k=>k>=today).sort()
+    .map(adviceForDay).filter(a=>a&&a.have<a.need).slice(0,6);
+}
+function shiftAdviceHtml(){
+  if(!featureOn('matches')||restricted('editShift')) return '';
+  const items=shiftAdviceItems();
+  if(!items.length) return '';
+  return `<div class="section-label" style="margin-top:0">Dienstadvies</div>
+    <div class="card" style="margin-bottom:16px">${items.map(a=>`<div class="card-row" style="align-items:center">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600">${fmtDate(new Date(a.k.split('-')[0],a.k.split('-')[1]-1,a.k.split('-')[2]))} · ${a.start}–${a.end}</div>
+        <div style="font-size:12px;color:var(--text3)">${a.ms.map(m=>escAnn(m.startTime+' '+(m.homeTeam||'?')+' – '+(m.awayTeam||'?'))).join('<br>')}</div>
+        <div style="font-size:12px;color:var(--mhv-yellow);margin-top:3px">Advies: ${a.need} ${a.need===1?'persoon':'personen'} (${a.have} ingepland) · ${escAnn(a.reason)}</div>
+      </div>
+      <button class="btn btn-yellow btn-sm" onclick="openAdviceShift('${a.k}')">Maak dienst aan</button>
+    </div>`).join('')}</div>`;
+}
+window.openAdviceShift=function(k){ const a=adviceForDay(k); if(a) openAddShift({date:k,start:a.start,end:a.end,note:a.note,need:a.need,reason:a.reason}); };
+function refreshMatchesUI(){
+  try{ if(U.role==='software') renderDevAcc(); else renderAdminTab(); }catch(e){}
+}
 function matchSyncStatusText(){
   if(!allMatches.length) return 'Nog geen wedstrijden ingevoerd.';
-  const last=Math.max(...allMatches.map(m=>m.updatedAt||0));
-  return `${allMatches.length} thuiswedstrijden ingevoerd${last?`, laatst bijgewerkt ${new Date(last).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`:''}.`;
+  const lastM=allMatches.reduce((a,m)=>(m.updatedAt||0)>(a.updatedAt||0)?m:a,allMatches[0]);
+  const last=lastM.updatedAt||0;
+  let who='';
+  if(last){
+    if(lastM.updatedBy==='lisa-sync') who='automatische sync';
+    else who=lastM.updatedByName||(allUsers.find(u=>u.uid===lastM.updatedBy)||{}).name||'';
+  }
+  return `${allMatches.length} thuiswedstrijden ingevoerd${last?`, laatst bijgewerkt ${new Date(last).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${who?' · door '+who:''}`:''}.`;
 }
 
 // ── Wedstrijden handmatig beheren (beheerder/dev, alleen zichtbaar zolang de functie aanstaat) ──
@@ -1763,7 +1846,7 @@ window.saveMatch=async function(id){
   const payload={
     date, startTime:time, startMs:localMs(date,time||'00:00'),
     homeTeam:home, awayTeam:away, field:$('mmField').value.trim()||null,
-    status, updatedAt:Date.now(), updatedBy:U.uid
+    status, updatedAt:Date.now(), updatedBy:U.uid, updatedByName:U.name
   };
   if(status==='result'){
     payload.homeScore=parseInt($('mmHomeScore').value,10); payload.awayScore=parseInt($('mmAwayScore').value,10);
@@ -1881,13 +1964,13 @@ function userAvatarHtml(uid){
 function userWage(uid){return allUsers.find(u=>u.uid===uid)?.wage||0;}
 function getTheme(){ try{return localStorage.getItem('mhv_theme')||'dark';}catch(e){return 'dark';} }
 function computeEffectiveTheme(pref){
-  if(pref==='light'||pref==='dark'||pref==='liquid'||pref==='apod') return pref;
+  if(pref==='light'||pref==='dark'||pref==='liquid'||pref==='apod'||pref==='custom') return pref;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
 }
 function applyTheme(){
   const eff=computeEffectiveTheme(getTheme());
   document.documentElement.setAttribute('data-theme', eff);
-  if(eff==='apod') applyApodBackground(); else removeApodBackground();
+  if(eff==='apod') applyApodBackground(); else if(eff==='custom') applyCustomBackground(); else removeApodBackground();
 }
 function setTheme(t){
   try{localStorage.setItem('mhv_theme',t);}catch(e){}
@@ -1927,6 +2010,68 @@ async function applyApodBackground(){
     }
   }catch(e){ console.warn('APOD-thema laden mislukt:',e); }
 }
+
+// Afbeelding verkleinen naar een JPEG-dataURL (voor chat/DM/achtergrond) — houdt Firestore klein.
+function compressImageFile(file,maxDim,q){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onerror=()=>rej(new Error('lezen mislukt'));
+    fr.onload=e=>{
+      const img=new Image();
+      img.onerror=()=>rej(new Error('geen geldige afbeelding'));
+      img.onload=()=>{
+        const k=Math.min(1,maxDim/Math.max(img.width,img.height));
+        const cv=document.createElement('canvas'); cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        res(cv.toDataURL('image/jpeg',q));
+      };
+      img.src=e.target.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function readFileAsDataUrl(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(new Error('lezen mislukt')); fr.readAsDataURL(file); }); }
+
+// ═══ Eigen achtergrond — alleen op dit toestel (IndexedDB), kost dus geen database-opslag ═══
+function bgDb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('mhv_bg_db',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function bgGet(){ try{ const d=await bgDb(); return await new Promise(res=>{ const q=d.transaction('kv').objectStore('kv').get('bg'); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }catch(e){ return null; } }
+async function bgSet(v){ const d=await bgDb(); return new Promise((res,rej)=>{ const tx=d.transaction('kv','readwrite'); if(v) tx.objectStore('kv').put(v,'bg'); else tx.objectStore('kv').delete('bg'); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+function bgDim(){ try{ const v=parseFloat(localStorage.getItem('mhv_bg_dim')); return isNaN(v)?0.55:v; }catch(e){ return 0.55; } }
+async function applyCustomBackground(){
+  const v=await bgGet();
+  if(!v){ removeApodBackground(); return; }
+  const d=bgDim();
+  document.body.style.backgroundImage='linear-gradient(rgba(0,0,0,'+d+'),rgba(0,0,0,'+Math.min(.9,d+.1)+')), url("'+v+'")';
+  document.body.style.backgroundSize='cover'; document.body.style.backgroundPosition='center'; document.body.style.backgroundAttachment='fixed';
+}
+window._bgDraft=null;
+window.openCustomBgModal=function(){
+  window._bgDraft=null;
+  modal(`<div class="modal-handle"></div><div class="modal-title">Eigen achtergrond</div>
+    <p style="font-size:12.5px;color:var(--text3);line-height:1.5;margin:-6px 0 12px">De foto blijft alleen op dit toestel staan en kost geen opslag in de database. Op een ander toestel stel je hem opnieuw in.</p>
+    <div class="form-section"><label class="form-label">Foto</label><input type="file" id="bgFile" accept="image/*" class="form-input" style="padding:8px"></div>
+    <div id="bgPrev" style="margin-bottom:10px"></div>
+    <div class="form-section"><label class="form-label">Donkerte (leesbaarheid)</label><input type="range" id="bgDimIn" min="20" max="85" value="${Math.round(bgDim()*100)}" style="width:100%"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveCustomBg()">Gebruiken</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="clearCustomBg()">Achtergrond verwijderen</button>`);
+  $('bgFile').onchange=async e=>{
+    const f=e.target.files[0]; if(!f)return;
+    try{ window._bgDraft=await compressImageFile(f,1600,0.78); $('bgPrev').innerHTML='<img src="'+window._bgDraft+'" style="max-width:100%;max-height:140px;border-radius:10px">'; }
+    catch(err){ toast('Kon de foto niet lezen','err'); }
+  };
+};
+window.saveCustomBg=async function(){
+  try{
+    localStorage.setItem('mhv_bg_dim',String(($('bgDimIn').value||55)/100));
+    if(window._bgDraft) await bgSet(window._bgDraft);
+    else if(!(await bgGet())){ toast('Kies eerst een foto','err'); return; }
+    closeModal(); setTheme('custom'); toast('Achtergrond ingesteld','ok');
+  }catch(e){ toast('Opslaan mislukt','err'); }
+};
+window.clearCustomBg=async function(){
+  try{ await bgSet(null); }catch(e){}
+  closeModal(); if(getTheme()==='custom') setTheme('dark'); else toast('Verwijderd','ok');
+};
 function removeApodBackground(){
   document.body.style.backgroundImage='';
   document.body.style.backgroundSize='';
@@ -2487,6 +2632,7 @@ async function renderAdminHome(c){
       <span class="hi">Goedemorgen,</span>
       ${U.name?.split(' ')[0]||'Admin'} ${WAVE_ICON}
     </div>
+    ${shiftAdviceHtml()}
     <div id="announceArea" style="margin-bottom:4px"></div>
     ${restricted('announcements')?'':'<button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)"><span class="ic" data-icon="megaphone"></span> Aankondiging plaatsen voor medewerkers</button>'}
 
@@ -2691,7 +2837,20 @@ async function renderEmployeeHome(c){
 let lastAnnouncements=[];
 function escAnn(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // Simpele opmaak: **vet** wordt <b>, tabs/enters blijven gewoon staan dankzij white-space:pre-wrap.
-function renderRichText(text){ return escAnn(text).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+function renderRichText(text){
+  // Opmaak: **vet**, *schuin*, __onderstreept__, ~~doorgehaald~~, ==markering==, [tekst](https://link), "# Kop", "- lijstitem"
+  const inline=t=>escAnn(t)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)"']+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:var(--mhv-yellow)">$1</a>')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/__(.+?)__/g,'<u>$1</u>').replace(/~~(.+?)~~/g,'<s>$1</s>')
+    .replace(/==(.+?)==/g,'<mark style="background:rgba(245,200,0,.35);color:inherit;padding:0 3px;border-radius:3px">$1</mark>')
+    .replace(/(^|[^*\w])\*(?!\s)([^*]+?)\*(?![*\w])/g,'$1<i>$2</i>');
+  return String(text||'').split('\n').map(l=>{
+    if(/^#\s+/.test(l)) return '<div style="font-size:17px;font-weight:800;margin:6px 0 2px;color:var(--text)">'+inline(l.replace(/^#\s+/,''))+'</div>';
+    if(/^[-•]\s+/.test(l)) return '<div style="padding-left:16px;position:relative"><span style="position:absolute;left:3px">•</span>'+inline(l.replace(/^[-•]\s+/,''))+'</div>';
+    return inline(l)+'\n';
+  }).join('').replace(/\n$/,'');
+}
+function stripRich(t){ return String(t||'').replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'$1 ($2)').replace(/(\*\*|__|~~|==)/g,'').replace(/^#\s+/gm,'').replace(/^[-•]\s+/gm,'• '); }
 function fmtFileSize(b){ if(!b)return ''; if(b<1024)return b+' B'; if(b<1024*1024)return Math.round(b/1024)+' KB'; return (b/1024/1024).toFixed(1)+' MB'; }
 function _annTimeAgo(d){
   const diffMin = Math.round((Date.now()-d.getTime())/60000);
@@ -2856,6 +3015,7 @@ function renderAdminRoster(c){
       <button class="btn btn-yellow btn-sm" onclick="openAddShift()" ${restricted('editShift')?'style="display:none"':''}>+ Dienst</button>
     </div>
     ${tabs}
+    ${shiftAdviceHtml()}
     ${totalDebt>0?`<div class="stat-tile red" style="margin-bottom:14px"><div class="stat-num" style="color:var(--red);font-size:22px">${fmtMoney(totalDebt)}</div><div class="stat-lbl">Openstaande schuld</div></div>`:''}
     ${sorted.length?sorted.map(k=>{
       const[y,m,d]=k.split('-').map(Number);
@@ -3170,18 +3330,9 @@ function renderAdminTab(){
   if(adminTab==='berichten')   renderBerichten(c);
   if(adminTab==='instellingen') renderAdminSettings(c);
 }
-function renderAdminSettings(c){
-  c.innerHTML=`
-    <div class="section-label">Diensten exporteren</div>
-    <div class="card" style="margin-bottom:16px"><div style="padding:16px">
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Exporteer alle diensten (geweest en gepland) van een periode naar Excel: per medewerker een rij, per datum een kolom, met een kruisje + tijden bij wie wanneer werkt(e).</p>
-      <div class="form-row">
-        <div class="form-section"><label class="form-label">Van</label><input type="date" class="form-input" id="xlsFrom"></div>
-        <div class="form-section"><label class="form-label">T/m</label><input type="date" class="form-input" id="xlsTo"></div>
-      </div>
-      <button class="btn btn-yellow btn-full" onclick="exportShiftsExcel()"><span class="ic" data-icon="chart"></span> Exporteer naar Excel</button>
-    </div></div>
-    ${featureOn('matches')?`
+function matchesPanelHtml(){
+  if(!featureOn('matches')) return '';
+  return `
     <div class="section-label">Wedstrijden</div>
     <div class="card" style="margin-bottom:16px"><div style="padding:16px">
       <p style="font-size:13px;color:var(--text3);margin-bottom:4px;line-height:1.5">Deze wedstrijden verschijnen bij Rooster, Home en de idle-modus.</p>
@@ -3200,7 +3351,20 @@ function renderAdminSettings(c){
       </div>
       <button class="btn btn-ghost btn-full" style="margin-bottom:12px" onclick="openMatchModal()">+ Wedstrijd handmatig toevoegen</button>
       ${adminMatchesListHtml()}
-    </div></div>`:''}
+    </div></div>`;
+}
+function renderAdminSettings(c){
+  c.innerHTML=`
+    <div class="section-label">Diensten exporteren</div>
+    <div class="card" style="margin-bottom:16px"><div style="padding:16px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Exporteer alle diensten (geweest en gepland) van een periode naar Excel: per medewerker een rij, per datum een kolom, met een kruisje + tijden bij wie wanneer werkt(e).</p>
+      <div class="form-row">
+        <div class="form-section"><label class="form-label">Van</label><input type="date" class="form-input" id="xlsFrom"></div>
+        <div class="form-section"><label class="form-label">T/m</label><input type="date" class="form-input" id="xlsTo"></div>
+      </div>
+      <button class="btn btn-yellow btn-full" onclick="exportShiftsExcel()"><span class="ic" data-icon="chart"></span> Exporteer naar Excel</button>
+    </div></div>
+    ${matchesPanelHtml()}
     <div class="section-label">Sluitchecklist</div>
     <div class="card" style="margin-bottom:16px"><div style="padding:16px">
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Eén taak per regel. Wie de sluit- of laatste dienst van de dag heeft, kan deze lijst bij die dienst afvinken (bij Details) — met naam en tijdstip erbij.</p>
@@ -3269,7 +3433,7 @@ function renderMedewerkers(c){
         ${restricted('manageEmployees')?'':`<div class="card-row" style="gap:6px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="openEditEmployee('${u.uid}')"><span class="ic" data-icon="edit"></span> Bewerken</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="resetPwAdmin('${u.uid}','${u.name}','${u.email}')"><span class="ic" data-icon="key"></span> Reset ww</button>
-          ${u.guestUntil?`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="extendGuest('${u.uid}')"><span class="ic" data-icon="calendar"></span> Verleng 7 dagen</button>`:`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')"><span class="ic" data-icon="crown"></span> Admin</button>`}
+          ${u.guestUntil&&U.role==='software'?`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="extendGuest('${u.uid}')"><span class="ic" data-icon="calendar"></span> Verleng 7 dagen</button>`:`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')"><span class="ic" data-icon="crown"></span> Admin</button>`}
           <button class="btn btn-red btn-sm" style="flex:1;min-width:80px" onclick="deleteEmployee('${u.uid}','${u.name}')"><span class="ic" data-icon="trash"></span> Verwijder</button>
         </div>`}
       </div>`).join('')}
@@ -3332,8 +3496,12 @@ async function createInvite(){
   }
   const{db,collection,addDoc,serverTimestamp}=window._f;
   const payload={name,email,wage,role:roleVal,used:false,createdBy:U.uid,createdAt:serverTimestamp()};
-  if(guestUntil) payload.guestUntil=guestUntil;
+  if(guestUntil){ payload.guestUntil=guestUntil; payload.guestApproved=(U.role==='software'); }
   const ref=await addDoc(collection(db,'invites'),payload);
+  if(guestUntil&&U.role!=='software'){
+    const devs=allUsers.filter(u=>u.role==='software').map(u=>u.uid);
+    if(devs.length) sendNotifMulti(devs,'Gastaccount wacht op goedkeuring',U.name+' nodigde '+name+' uit als gast tot '+new Date(guestUntil).toLocaleDateString('nl-NL')+'. Keur goed bij Beheer → Gasten.').catch(()=>{});
+  }
   const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
   const link=`${base}/register.html?invite=${ref.id}`;
   const r=$('inviteResult');
@@ -3508,23 +3676,25 @@ async function deleteEmployee(uid,name){
 }
 
 // SHIFTS (admin)
-function openAddShift(){
+function openAddShift(pref){
+  pref=(pref&&pref.date)?pref:null;
   const tom=new Date(); tom.setDate(tom.getDate()+1);
-  const tomKey=dKey(tom);
+  const tomKey=pref?pref.date:dKey(tom);
   window._shiftNoteImg=null;
   modal(`
     <div class="modal-handle"></div>
     <div class="modal-title">Dienst toevoegen</div>
+    ${pref?`<p style="font-size:12.5px;color:var(--mhv-yellow);margin:-6px 0 12px">Advies: ${pref.need} ${pref.need===1?'persoon':'personen'} · ${escAnn(pref.reason)}</p>`:''}
     <div class="form-section"><label class="form-label">Datum</label>
       <input type="date" class="form-input" id="sDate" value="${tomKey}" onchange="refreshWorkers(this.value)"></div>
     <div class="form-row">
       <div class="form-section"><label class="form-label">Begin</label>
-        <input type="time" class="form-input" id="sStart" value="10:00"></div>
-      ${endTimeFieldHtml('sEnd','sEndSluit','14:00')}
+        <input type="time" class="form-input" id="sStart" value="${pref?pref.start:'10:00'}"></div>
+      ${endTimeFieldHtml('sEnd','sEndSluit',pref?pref.end:'14:00')}
     </div>
     <label class="form-label">Medewerkers</label>
     <div id="workerList">${buildWorkerList(tomKey)}</div>
-    ${noteFieldHtml('','')}
+    ${noteFieldHtml(pref?escAnn(pref.note):'','')}
     <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveShift()">Opslaan</button>
   `);
   bindNoteImgInput();
@@ -4094,6 +4264,8 @@ function renderDmThreadPage(){
     </div>
     <div class="chat-input-wrap">
       <div class="chat-input-row">
+        <button class="btn" style="width:36px;height:36px;padding:0;border-radius:50%;background:none;border:none;flex-shrink:0;color:var(--text3)" onclick="pickDmFile()" title="Bijlage of foto (max 700 KB)"><span class="ic" data-icon="paperclip"></span></button>
+        <input type="file" id="dmFileInput" style="display:none" onchange="handleDmFile(this.files[0],this)">
         <input type="text" class="form-input" id="dmInput" placeholder="Typ een bericht…" style="flex:1" onkeydown="if(event.key==='Enter'){sendDM('${otherUid}','${(otherName||'').replace(/'/g,"\\'")}')}">
         <button class="chat-send" onclick="sendDM('${otherUid}','${(otherName||'').replace(/'/g,"\\'")}')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -4129,7 +4301,7 @@ function _renderDMMessages(t){
       lastFrom=null;
     }else{
       html+=`<div style="align-self:${mine?'flex-end':'flex-start'};max-width:80%;margin-top:${sameGroup?'2px':'10px'}">
-        <div style="background:${mine?'var(--mhv-blue)':'var(--bg3)'};color:${mine?'#fff':'var(--text1)'};padding:9px 13px;border-radius:16px;${mine?'border-bottom-right-radius:5px':'border-bottom-left-radius:5px'};font-size:14.5px;line-height:1.4">${(m.text||'').replace(/</g,'&lt;')}</div>
+        <div style="background:${mine?'var(--mhv-blue)':'var(--bg3)'};color:${mine?'#fff':'var(--text1)'};padding:9px 13px;border-radius:16px;${mine?'border-bottom-right-radius:5px':'border-bottom-left-radius:5px'};font-size:14.5px;line-height:1.4">${(m.text||'').replace(/</g,'&lt;')}${m.file?dmFileHtml(m.file):''}</div>
         ${time?`<div style="font-size:10px;color:var(--text3);margin-top:3px;text-align:${mine?'right':'left'};padding:0 4px">${time}</div>`:''}
       </div>`;
       lastFrom=m.from; lastTs=m.ts||0;
@@ -4137,6 +4309,7 @@ function _renderDMMessages(t){
   });
   c.innerHTML=html;
   c.scrollTop=c.scrollHeight;
+  hydrateDmFiles();
 }
 function fmtDayDivider(d){
   const today=nowKey(), y=new Date(); y.setDate(y.getDate()-1);
@@ -4228,25 +4401,90 @@ function downloadApprovedLog(threadId,msgIndex){
   XLSX.utils.book_append_sheet(wb,ws,'Logboek');
   XLSX.writeFile(wb,`MHVwork-logboek-gedeeld_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
+window._dmPending=null; window._dmFileCache=window._dmFileCache||{};
+const DM_MAX_BYTES=700*1024;
+window.pickDmFile=function(){ const i=$('dmFileInput'); if(i) i.click(); };
+window.handleDmFile=async function(file,inputEl){
+  if(!file) return;
+  try{
+    let dataUrl,type=file.type||'application/octet-stream',name=file.name||'bijlage',size=file.size;
+    if(type.startsWith('image/')&&type!=='image/gif'&&type!=='image/svg+xml'){
+      dataUrl=await compressImageFile(file,1400,0.78);
+      if(dataUrl.length*0.75>DM_MAX_BYTES) dataUrl=await compressImageFile(file,1000,0.6);
+      type='image/jpeg'; name=name.replace(/\.\w+$/,'')+'.jpg'; size=Math.round(dataUrl.length*0.75);
+    } else {
+      if(file.size>DM_MAX_BYTES){ toast('Bestand te groot — maximaal 700 KB','err'); return; }
+      dataUrl=await readFileAsDataUrl(file);
+    }
+    if(size>DM_MAX_BYTES){ toast('Bestand te groot — maximaal 700 KB','err'); return; }
+    window._dmPending={name,type,size,dataUrl};
+    showDmPending();
+  }catch(e){ toast('Bijlage kon niet worden gelezen','err'); }
+  finally{ if(inputEl) inputEl.value=''; }
+};
+function showDmPending(){
+  let el=$('dmPending'); const inp=$('dmInput'); if(!inp) return;
+  if(!el){ el=document.createElement('div'); el.id='dmPending'; inp.parentElement.parentElement.insertBefore(el,inp.parentElement); }
+  const f=window._dmPending;
+  el.innerHTML=f?`<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:10px;padding:6px 10px;margin-bottom:6px;font-size:12.5px"><span class="ic" data-icon="paperclip"></span><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escAnn(f.name)} · ${fmtFileSize(f.size)}</span><button onclick="clearDmPending()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px">✕</button></div>`:'';
+}
+window.clearDmPending=function(){ window._dmPending=null; showDmPending(); };
 async function sendDM(otherUid,otherName){
   const inp=document.getElementById('dmInput'); if(!inp)return;
-  const text=inp.value.trim(); if(!text)return;
+  const text=inp.value.trim(); const file=window._dmPending||null;
+  if(!text&&!file)return;
   inp.value='';
   const id=dmThreadId(U.uid,otherUid);
   try{
-    const{db,doc,updateDoc,serverTimestamp}=window._f;
+    const{db,doc,updateDoc,addDoc,collection,serverTimestamp}=window._f;
+    let fileRef=null;
+    if(file){
+      const fr=await addDoc(collection(db,'dmFiles'),{threadId:id,participants:[U.uid,otherUid],from:U.uid,name:file.name,type:file.type,size:file.size,dataUrl:file.dataUrl,createdAt:serverTimestamp()});
+      fileRef={id:fr.id,name:file.name,type:file.type,size:file.size};
+      window._dmFileCache[fr.id]=file.dataUrl;
+    }
+    const msg={from:U.uid,text,ts:Date.now()}; if(fileRef) msg.file=fileRef;
     await updateDoc(doc(db,'dms',id),{
-      messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),{from:U.uid,text,ts:Date.now()}],
-      lastText:text, lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
+      messages:[...(((allDMs.find(x=>x.id===id))||{}).messages||[]),msg],
+      lastText:text||('Bijlage: '+file.name), lastFrom:U.uid, readBy:[U.uid], updatedAt:serverTimestamp()
     });
+    if(file) clearDmPending();
     // Privéberichten zijn altijd ALLEEN een pushmelding — nooit een e-mail, geen keuze meer.
-    await notifyUsers([otherUid],'Bericht van '+U.name,text,text,{type:'message',email:false});
+    await notifyUsers([otherUid],'Bericht van '+U.name,text||('Bijlage: '+file.name),text||('Bijlage: '+file.name),{type:'message',email:false});
   }catch(e){
     console.error('sendDM FOUT:',e);
     inp.value=text; // teruggeven zodat het niet kwijt is
     toast('Versturen mislukt: '+(e.message||'onbekende fout'),'err');
   }
 }
+async function getDmFile(fid){
+  if(window._dmFileCache[fid]) return window._dmFileCache[fid];
+  const{db,doc,getDoc}=window._f;
+  const sn=await getDoc(doc(db,'dmFiles',fid)); const d=sn.exists()?sn.data().dataUrl:null;
+  if(d) window._dmFileCache[fid]=d; return d;
+}
+function dmImgTag(fid,d){ return `<img src="${d}" onload="var c=document.getElementById('dmMsgs');if(c&&c.dataset.stick!=='0')c.scrollTop=c.scrollHeight" style="max-width:100%;max-height:260px;border-radius:12px;display:block;cursor:pointer" onclick="openDmImage('${fid}')">`; }
+function dmFileHtml(f){
+  if(!f||!f.id) return '';
+  const isImg=(f.type||'').startsWith('image/');
+  if(isImg){ const c=window._dmFileCache[f.id]; return `<div class="dm-img" ${c?'':`data-fid="${f.id}"`} style="margin-top:6px;${c?'':'min-height:90px;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:.7'}">${c?dmImgTag(f.id,c):'Foto laden…'}</div>`; }
+  return `<div onclick="downloadDmFile('${f.id}','${escAnn(f.name||'bijlage').replace(/'/g,'&#39;')}')" style="margin-top:6px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.18);border-radius:10px;padding:8px 10px;cursor:pointer;font-size:13px"><span class="ic" data-icon="paperclip"></span><span style="flex:1;min-width:0;word-break:break-all">${escAnn(f.name||'bijlage')}<br><small style="opacity:.7">${fmtFileSize(f.size)}</small></span><span>⬇</span></div>`;
+}
+function hydrateDmFiles(){
+  document.querySelectorAll('#dmMsgs .dm-img[data-fid]').forEach(async el=>{
+    const fid=el.dataset.fid; el.removeAttribute('data-fid');
+    try{ const d=await getDmFile(fid); if(d&&el.isConnected){ el.style.cssText='margin-top:6px'; el.innerHTML=dmImgTag(fid,d); } else if(el.isConnected) el.textContent='Foto niet beschikbaar'; }
+    catch(e){ if(el.isConnected) el.textContent='Foto niet beschikbaar'; }
+  });
+}
+window.downloadDmFile=async function(fid,name){
+  try{ const d=await getDmFile(fid); if(!d){ toast('Bestand niet beschikbaar','err'); return; } const a=document.createElement('a'); a.href=d; a.download=name||'bijlage'; a.click(); }
+  catch(e){ toast('Downloaden mislukt','err'); }
+};
+window.openDmImage=async function(fid){
+  const d=await getDmFile(fid); if(!d) return;
+  modal(`<div class="modal-handle"></div><img src="${d}" style="width:100%;border-radius:12px;display:block"><button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="downloadDmFile('${fid}','foto.jpg')">Opslaan</button>`);
+};
 async function markDMRead(id){
   const{db,doc,updateDoc,arrayUnion}=window._f;
   try{ await updateDoc(doc(db,'dms',id),{readBy:arrayUnion(U.uid)}); }catch(e){}
@@ -4548,6 +4786,7 @@ function renderProfile(){
           <button class="theme-opt ${getTheme()==='dark'?'active':''}" onclick="setTheme('dark')" title="Donker (standaard)"><span class="ic" data-icon="moon"></span></button>
           <button class="theme-opt ${getTheme()==='liquid'?'active':''}" onclick="setTheme('liquid')" title="Liquid Glass"><span class="ic" data-icon="bubbles"></span></button>
           ${isApodUnlocked()?`<button class="theme-opt ${getTheme()==='apod'?'active':''}" onclick="setTheme('apod')" title="Geheim: NASA-foto van de dag"><span class="ic" data-icon="galaxy"></span></button>`:''}
+          <button class="theme-opt ${getTheme()==='custom'?'active':''}" onclick="openCustomBgModal()" title="Eigen achtergrond"><span class="ic" data-icon="camera"></span></button>
         </div>
       </div>
       ${!isApodUnlocked()?'<div style="padding:0 16px 12px;font-size:11px;color:var(--text3)">Psst… ergens in de app zit een verborgen thema verstopt <span class="ic" data-icon="eye"></span></div>':''}
@@ -4779,6 +5018,21 @@ async function logEmailSent(n){
     await setDoc(doc(db,'emailUsage',ym),{count:increment(n||1),month:ym,updatedAt:serverTimestamp()},{merge:true});
   }catch(e){}
 }
+// Foto voor in de e-mail: EmailJS (gratis) accepteert maximaal 50 KB per verzoek, dus een klein
+// miniatuur (± 25 KB) in plaats van het origineel. De volledige foto staat altijd in de app.
+async function makeMailThumb(dataUrl){
+  try{
+    const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=dataUrl; });
+    for(const [dim,q] of [[520,.6],[420,.5],[340,.45],[280,.4]]){
+      const k=Math.min(1,dim/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas'); cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      const out=cv.toDataURL('image/jpeg',q);
+      if(out.length<28000) return out;
+    }
+  }catch(e){}
+  return null;
+}
 async function trackedEmailSend(serviceId,tplId,params){
   const r=await emailjs.send(serviceId,tplId,params);
   logEmailSent(1);
@@ -4816,7 +5070,8 @@ async function notifyUsers(uids, title, body, emailBody, opts){
       if(!isUrgent && u.emailOptOut) continue;
       try{
         await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,tplId,{
-          to_email:u.email, to_name:u.name, title, body:emailBody||body
+          to_email:u.email, to_name:u.name, title, body:emailBody||body,
+          ...(opts.emailImage?{image_data:opts.emailImage,image_html:'<img src="'+opts.emailImage+'" alt="Foto" style="max-width:100%;border-radius:10px">'}:{})
         });
       }catch(e){}
     }
@@ -4888,6 +5143,7 @@ const REACTION_ICONS={like:'thumbsup',check:'check',heart:'heart'};
 
 function renderChat(){
   const v=document.getElementById('view-chat'); if(!v)return;
+  window._chatSeen=null;
   document.getElementById('chat-dot')&&(document.getElementById('chat-dot').style.display='none');
   v.innerHTML='<div class="chat-wrap">'
     +'<div style="padding:12px 14px 8px;border-bottom:1px solid var(--separator);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">'
@@ -5047,7 +5303,7 @@ function _renderChatMsgs(){
     const metaHtml = grouped
       ? '<div class="chat-meta chat-meta-grouped">'+ts+'</div>'
       : (mine?'<div class="chat-meta">'+ts+'</div>':'<div class="chat-meta">'+msg.name+(verified?VERIFIED_BADGE:'')+roleTag+' · '+ts+'</div>');
-    return '<div class="chat-row'+(mine?' me':'')+(grouped?' grouped':'')+' anim-up" style="animation-delay:'+(idx*.02)+'s">'
+    return '<div class="chat-row'+(mine?' me':'')+(grouped?' grouped':'')+((window._chatSeen&&!window._chatSeen.has(msg.id))?' chat-new':'')+'">'
       +(mine?'':'<div class="'+avClass+'">'+av+'</div>')
       +'<div class="chat-col">'
       +metaHtml
@@ -5074,8 +5330,19 @@ function _renderChatMsgs(){
     html+=renderMsg(msg,idx,grouped,idx===lastMineIdx);
     lastUid=msg.uid; lastTs=ts;
   });
+  // Geen herhaalde animatie meer: alleen echt nieuwe berichten schuiven in (net als bij privéberichten),
+  // de rest blijft stil staan. Scrollpositie blijft behouden als je zelf omhoog scrolt.
+  const firstRender=!window._chatSeen;
+  const nearBottom=firstRender||(c.scrollHeight-c.scrollTop-c.clientHeight)<120;
+  const hasNew=!firstRender&&rest.some(m=>!window._chatSeen.has(m.id));
+  const prevTop=c.scrollTop;
   c.innerHTML=html;
-  c.scrollTop=c.scrollHeight;
+  window._chatSeen=new Set(rest.map(m=>m.id));
+  if(firstRender){ c.scrollTop=c.scrollHeight; }
+  else if(nearBottom){
+    if(hasNew){ c.scrollTop=Math.max(0,c.scrollHeight-c.clientHeight-60); c.scrollTo({top:c.scrollHeight,behavior:'smooth'}); }
+    else c.scrollTop=c.scrollHeight;
+  } else c.scrollTop=prevTop;
   _renderPinnedBar();
 }
 
@@ -5495,13 +5762,15 @@ function renderDevAcc(){
       +'</label>';
   }).join('');
 
-  v.innerHTML=
+  const _full=
     '<div class="page-title" style="padding:16px 16px 0"><span class="ic" data-icon="tools"></span> Beheer</div>'
-    +statsHtml
+    +'\u0001'+statsHtml+'\u0001'
     +'<div style="padding:0 16px">'+renderEmailMeterPanel()+'</div>'
+    +'\u0001'
     +'<div style="padding:0 16px">'
     +'<button class="btn btn-yellow btn-full" style="margin-bottom:14px" onclick="openAddEmployee()">+ Gebruiker uitnodigen</button>'
     +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;margin-bottom:24px">'+rows+'</div>'
+    +'</div>'+'\u0001'+'<div style="padding:0 16px">'
     +'<div class="section-label">Uitzending sturen</div>'
     +'<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px;margin-bottom:24px">'
     +'<div>'
@@ -5525,8 +5794,74 @@ function renderDevAcc(){
     +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
     +'</div>'
     +'</div>'
-    +'<div style="padding:0 16px 16px">'+renderFeatureFlagsPanel()+'</div>';
+    +'\u0001'+'<div style="padding:0 16px 16px">'+renderFeatureFlagsPanel()+'</div>';
+  const _p=_full.split('\u0001');
+  // _p: 0 titel | 1 stats | 2 e-mailmeter | 3 accounts | 4 uitzending(+resterende sluit-div) | 5 functies
+  const pend=allUsers.filter(u=>u.guestUntil&&u.guestPending).length;
+  window._devParts={
+    accounts:_p[1]+_p[3],
+    guests:'<div style="padding:0 16px">'+devGuestsHtml()+'</div>',
+    matches:'<div style="padding:0 16px">'+(featureOn('matches')?matchesPanelHtml():'<p style="font-size:13px;color:var(--text3)">Wedstrijden staan uit (zie Instellingen).</p>')+'</div>',
+    berichten:_p[4].replace(/<\/div>\s*$/,'')+'</div>',
+    instellingen:_p[2]+_p[5]
+  };
+  const tabBtn=(k,l,badge)=>`<button class="pill-tab ${devTab===k?'active':''}" style="font-size:12px;padding:8px 2px" onclick="setDevTab('${k}',this)">${l}${badge?` <span class="badge badge-orange" style="font-size:9px;padding:1px 5px">${badge}</span>`:''}</button>`;
+  v.innerHTML=_p[0]+'<div style="padding:12px 16px 0"><div class="pill-tabs">'
+    +tabBtn('accounts','Accounts')+tabBtn('guests','Gasten',pend||'')+tabBtn('matches','Wedstrijden')+tabBtn('berichten','Berichten')+tabBtn('instellingen','Instellingen')
+    +'</div></div><div id="devTabContent"></div>';
+  paintDevTab();
 }
+let devTab='accounts';
+function paintDevTab(){
+  const c=document.getElementById('devTabContent'); if(!c||!window._devParts) return;
+  c.innerHTML=window._devParts[devTab]||'';
+}
+window.setDevTab=function(t,btn){
+  devTab=t;
+  document.querySelectorAll('#view-devacc .pill-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); paintDevTab();
+};
+
+// ── Tijdelijke (gast)accounts: dev keurt goed en beheert ──
+function devGuestsHtml(){
+  const g=allUsers.filter(u=>u.guestUntil).sort((a,b)=>(b.guestPending?1:0)-(a.guestPending?1:0)||a.guestUntil-b.guestUntil);
+  const fmt=ms=>new Date(ms).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+  if(!g.length) return '<p style="font-size:13px;color:var(--text3);line-height:1.5">Geen tijdelijke accounts. Een beheerder maakt ze aan via Uitnodigen → Tijdelijk gastaccount; jij keurt ze hier goed.</p>';
+  return '<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;margin-top:6px">'+g.map(u=>{
+    const exp=u.guestUntil<Date.now();
+    const st=u.guestPending?'<span class="badge badge-orange">Wacht op goedkeuring</span>':exp?'<span class="badge badge-red">Verlopen</span>':'<span class="badge badge-green">Actief</span>';
+    const btns=u.guestPending
+      ?`<button class="btn btn-green btn-sm" style="flex:1" onclick="approveGuest('${u.uid}')">✓ Goedkeuren</button><button class="btn btn-red btn-sm" style="flex:1" onclick="rejectGuest('${u.uid}')">Afwijzen</button>`
+      :`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="extendGuest('${u.uid}')">+7 dagen</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="openGuestDate('${u.uid}')">Datum</button>${exp?'':`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="endGuest('${u.uid}')">Intrekken</button>`}<button class="btn btn-red btn-sm" onclick="rejectGuest('${u.uid}')"><span class="ic" data-icon="trash"></span></button>`;
+    return `<div style="padding:13px 16px;border-bottom:1px solid var(--separator)"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${escAnn(u.name)}</div><div style="font-size:12px;color:var(--text3)">${escAnn(u.email||'—')} · t/m ${fmt(u.guestUntil)}</div></div>${st}</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">${btns}</div></div>`;
+  }).join('')+'</div>';
+}
+window.approveGuest=async function(uid){
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'users',uid),{guestPending:false,guestApprovedBy:U.uid});
+    try{ await sendNotifMulti([uid],'Gastaccount goedgekeurd','Je gastaccount is goedgekeurd — je kunt nu inloggen.'); }catch(e){}
+    toast('Gastaccount goedgekeurd','ok');
+  }catch(e){ toast('Goedkeuren mislukt','err'); }
+};
+window.rejectGuest=function(uid){ const u=allUsers.find(x=>x.uid===uid); if(u) deleteEmployeeDev(uid,u.name||'',u.email||''); };
+window.endGuest=async function(uid){
+  const ok=await confirm2('Toegang intrekken','Het gastaccount werkt direct niet meer.','Intrekken','btn-red'); if(!ok)return;
+  try{ const{db,doc,updateDoc}=window._f; await updateDoc(doc(db,'users',uid),{guestUntil:Date.now()-1000}); toast('Toegang ingetrokken','ok'); }catch(e){ toast('Mislukt','err'); }
+};
+window.openGuestDate=function(uid){
+  const u=allUsers.find(x=>x.uid===uid); if(!u)return;
+  const cur=new Date(Math.max(u.guestUntil,Date.now())).toISOString().slice(0,10);
+  modal(`<div class="modal-handle"></div><div class="modal-title">Toegang aanpassen</div>
+    <div class="form-section"><label class="form-label">Toegang tot en met</label><input type="date" class="form-input" id="ggDate" value="${cur}"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveGuestDate('${uid}')">Opslaan</button>`);
+};
+window.saveGuestDate=async function(uid){
+  const dv=$('ggDate')?.value; if(!dv){toast('Kies een datum','err');return;}
+  const[y,m,d]=dv.split('-').map(Number);
+  try{ const{db,doc,updateDoc}=window._f; await updateDoc(doc(db,'users',uid),{guestUntil:new Date(y,m-1,d,23,59,59,999).getTime()}); closeModal(); toast('Opgeslagen','ok'); }catch(e){ toast('Mislukt','err'); }
+};
+
 
 // ═══════════════════════════════════════════
 // DEV — Aankondiging
@@ -5803,11 +6138,9 @@ function openAnnouncementModal(){
     +'<div class="form-section"><label class="form-label">Titel</label>'
     +'<input type="text" class="form-input" id="annTitle" placeholder="Bijv. Let op: buffet zaterdag eerder!"></div>'
     +'<div class="form-section"><label class="form-label">Tekst</label>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-    +'<button type="button" onclick="annWrapSelection(\'**\')" title="Vet" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--separator);font-weight:800;cursor:pointer;color:var(--text)">B</button>'
-    +'<span style="font-size:11px;color:var(--text3)">Selecteer tekst + B voor vet. Tab en Enter werken gewoon.</span>'
-    +'</div>'
-    +'<textarea class="form-input" id="annText" rows="4" style="resize:none;font-family:inherit;white-space:pre-wrap" placeholder="Meer details..." onkeydown="annTextareaTab(event)"></textarea></div>'
+    +annToolbarHtml()
+    +'<textarea class="form-input" id="annText" rows="4" style="resize:none;font-family:inherit;white-space:pre-wrap" placeholder="Meer details..." oninput="annPreviewUpdate()" onkeydown="annTextareaTab(event)"></textarea>'
+    +'<div id="annPreview" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg3);border-radius:10px;font-size:13.5px;line-height:1.55;white-space:pre-wrap"></div></div>'
     +'<div class="form-section"><label class="form-label">Afbeelding (optioneel)</label>'
     +'<input type="file" id="annImg" accept="image/*" class="form-input" style="padding:8px">'
     +'<div id="annImgPreview" style="margin-top:8px"></div></div>'
@@ -5870,6 +6203,18 @@ function renderAnnFilesPreview(){
     +'</div>').join('');
 }
 function removeAnnAttachment(i){ window._annAttachments.splice(i,1); renderAnnFilesPreview(); }
+function annToolbarHtml(){
+  const b=(lbl,fn,title,st)=>`<button type="button" onclick="${fn}" title="${title}" style="min-width:32px;height:32px;padding:0 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--separator);cursor:pointer;color:var(--text);${st||''}">${lbl}</button>`;
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'
+    +b('B',"annWrapSelection('**')",'Vet','font-weight:800')+b('I',"annWrapSelection('*')",'Schuin','font-style:italic')
+    +b('U',"annWrapSelection('__')",'Onderstreept','text-decoration:underline')+b('S',"annWrapSelection('~~')",'Doorgehaald','text-decoration:line-through')
+    +b('▮',"annWrapSelection('==')",'Markeren','background:rgba(245,200,0,.35)')+b('H',"annLinePrefix('# ')",'Kop','font-weight:800')
+    +b('•',"annLinePrefix('- ')",'Lijst')+b('🔗',"annInsertLink()",'Link')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Selecteer tekst en kies een opmaak. Hieronder zie je een voorbeeld.</div>';
+}
+window.annPreviewUpdate=function(){ const ta=$('annText'),pv=$('annPreview'); if(!ta||!pv)return; pv.style.display=ta.value.trim()?'block':'none'; pv.innerHTML=renderRichText(ta.value); };
+window.annLinePrefix=function(pre){ const ta=$('annText'); if(!ta)return; const s0=ta.selectionStart; const ls=ta.value.lastIndexOf('\n',s0-1)+1; ta.value=ta.value.slice(0,ls)+pre+ta.value.slice(ls); ta.focus(); annPreviewUpdate(); };
+window.annInsertLink=function(){ const ta=$('annText'); if(!ta)return; const url=prompt('Link (begint met https://)'); if(!url||!/^https?:\/\//.test(url)){ if(url) toast('Link moet met http(s):// beginnen','err'); return; } const s0=ta.selectionStart,e0=ta.selectionEnd; const t=ta.value.slice(s0,e0)||'link'; ta.value=ta.value.slice(0,s0)+'['+t+']('+url+')'+ta.value.slice(e0); ta.focus(); annPreviewUpdate(); };
 function annWrapSelection(marker){
   const ta=$('annText'); if(!ta)return;
   const s=ta.selectionStart, e=ta.selectionEnd;
@@ -5877,6 +6222,7 @@ function annWrapSelection(marker){
   const sel=val.slice(s,e)||'tekst';
   ta.value=val.slice(0,s)+marker+sel+marker+val.slice(e);
   ta.focus(); ta.selectionStart=s+marker.length; ta.selectionEnd=s+marker.length+sel.length;
+  annPreviewUpdate();
 }
 function annTextareaTab(e){
   if(e.key==='Tab'){
@@ -5910,6 +6256,7 @@ async function saveAnnouncement(){
     imageData: window._annImgData||null,
     attachments: attachments,
   };
+  const imgForMail = window._annImgData||null;
   window._annImgData = null;
   window._annAttachments = [];
   try{
@@ -5923,7 +6270,11 @@ async function saveAnnouncement(){
       if(audience==='admin')return u.role==='admin'||u.role==='software';
       return true;
     }).map(u=>u.uid);
-    if(targets.length) await notifyUsers(targets,(special?'':'')+payload.title,payload.text||payload.title,payload.text||payload.title,{type:'announce',email:wantsEmail});
+    if(targets.length){
+      const plain=stripRich(payload.text)||payload.title;
+      const thumb=(wantsEmail&&imgForMail)?await makeMailThumb(imgForMail):null;
+      await notifyUsers(targets,payload.title,plain,plain,{type:'announce',email:wantsEmail,emailImage:thumb});
+    }
   }catch(e){
     toast('Plaatsen mislukt: '+e.message,'err');
     console.error('saveAnnouncement error:',e);
@@ -5959,7 +6310,7 @@ async function loadAnnouncements(){
 // dms/announcements/payments volledig. Blijft bewust met rust: users, publicProfiles
 // (= "de gebruikers zelf"), loginLogs (= logboek), settings, invites.
 // ═══════════════════════════════════════════
-const HARD_RESET_COLLECTIONS=['shifts','availability','notifications','chat','swapRequests','dms','announcements','payments'];
+const HARD_RESET_COLLECTIONS=['shifts','availability','notifications','chat','swapRequests','dms','dmFiles','announcements','payments'];
 function openHardResetGate(){
   modal(`
     <div class="modal-title" style="color:var(--red)"><span class="ic" data-icon="trash"></span> Harde reset</div>

@@ -30,11 +30,11 @@ service cloud.firestore {
         || (isAdmin() && request.resource.data.role != 'software')
         || (isAuth() && request.auth.uid == uid);
       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions']) && !restr('manageEmployees')
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions','guestUntil','guestPending']) && !restr('manageEmployees')
             && !(restr('toggleFeatures') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['disabledFeatures'])))
         || isSoftware()
         || (isAuth() && request.auth.uid == uid
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified']));
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified','guestUntil','guestPending','guestApprovedBy']));
       allow delete: if isStaff() && !restr('manageEmployees');
     }
 
@@ -155,6 +155,17 @@ service cloud.firestore {
       allow create: if isAuth() && request.resource.data.participants.hasAny([request.auth.uid]);
       allow update: if isAuth() && resource.data.participants.hasAny([request.auth.uid])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages','updatedAt','readBy','lastText','lastFrom']);
+      allow delete: if isStaff();
+    }
+
+    // Bijlagen/foto's in privéberichten (max ±700 KB per bestand, als base64-tekst; blijft binnen het
+    // 1 MiB-limiet van een Firestore-document en vereist dus geen Firebase Storage/Blaze-plan).
+    match /dmFiles/{id} {
+      allow read: if isAuth() && resource.data.participants.hasAny([request.auth.uid]);
+      allow create: if isAuth()
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.participants.hasAny([request.auth.uid])
+        && request.resource.data.dataUrl.size() < 960000;
       allow delete: if isStaff();
     }
 
