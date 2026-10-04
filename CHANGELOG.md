@@ -1,3 +1,18 @@
+# CHANGELOG — update oktober 2026 (deel 3, bugfixes)
+
+### 🐞 Opgelost
+- **Uitklapbaar dienstadvies en "bekijk alle wedstrijden" deden niets.** De functie die de knop nodig had (`refreshMatchesUI`) was per ongeluk niet globaal beschikbaar binnen de app — een klik gaf een foutmelding in de console en er gebeurde zichtbaar niets. Dit verklaart vermoedelijk ook de klacht dat een blok soms later ineens "vanzelf" opschuift: de klik werkte pas zodra er toevallig ergens anders in de app al een herlaadmoment plaatsvond. We hebben de hele app nagelopen op dit type fout (een knop die een functie aanroept die niet bestaat) — er waren geen andere plekken met hetzelfde probleem.
+- **Leesbevestiging in de privéchat werkte alleen bij het openen van een gesprek.** Bleef het gesprek open terwijl er een nieuw bericht binnenkwam, dan werd dat niet meteen als "Gezien" gemarkeerd. Dit werkt nu ook terwijl het gesprek al open staat.
+
+### ✨ Nieuw
+- **Aankondiging bewerken.** Wie een aankondiging mag verwijderen, mag 'm nu ook aanpassen (titel, tekst, zichtbaarheid, afbeelding, bijlages). Een beheerder kan nog steeds geen aankondiging van een dev bewerken of verwijderen.
+- **Stap-voor-stap uitleg bij het importeren van wedstrijden**, met echte schermafbeeldingen, direct bij het importpaneel (knop "Hoe werkt importeren?"). Met de aanbeveling dit op een laptop/desktop te doen, omdat rechtsklikken en de Developer Tools op een telefoon anders werken.
+
+### ⚠️ Na het updaten
+- Publiceer de nieuwe `firestore.rules` opnieuw (de regel voor het bewerken van aankondigingen is aangescherpt, gelijk aan de regel voor verwijderen).
+
+---
+
 # CHANGELOG — update oktober 2026 (deel 2)
 
 ### ✅ Opgelost

@@ -496,3 +496,11 @@ app te raken.
 2. **GitHub Actions**: geen actie nodig — het script heet nog hetzelfde, alleen de inhoud is aangepast. De eerstvolgende geplande run ruimt automatisch oude dubbele wedstrijden op.
 3. **Eigen team**: iedereen kiest dit bij de eerste keer inloggen. Er is geen manier om dit over te slaan — kiest iemand "geen team", dan krijgt die persoon nooit een wedstrijd-waarschuwing bij het inroosteren.
 4. **Offline-berichten** blijven alleen bewaard zolang de app open staat (niet na het volledig sluiten van de app/tab) — bedoeld voor een kort wifi-wegvallend moment, niet als permanente wachtrij.
+
+
+---
+
+## Update oktober 2026 (deel 3, bugfixes)
+
+1. Vervang `app.html` en `firestore.rules`, en publiceer de regels opnieuw.
+2. Geen verdere actie nodig — de uitlegstappen en de bugfixes werken meteen.

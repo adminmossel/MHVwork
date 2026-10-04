@@ -66,6 +66,7 @@ altijd een actueel overzicht.
 - Export naar de eigen agenda (`.ics`) of Excel
 - **Thuiswedstrijden** van de MHV-website (import via de console of automatische sync): tijd, logo's, wie tegen wie en waar — zichtbaar bij Rooster, Home en idle-modus. Beheerder én dev kunnen ze importeren of handmatig invoeren; bij de laatste import staat wie het deed. Een herhaalde import maakt nooit een dubbele wedstrijd aan: elke wedstrijd krijgt een vaste sleutel (datum + beide teams), dus een nieuwe import werkt de bestaande wedstrijd bij in plaats van er een tweede naast te zetten. Lijst met ingevoerde wedstrijden staat standaard ingeklapt
 - **Wedstrijd-importlog (alleen dev)**: elke import staat genoteerd (door wie, wanneer, hoeveel nieuw/bijgewerkt), met een knop om een hele import in één keer ongedaan te maken
+- **Korte stap-voor-stap uitleg** (met screenshots) direct bij het importpaneel: "Hoe werkt importeren?" — een laptop/desktop wordt aangeraden, want rechtsklikken + Developer Tools werkt op een telefoon anders
 - **Eigen team**: iedereen geeft bij de eerste keer inloggen (ook bestaande accounts) aan bij welk team hij/zij speelt, of "geen team". Zodra die persoon op een dag een eigen wedstrijd heeft, waarschuwt de app bij het samenstellen van een dienst dat diegene waarschijnlijk maar tot het begin van de wedstrijd kan werken (exclusief reis-/verzameltijd) — met het advies dit in de Lisa-app te checken
 - **Dienstadvies** (beheerder): per wedstrijddag een voorstel voor tijden en aantal mensen (Heren 1 druk, onder-11 rustig, minimaal 2 — behalve een rustige ochtendwedstrijd), met één knop "Maak dienst aan" die het formulier voorinvult. Handmatig een dienst aanmaken blijft kunnen. Staat standaard ingeklapt (met een telbadge) op Home en Rooster
 - **Kalender** vernieuwd: duidelijke stippen voor dienst (blauw) en eigen thuiswedstrijd (geel), rustigere animatie, legenda onderin
@@ -99,6 +100,7 @@ altijd een actueel overzicht.
 - Opmaak met werkbalk en live voorbeeld: **vet**, *schuin*, onderstreept, doorgehaald, markeren, koppen, lijstjes en links
 - Foto mee in de e-mail (als miniatuur — zie HANDLEIDING)
 - Speciale aankondigingen met eigen kleur en directe pop-up
+- Eigen aankondiging achteraf **bewerken** (dev kan alles bewerken; beheerder niet die van dev)
 
 </td>
 </tr>

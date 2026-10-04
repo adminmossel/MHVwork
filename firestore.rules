@@ -139,7 +139,8 @@ service cloud.firestore {
     match /announcements/{id} {
       allow read: if isAuth();
       allow create: if isStaff() && !restr('announcements');
-      allow update: if isStaff();
+      // Bewerken volgt dezelfde regel als verwijderen: een beheerder mag een dev-aankondiging niet aanpassen.
+      allow update: if isSoftware() || (isAdmin() && resource.data.get('authorRole', 'admin') != 'software');
       // Een beheerder mag nooit een aankondiging van een dev verwijderen — dat hangt af van wie
       // 'm heeft geplaatst (authorRole), niet van het 'special'-vlaggetje (dat is alleen opmaak).
       allow delete: if isSoftware() || (isAdmin() && resource.data.get('authorRole', 'admin') != 'software');

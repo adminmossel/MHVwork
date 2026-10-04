@@ -62,6 +62,7 @@ up-to-date overview.
 ### 📅 Schedule & shifts
 - Home matches imported from the MHV site (time, logos, teams, venue); admin and dev can import/enter them, with a tag showing who ran the last import. Re-importing never creates a duplicate — every match gets a stable key (date + both teams), so a repeat import updates the existing match instead of adding a second one. The imported list is collapsed by default
 - Import log (dev only): every import is logged (who, when, how many created/updated), with a one-click full undo
+- Built-in step-by-step guide (with screenshots) right next to the import panel; a laptop/desktop is recommended since the right-click + Developer Tools steps work differently on a phone
 - Everyone states which team they play for (or none) the first time they log in, including existing accounts; the app then warns when building a shift that person likely can only work until that match's kick-off (excluding travel/warm-up time) and suggests double-checking in the Lisa app
 - Shift advice (admin): per match day a suggested time window and head count, with a one-click "Create shift". Collapsed by default (with a count badge) on Home and Schedule
 - Calendar redesigned: clear dots for shifts (blue) and home matches (yellow), smoother month transitions, legend
@@ -105,6 +106,7 @@ up-to-date overview.
 - Only the title shows on Home — the full text opens on its own page
 - Basic formatting (bold, tabs, line breaks) when writing one
 - Special announcements get their own colour and an instant in-app pop-up
+- Edit your own announcement afterwards (dev can edit anything; admin cannot edit dev's)
 
 </td>
 </tr>
