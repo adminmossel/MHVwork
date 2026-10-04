@@ -1641,7 +1641,7 @@ const LISA_CONSOLE_SNIPPET = `(async()=>{
     for(let p=0;p<30;p++){
       const r=await fetch(\`\${BASE}/\${encodeURIComponent(name)}/query-data?pageSize=100&pageNumber=\${p}&query=()&language=ENGLISH\`).then(x=>x.json());
       const batch=r.values||[]; let n=0;
-      for(const it of batch){ const id=it?.data?.id; if(id&&!seen.has(id)){seen.add(id);out.push(it);n++;} }
+      for(const it of batch){ const key=it?.data?.id||it?.page_item_url; if(key&&!seen.has(key)){seen.add(key);out.push(it);n++;} }
       if(batch.length<100||n===0) break;
     }
     return out;
