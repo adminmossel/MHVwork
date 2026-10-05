@@ -1,3 +1,10 @@
+# CHANGELOG — update oktober 2026 (deel 5, bugfix)
+
+### 🐞 Opgelost
+- **Foutieve bewering in de importuitleg en in de console-melding zelf.** Zowel de tutorial als de melding op de MHV-website beweerden dat het resultaat automatisch op je klembord stond, puur op basis van of de klembord-functie van de browser *bestaat* — niet of het kopiëren ook echt *gelukt* was. In de praktijk blokkeren browsers dit vaak vanuit de Console. De melding checkt nu het echte resultaat, en de uitleg wijst voortaan expliciet naar de handmatige "Kopiëren"-knop die bij het resultaat in de Console staat (stap 5 is hierop aangepast) als terugval.
+
+---
+
 # CHANGELOG — update oktober 2026 (deel 4, bugfix)
 
 ### 🐞 Opgelost
