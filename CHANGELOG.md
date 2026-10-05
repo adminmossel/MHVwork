@@ -1,3 +1,8 @@
+# CHANGELOG — update oktober 2026 (deel 4, bugfix)
+
+### 🐞 Opgelost
+- **Screenshots in de nieuwe importuitleg bleven leeg.** De afbeeldingen misten het `data:image/jpeg;base64,`-voorvoegsel, waardoor de browser ze niet kon laden. Gefixt — alle 5 screenshots zijn gecontroleerd en laden nu correct.
+
 # CHANGELOG — update oktober 2026 (deel 3, bugfixes)
 
 ### 🐞 Opgelost
