@@ -40,6 +40,9 @@ window._logEmailSent = async function(n){
 };
 
 if (!window.location.pathname.includes("app.html")) {
+  // De app-shortcuts (lang indrukken van het app-icoon) openen index.html?go=nextshift e.d. —
+  // die query meesturen naar app.html, anders gaat de shortcut altijd gewoon naar Home.
+  const _goSuffix = window.location.search || "";
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       // Probeer Firestore doc te lezen, maar redirect altijd
@@ -47,15 +50,15 @@ if (!window.location.pathname.includes("app.html")) {
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
         if (snap.exists()) {
-          window.location.href = "app.html";
+          window.location.href = "app.html" + _goSuffix;
         } else if (user.email === 'h.mhvwork@gmail.com' || user.email === 'tyg01132@gmail.com') {
           // Hardcoded accounts: redirect altijd
-          window.location.href = "app.html";
+          window.location.href = "app.html" + _goSuffix;
         }
       } catch(e) {
         // Bij Firestore fout: redirect toch als hardcoded account
         if (user.email === 'h.mhvwork@gmail.com' || user.email === 'tyg01132@gmail.com') {
-          window.location.href = "app.html";
+          window.location.href = "app.html" + _goSuffix;
         }
       }
     }

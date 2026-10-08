@@ -1091,6 +1091,8 @@ window.addEventListener('mhv:ready', async ()=>{
     try { render(U.role==='software'?'devacc':'home'); } catch(e){ console.warn('render:',e); }
     try { setTimeout(maybeAskTeam,400); } catch(e){}
     try { updateOfflineBanner(); } catch(e){}
+    try { handleShortcutParam(); } catch(e){}
+    try { updateAppBadge(); } catch(e){}
     // Ververst Home elke minuut zolang je erop staat — puur voor de live voortgangsbalk/
     // countdown tijdens een lopende dienst, geen extra netwerkverkeer (leest gewoon opnieuw
     // uit het al geladen allShifts).
@@ -1950,12 +1952,23 @@ window.deleteMatch=async function(id,fromModal){
   }catch(e){ toast('Verwijderen mislukt','err'); }
 };
 
+// ═══ Badge op het app-icoon: aantal diensten vandaag. Werkt alleen als 'geïnstalleerde' app
+// (toegevoegd aan beginscherm), en alleen in browsers die de Badging API ondersteunen.
+function updateAppBadge(){
+  try{
+    if(!('setAppBadge' in navigator)||!U||U.role==='software') return;
+    const n=allShifts.filter(sh=>dKey(sh.date)===nowKey()&&(sh.workers||[]).includes(U.uid)).length;
+    if(n>0) navigator.setAppBadge(n).catch(()=>{});
+    else navigator.clearAppBadge().catch(()=>{});
+  }catch(e){}
+}
 function subShifts(){
   const {db,collection,onSnapshot,orderBy,query}=window._f;
   let firstLoad=true;
   unsubShifts=onSnapshot(query(collection(db,'shifts'),orderBy('date','asc')),s=>{
     allShifts=s.docs.map(d=>({id:d.id,...d.data()}));
     rerender();
+    updateAppBadge();
     if(firstLoad){ firstLoad=false; checkShiftReminders().catch(e=>console.warn('reminders:',e)); }
   });
 }
@@ -2093,6 +2106,48 @@ async function applyApodBackground(){
 
 // Afbeelding verkleinen naar een JPEG-dataURL (voor chat/DM/achtergrond) — houdt Firestore klein.
 // ═══ Eigen team — nodig om bij het inroosteren te kunnen waarschuwen voor een eigen wedstrijd ═══
+// ═══ "Volgende dienst" — een losse, supersnelle weergave voor de app-shortcut (lang drukken op het
+// icoon op Android; iOS ondersteunt zulke shortcuts helaas niet). Geen homepage-opbouw nodig, meteen
+// het enige wat je op dat moment wil weten.
+function myNextShift(){
+  const today=nowKey();
+  return allShifts
+    .filter(sh=>(sh.workers||[]).includes(U.uid) && dKey(sh.date)>=today)
+    .sort((a,b)=>dKey(a.date).localeCompare(dKey(b.date))||(a.start||'').localeCompare(b.start||''))[0]||null;
+}
+function openNextShiftQuickView(){
+  const sh=myNextShift();
+  const back=`<button class="btn btn-ghost btn-full" style="margin-top:18px" onclick="closeModal();render(U.role==='software'?'devacc':'home')">Naar de app</button>`;
+  if(!sh){
+    modal(`<div class="modal-handle"></div><div class="modal-title">Volgende dienst</div>
+      <div style="text-align:center;padding:30px 10px;color:var(--text3)"><div style="font-size:36px;margin-bottom:10px">🎉</div>Je staat nergens voor ingepland.</div>${back}`);
+    return;
+  }
+  const dt=toDate(sh.date);
+  const dateStr=dt.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const mates=(sh.workers||[]).filter(u=>u!==U.uid).map(u=>(allUsers.find(x=>x.uid===u)||{}).name).filter(Boolean);
+  const warn=teamWarningLine?teamWarningLine(U.uid,dKey(sh.date)):'';
+  modal(`<div class="modal-handle"></div><div class="modal-title">Jouw volgende dienst</div>
+    <div style="text-align:center;padding:10px 0 4px">
+      <div style="font-size:13px;color:var(--text3);text-transform:capitalize">${dateStr}</div>
+      <div style="font-size:36px;font-weight:800;margin:4px 0">${sh.start||'?'}–${sh.end||'?'}</div>
+      ${sh.note?`<div style="font-size:13.5px;color:var(--text2);margin-top:4px">${escAnn(sh.note)}</div>`:''}
+    </div>
+    ${mates.length?`<div style="margin-top:14px"><div class="section-label" style="margin-top:0">Samen met</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${mates.map(n=>`<span style="background:var(--bg3);padding:6px 12px;border-radius:99px;font-size:13px">${escAnn(n)}</span>`).join('')}</div></div>`:''}
+    ${warn?`<div style="font-size:12px;color:var(--orange);margin-top:14px;line-height:1.4">${warn}</div>`:''}
+    ${back}`);
+}
+// Query-param van een app-shortcut afhandelen (?go=nextshift|avail|roster), daarna de URL opschonen
+// zodat een latere herlaad-actie niet opnieuw dezelfde shortcut-actie triggert.
+function handleShortcutParam(){
+  const go=new URLSearchParams(window.location.search).get('go');
+  if(!go) return;
+  history.replaceState(null,'',window.location.pathname);
+  if(go==='nextshift') setTimeout(openNextShiftQuickView,50);
+  else if(go==='avail') setTimeout(()=>{ try{ render('avail'); }catch(e){} },50);
+  else if(go==='roster') setTimeout(()=>{ try{ render('rooster'); }catch(e){} },50);
+}
 function knownTeamNames(){ return [...new Set(allMatches.map(m=>m.homeTeam).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl')); }
 function teamSelectOptionsHtml(current){
   const names=knownTeamNames();

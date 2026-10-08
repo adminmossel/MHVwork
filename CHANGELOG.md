@@ -1,3 +1,17 @@
+# CHANGELOG — update oktober 2026 (deel 6, "widget")
+
+### ✨ Nieuw — het dichtstbijzijnde dat een PWA bij een widget kan komen
+Een écht homescreen-widget bestaat technisch niet voor PWA's (niet op Android, niet op iOS — dat is een browserbeperking, geen keuze). Dit is de praktische vervanging, in drie delen:
+- **App-shortcuts** (Android: lang drukken op het app-icoon): "Volgende dienst", "Beschikbaar melden", "Rooster" — direct de juiste plek in de app, zonder eerst Home te laden.
+- **Cijferbadge op het app-icoon**: laat zien hoeveel diensten je vandaag hebt (1 of meer), zonder de app te hoeven openen. Verdwijnt vanzelf als je geen dienst hebt.
+- **"Volgende dienst"-snelweergave**: een piepklein, razendsnel schermpje — datum, tijd, met wie, en (indien van toepassing) de wedstrijd-waarschuwing. Geen homepage-opbouw, direct het enige wat je op dat moment wil weten.
+
+### ⚠️ Let op
+- Shortcuts werken alleen als de app is "toegevoegd aan beginscherm" (geïnstalleerd) én alleen op Android/Chrome — iOS ondersteunt long-press-shortcuts voor web-apps niet.
+- De badge werkt in de meeste Android-browsers en in Safari op iOS 16.4+, maar niet overal.
+
+---
+
 # CHANGELOG — update oktober 2026 (deel 5, bugfix)
 
 ### 🐞 Opgelost
