@@ -1,3 +1,14 @@
+# CHANGELOG — update oktober 2026 (deel 7b)
+
+### ✨ Aangepast
+- **Eerste login: één popup tegelijk.** Volgorde nu strikt: (installatie →) rondleiding → teamkeuze → snelcode met QR. Wat al gedaan is, wordt overgeslagen; terugkerende gebruikers zien alleen wat nog ontbreekt.
+- **QR scannen op de inlogpagina**: knop "QR scannen" opent de camera en logt direct in. Gebruikt de ingebouwde scanner van de browser waar die er is, anders `jsqr.js` (nieuw bestand, wordt pas geladen als je op de knop tikt). Je kunt je QR ook nog steeds met de gewone camera-app scannen.
+- **Snelcode-knop rustiger**: twee gewone knoppen onder "Inloggen" (Snelcode / QR scannen) in dezelfde stijl als de rest, geen gele flitsknop meer.
+- **Duidelijkere foutmelding** als "Anonymous" in Firebase nog niet aan staat (nieuwere Firebase geeft daarvoor `auth/admin-restricted-operation`).
+- Nieuw bestand uploaden: `jsqr.js` (en `jsqr.LICENSE.txt`, Apache-2.0).
+
+---
+
 # CHANGELOG — update oktober 2026 (deel 7, "snelle toegang")
 
 ### ✨ Nieuw

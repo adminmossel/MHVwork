@@ -349,24 +349,28 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
   .form-card .field:nth-of-type(2){ animation-delay:.21s; }
 }
 
-/* ── Snel inloggen ── */
-.or-sep{ display:flex; align-items:center; gap:12px; margin:18px 0 12px; color:#8A8FA3; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-.or-sep::before,.or-sep::after{ content:''; flex:1; height:1px; background:#D9DCE8; }
-.fast-btn{
-  width:100%; display:flex; align-items:center; justify-content:center; gap:9px; cursor:pointer;
-  font-family:inherit; font-size:15.5px; font-weight:800; letter-spacing:.01em;
-  padding:14px 18px; border-radius:14px; color:#0B0E1A; background:#FFF6CC;
-  border:2px solid var(--mhv-yellow); transition:transform .12s ease, background .15s ease, box-shadow .15s ease;
+/* ── Snelcode / QR-knoppen: zelfde stijl als de rest van het formulier ── */
+.alt-row{ display:flex; gap:10px; margin-top:11px; }
+.alt-btn{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+  border:1.5px solid #E3E5ED; background:#fff; border-radius:13px; padding:12px 8px;
+  font-family:inherit; font-size:14px; font-weight:700; color:var(--mhv-ink);
+  transition:background .15s, border-color .15s, transform .12s;
 }
-.fast-btn svg{ color:#B88F00; }
-.fast-btn:hover{ background:#FFEFA8; box-shadow:0 8px 20px -10px rgba(245,200,0,.9); }
-.fast-btn:active{ transform:scale(.97); }
-.fast-hint{ margin:9px 4px 14px; font-size:12px; line-height:1.5; color:#6B7186; text-align:center; }
-.fast-code-in{ letter-spacing:.22em; font-weight:800; text-transform:uppercase; }
-@media (prefers-color-scheme: dark){
-  .fast-btn{ background:rgba(245,200,0,.14); color:#FFF; }
-  .fast-btn svg{ color:var(--mhv-yellow); }
-}
+.alt-btn svg{ color:#7A8099; flex:none; }
+.alt-btn:hover{ background:#F8F9FC; border-color:#D5D8E4; }
+.alt-btn:active{ transform:scale(.97); }
+.fast-code-in{ letter-spacing:.2em; font-weight:700; text-transform:uppercase; }
+
+/* ── QR-scanner ── */
+#scanOverlay{ position:fixed; inset:0; z-index:998; background:#000; display:none; flex-direction:column; }
+#scanOverlay.show{ display:flex; }
+#scanVideo{ flex:1; width:100%; min-height:0; object-fit:cover; background:#000; }
+.scan-frame{ position:absolute; left:50%; top:46%; width:min(66vw,300px); aspect-ratio:1; transform:translate(-50%,-50%);
+  border-radius:22px; box-shadow:0 0 0 100vmax rgba(0,0,0,.55); border:2px solid rgba(255,255,255,.9); pointer-events:none; }
+.scan-bar{ position:absolute; left:0; right:0; bottom:0; padding:18px 20px calc(22px + env(safe-area-inset-bottom)); text-align:center; color:#fff; }
+.scan-bar p{ font-size:14.5px; line-height:1.45; margin-bottom:14px; min-height:42px; }
+.scan-bar button{ font-family:inherit; font-size:15px; font-weight:700; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35); border-radius:13px; padding:12px 28px; cursor:pointer; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="icons.js"></script>
@@ -374,6 +378,14 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
 <body>
 
 <!-- Full-screen loader — minimal: logo, wordmark, slim progress bar. Matches app.html exactly -->
+<div id="scanOverlay">
+  <video id="scanVideo" playsinline muted></video>
+  <div class="scan-frame"></div>
+  <div class="scan-bar">
+    <p id="scanMsg">Richt je camera op je persoonlijke QR.</p>
+    <button onclick="closeScan()">Annuleren</button>
+  </div>
+</div>
 <div id="authLoader">
   <svg class="ld-mark" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MHVwork">
     <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
@@ -468,12 +480,16 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
           <span id="loginBtnLabel">Inloggen</span>
         </button>
 
-        <div class="or-sep"><span>of</span></div>
-        <button onclick="openFast()" class="fast-btn" id="fastOpenBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
-          Snel inloggen met code
-        </button>
-        <p class="fast-hint">Alleen je dienst, de wedstrijden en berichten sturen. Voor alles andere log je normaal in of scan je je persoonlijke QR.</p>
+        <div class="alt-row">
+          <button class="alt-btn" onclick="openFast()" id="fastOpenBtn">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="6" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18" cy="12" r="1.2"/><circle cx="6" cy="18" r="1.2"/><circle cx="12" cy="18" r="1.2"/><circle cx="18" cy="18" r="1.2"/></svg>
+            Snelcode
+          </button>
+          <button class="alt-btn" onclick="openScan()" id="scanOpenBtn">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 12h8"/></svg>
+            QR scannen
+          </button>
+        </div>
 
         <button onclick="openPromoModal()" class="ghost-btn">Wat is MHVwork? →</button>
 
@@ -487,9 +503,9 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
       <!-- Snel inloggen (verborgen tot je op de knop tikt) -->
       <div id="fastWrap" style="display:none">
         <div class="form-head">
-          <div class="eyebrow">Snel inloggen</div>
-          <h2>Je persoonlijke code</h2>
-          <p>De code (6–12 letters/cijfers) die je bij je account hebt ingesteld.</p>
+          <div class="eyebrow">Snelcode</div>
+          <h2>Voer je code in</h2>
+          <p>De code die je zelf bij je account hebt ingesteld.</p>
         </div>
         <div id="fastErr" class="error-box"></div>
         <div class="field">
@@ -617,10 +633,11 @@ function authErrText(e){
     case 'locked': return 'Te veel foute pogingen op dit apparaat. Probeer het over '+e.mins+' min opnieuw, of log in met e-mail en wachtwoord.';
     case 'bad-format': return 'Dat is geen geldige code. Gebruik 6–12 letters/cijfers.';
     case 'token-invalid': return (e.locked?'Te veel foute pogingen — dit apparaat is 15 min geblokkeerd. ':'Code onbekend of niet meer geldig.'+(typeof e.left==='number'?' Nog '+e.left+' poging'+(e.left===1?'':'en')+'.':''));
-    case 'auth/operation-not-allowed': return 'Snel inloggen staat nog niet aan. Vraag de dev om "Anoniem inloggen" te activeren in Firebase.';
+    case 'auth/admin-restricted-operation':
+    case 'auth/operation-not-allowed': return 'Snelcode en QR staan nog niet aan. De dev moet in Firebase (Authentication → Sign-in method) "Anonymous" inschakelen.';
     case 'auth/network-request-failed': return 'Geen verbinding. Probeer het opnieuw.';
     case 'auth/too-many-requests': return 'Te veel pogingen. Probeer later opnieuw.';
-    default: return 'Inloggen mislukt. Probeer het opnieuw.';
+    default: console.error('login fout:', e); return 'Inloggen mislukt'+(e&&e.code?' ('+e.code+')':'')+'. Probeer het opnieuw.';
   }
 }
 async function doFast(){
@@ -649,6 +666,84 @@ window.addEventListener('DOMContentLoaded', async () => {
     err.style.display='block';
   }
 });
+
+
+// ── QR scannen met de camera ──────────────────────────────────────────────────────────────────
+// Eerst de ingebouwde BarcodeDetector (snel, waar beschikbaar), anders jsQR (wordt pas geladen
+// als je op "QR scannen" tikt, zodat de inlogpagina licht blijft).
+let _scanStream=null, _scanRaf=0, _scanBusy=false, _jsqrLoading=null;
+function loadJsQR(){
+  if(window.jsQR) return Promise.resolve();
+  if(_jsqrLoading) return _jsqrLoading;
+  _jsqrLoading=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='jsqr.js'; sc.onload=res; sc.onerror=()=>rej(new Error('jsqr')); document.head.appendChild(sc); });
+  return _jsqrLoading;
+}
+function scanSay(t){ document.getElementById('scanMsg').textContent=t; }
+function closeScan(){
+  cancelAnimationFrame(_scanRaf); _scanBusy=false;
+  if(_scanStream){ _scanStream.getTracks().forEach(t=>t.stop()); _scanStream=null; }
+  const v=document.getElementById('scanVideo'); v.srcObject=null;
+  document.getElementById('scanOverlay').classList.remove('show');
+}
+async function openScan(){
+  const err=document.getElementById('errBox'); err.style.display='none';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    showErr('Je browser laat geen camera toe op deze pagina. Open je camera-app en scan je QR daarmee.'); return;
+  }
+  document.getElementById('scanOverlay').classList.add('show');
+  scanSay('Camera starten…');
+  try{
+    _scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  }catch(e){
+    closeScan();
+    showErr(e&&e.name==='NotAllowedError'
+      ? 'Geen toestemming voor de camera. Sta de camera toe in je browser, of scan je QR met je camera-app.'
+      : 'Geen camera gevonden of in gebruik. Scan je QR anders met je camera-app.');
+    return;
+  }
+  const video=document.getElementById('scanVideo');
+  video.srcObject=_scanStream;
+  try{ await video.play(); }catch(e){}
+  scanSay('Richt je camera op je persoonlijke QR.');
+  let detector=null;
+  if('BarcodeDetector' in window){ try{ detector=new BarcodeDetector({formats:['qr_code']}); }catch(e){ detector=null; } }
+  if(!detector){ try{ await loadJsQR(); }catch(e){ closeScan(); showErr('Scanner kon niet laden. Scan je QR met je camera-app.'); return; } }
+  const cv=document.createElement('canvas'), cx=cv.getContext('2d',{willReadFrequently:true});
+  let last=0;
+  const tick=async(ts)=>{
+    if(!_scanStream) return;
+    _scanRaf=requestAnimationFrame(tick);
+    if(_scanBusy||ts-last<120||video.readyState<2||!video.videoWidth) return;
+    last=ts; _scanBusy=true;
+    try{
+      let text=null;
+      if(detector){ const r=await detector.detect(video); if(r&&r.length) text=r[0].rawValue; }
+      else{
+        const k=Math.min(1,640/video.videoWidth); cv.width=Math.round(video.videoWidth*k); cv.height=Math.round(video.videoHeight*k);
+        cx.drawImage(video,0,0,cv.width,cv.height);
+        const img=cx.getImageData(0,0,cv.width,cv.height), r=window.jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+        if(r) text=r.data;
+      }
+      if(text){
+        const m=/[#&]q=([0-9a-fA-F]{32})\b/.exec(text)||/^([0-9a-fA-F]{32})$/.exec(text.trim());
+        if(m){ closeScan(); handleScanned(m[1]); return; }
+        scanSay('Dit is geen MHVwork-QR. Probeer je persoonlijke QR.');
+      }
+    }catch(e){ /* frame overslaan */ }
+    _scanBusy=false;
+  };
+  _scanRaf=requestAnimationFrame(tick);
+}
+async function handleScanned(secret){
+  showAuthLoader('QR controleren');
+  try{ await window._qrLogin(secret); }
+  catch(e){
+    hideAuthLoader();
+    const err=document.getElementById('errBox');
+    err.textContent=(e&&e.code==='token-invalid')?'Deze QR is niet meer geldig (vernieuwd of ingetrokken). Log in met e-mail en wachtwoord en pak je nieuwe QR in je profiel.':authErrText(e);
+    err.style.display='block';
+  }
+}
 
 function openForgot(){
   document.getElementById('forgotWrap').style.display='block';
