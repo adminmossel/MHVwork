@@ -87,37 +87,50 @@ let _authHandled = false;
 onAuthStateChanged(auth, async (user) => {
   if (_authHandled) return;
   if (!user) { setTimeout(() => { if(!_authHandled) window.location.href="index.html"; }, 500); return; }
+  // Anonieme sessie = QR-login (volledig account) of snelcode-login (beperkt → eigen pagina).
+  // Het echte account-ID staat in sessions/{anoniem-uid}; de regels laten de QR-sessie als dat
+  // account optreden zolang de QR niet is vernieuwd/ingetrokken.
+  let effUid = user.uid;
+  if (user.isAnonymous) {
+    try {
+      const ss = await getDoc(doc(db,"sessions",user.uid));
+      if (ss.exists() && ss.data().mode === 'fast') { window.location.replace("fast.html"); return; }
+      if (!ss.exists() || ss.data().mode !== 'qr') { await signOut(auth); window.location.replace("index.html"); return; }
+      effUid = ss.data().uid;
+      window._qrSession = true;
+    } catch(e) { try{ await signOut(auth); }catch(_){} window.location.replace("index.html?qr=revoked"); return; }
+  }
   let snap = null;
   for (let i = 0; i < 3; i++) {
-    try { snap = await getDoc(doc(db,"users",user.uid)); } catch(e) {}
+    try { snap = await getDoc(doc(db,"users",effUid)); } catch(e) {}
     if (snap && snap.exists()) break;
     await new Promise(r => setTimeout(r, 800));
   }
   // Geen enkele hardcoded email/rol-bypass meer — een account krijgt UITSLUITEND rechten via
   // zijn eigen Firestore-document (users/{uid}.role), zoals het hoort. Bestaat dat document
   // niet (bv. een Auth-account zonder profiel), dan wordt er simpelweg uitgelogd.
-  if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href="index.html"; }, 300); return; }
+  if (!snap || !snap.exists()) { await auth.signOut(); setTimeout(() => { window.location.href=window._qrSession?"index.html?qr=revoked":"index.html"; }, 300); return; }
   const userData = snap.data();
   if (userData.suspended) {
     _authHandled = true;
-    window._user = { uid: user.uid, email: user.email, ...userData };
+    window._user = { uid: effUid, email: user.email, ...userData };
     window.dispatchEvent(new Event("mhv:suspended"));
     return;
   }
   if (userData.guestUntil && userData.guestPending) {
     _authHandled = true;
-    window._user = { uid: user.uid, email: user.email, ...userData };
+    window._user = { uid: effUid, email: user.email, ...userData };
     window.dispatchEvent(new Event("mhv:guestPending"));
     return;
   }
   if (userData.guestUntil && Date.now() > userData.guestUntil) {
     _authHandled = true;
-    window._user = { uid: user.uid, email: user.email, ...userData };
+    window._user = { uid: effUid, email: user.email, ...userData };
     window.dispatchEvent(new Event("mhv:guestExpired"));
     return;
   }
   _authHandled = true;
-  window._user = { uid: user.uid, email: user.email, ...userData };
+  window._user = { uid: effUid, email: user.email, ...userData };
   window.dispatchEvent(new Event("mhv:ready"));
 });
 </script>
@@ -162,6 +175,57 @@ html[data-theme="light"] .notif-dot { border-color:var(--bg); }
 html[data-theme="light"] .badge-yellow { color:#8A6D00; }
 html[data-theme="light"] .stat-num.yellow { color:#8A6D00; }
 html[data-theme="light"] .card, html[data-theme="light"] .prof-card, html[data-theme="light"] .stat-tile { box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+
+/* ═══ WIT THEMA — geoptimaliseerd (v. snelle toegang-update) ═══════════════════════════════════
+   Probleem eerder: tekst3 had maar ±3,4:1 contrast (grenswaarde 4,5:1), geel als TEKST op wit was
+   onleesbaar (1,6:1), kaarten en knoppen vielen weg tegen de achtergrond. Nu: alle tekst ≥ 5:1,
+   knoppen met duidelijke rand + schaduw, actieve tab in blauw, inputs met zichtbare rand. */
+html[data-theme="light"]{
+  --bg:#E9ECF3; --bg2:#FFFFFF; --bg3:#F2F4F9; --bg4:#DDE1EB;
+  --glass:rgba(11,14,26,0.05); --glass2:rgba(11,14,26,0.08);
+  --text:#0B0E1A; --text2:rgba(11,14,26,0.82); --text3:rgba(11,14,26,0.64); --text4:rgba(11,14,26,0.5);
+  --separator:rgba(11,14,26,0.16);
+  --green:#15703A; --red:#B3221C; --orange:#A35A00;
+  --green-dim:rgba(21,112,58,0.13); --red-dim:rgba(179,34,28,0.12); --orange-dim:rgba(163,90,0,0.14);
+  --mhv-yellow-dim:rgba(160,125,0,0.18); --mhv-blue-dim:rgba(29,63,187,0.12);
+  --accent-text:#7A5F00;
+}
+html[data-theme="light"] .card, html[data-theme="light"] .prof-card, html[data-theme="light"] .stat-tile{
+  border:1px solid rgba(11,14,26,0.14);
+  box-shadow:0 1px 2px rgba(11,14,26,0.06), 0 8px 18px -12px rgba(11,14,26,0.22);
+}
+html[data-theme="light"] .card-row{ border-bottom-color:rgba(11,14,26,0.12); }
+html[data-theme="light"] .section-label{ color:rgba(11,14,26,0.66); }
+/* knoppen: duidelijk herkenbaar als knop */
+html[data-theme="light"] .btn-yellow{ background:#F5C800; color:#1a1000; box-shadow:inset 0 0 0 1.5px rgba(26,16,0,0.22), 0 6px 14px -8px rgba(140,108,0,0.75); }
+html[data-theme="light"] .btn-blue{ background:#1D3FBB; color:#fff; box-shadow:0 6px 14px -8px rgba(29,63,187,0.85); }
+html[data-theme="light"] .btn-ghost{ background:#fff; color:#1B2340; border:1.5px solid rgba(11,14,26,0.30); box-shadow:0 1px 2px rgba(11,14,26,0.06); }
+html[data-theme="light"] .btn-red{ background:#FDECEA; color:#A61E19; border:1.5px solid rgba(179,34,28,0.40); }
+html[data-theme="light"] .btn-green{ background:#E4F5EA; color:#126B30; border:1.5px solid rgba(21,112,58,0.40); }
+/* formulieren */
+html[data-theme="light"] .form-input{ background:#fff; border:1.5px solid rgba(11,14,26,0.42); }
+html[data-theme="light"] .form-input:focus{ border-color:#1D3FBB; box-shadow:0 0 0 3px rgba(29,63,187,0.16); }
+html[data-theme="light"] .form-input::placeholder{ color:rgba(11,14,26,0.5); }
+html[data-theme="light"] select.form-input option{ background:#fff; color:#0B0E1A; }
+html[data-theme="light"] .form-label{ color:rgba(11,14,26,0.72); }
+/* badges: donkere tekst op lichte vlakken (alle ≥ 5:1) */
+html[data-theme="light"] .badge-green{ background:#DDF3E4; color:#126B30; }
+html[data-theme="light"] .badge-yellow{ background:#FBEFB3; color:#6E5500; }
+html[data-theme="light"] .badge-orange{ background:#FDE9CC; color:#8F4F00; }
+html[data-theme="light"] .badge-red{ background:#FBE3E1; color:#A61E19; }
+html[data-theme="light"] .badge-blue{ background:#E0E6FB; color:#1D3FBB; }
+html[data-theme="light"] .badge-gray{ background:#E3E6EE; color:#454B60; }
+/* tabs, pill-tabs, navigatie */
+html[data-theme="light"] #tabbar{ background:rgba(255,255,255,0.94); border:1px solid rgba(11,14,26,0.14); box-shadow:0 14px 32px -14px rgba(11,14,26,0.35); }
+html[data-theme="light"] .tab{ color:rgba(11,14,26,0.62); }
+html[data-theme="light"] .tab.active{ color:#1D3FBB; background:rgba(29,63,187,0.12); }
+html[data-theme="light"] .pill-tabs{ background:#DDE1EB; }
+html[data-theme="light"] .pill-tab{ color:rgba(11,14,26,0.68); }
+html[data-theme="light"] .pill-tab.active{ background:#fff; color:#0B0E1A; box-shadow:0 1px 4px rgba(11,14,26,0.22); }
+/* gele TEKST (onleesbaar op wit) → donkergeel; gele vlakken blijven geel */
+html[data-theme="light"] .card-row-value.accent, html[data-theme="light"] .stat-num.yellow,
+html[data-theme="light"] [style*="color:var(--mhv-yellow)"]{ color:var(--accent-text) !important; }
+html[data-theme="light"] .modal-box{ box-shadow:0 -10px 40px -10px rgba(11,14,26,0.35); border:1px solid rgba(11,14,26,0.12); }
 
 /* ── Liquid Glass — extra kiesbaar thema, niet de standaard.
    Kleurrijke, zachte gradient-achtergrond met vervagend glaseffect op kaarten/balken. ── */
@@ -868,6 +932,7 @@ select.form-input option { background:var(--bg3); }
 })();
 </script>
 <script src="icons.js"></script>
+<script src="qr.js"></script>
 </head>
 <body>
 
@@ -1099,6 +1164,7 @@ window.addEventListener('mhv:ready', async ()=>{
     try { updateOfflineBanner(); } catch(e){}
     try { handleShortcutParam(); } catch(e){}
     try { updateAppBadge(); } catch(e){}
+    try { setTimeout(()=>{ accessBoot(); registerLoginDevice(); watchQrSession(); },900); } catch(e){}
     // Ververst Home elke minuut zolang je erop staat — puur voor de live voortgangsbalk/
     // countdown tijdens een lopende dienst, geen extra netwerkverkeer (leest gewoon opnieuw
     // uit het al geladen allShifts).
@@ -3732,6 +3798,8 @@ function renderMedewerkers(c){
         ${restricted('manageEmployees')?'':`<div class="card-row" style="gap:6px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="openEditEmployee('${u.uid}')"><span class="ic" data-icon="edit"></span> Bewerken</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="resetPwAdmin('${u.uid}','${u.name}','${u.email}')"><span class="ic" data-icon="key"></span> Reset ww</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="adminRefreshQr('${u.uid}')"><span class="ic" data-icon="swap"></span> QR vernieuwen</button>
+          ${U.role==='software'?`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="devResetFast('${u.uid}')"><span class="ic" data-icon="lock"></span> Snelcode reset</button>`:''}
           ${u.guestUntil&&U.role==='software'?`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="extendGuest('${u.uid}')"><span class="ic" data-icon="calendar"></span> Verleng 7 dagen</button>`:`<button class="btn btn-ghost btn-sm" style="flex:1;min-width:80px" onclick="makeAdmin('${u.uid}','${u.name}')"><span class="ic" data-icon="crown"></span> Admin</button>`}
           <button class="btn btn-red btn-sm" style="flex:1;min-width:80px" onclick="deleteEmployee('${u.uid}','${u.name}')"><span class="ic" data-icon="trash"></span> Verwijder</button>
         </div>`}
@@ -5164,6 +5232,24 @@ function renderProfile(){
       <div class="card-row-label"><span class="ic" data-icon="play"></span> Promovideo bekijken</div>
       <div style="color:var(--text3)">›</div>
     </div></div>
+
+    <div class="section-label">Snelle toegang</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row" style="cursor:pointer" onclick="openMyQr()">
+        <div style="flex:1;padding-right:12px">
+          <div class="card-row-label"><span class="ic" data-icon="lock"></span> Mijn persoonlijke QR</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Bewaar in je galerij of print — scannen = direct ingelogd in je hele account</div>
+        </div>
+        <div style="color:var(--text3)">›</div>
+      </div>
+      <div class="card-row" style="cursor:pointer" onclick="changeFastCode()">
+        <div style="flex:1;padding-right:12px">
+          <div class="card-row-label"><span class="ic" data-icon="key"></span> Snelcode wijzigen</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Inloggen zonder wachtwoord: alleen je dienst, wedstrijden en berichten</div>
+        </div>
+        <div style="color:var(--text3)">›</div>
+      </div>
+    </div>
 
     <div class="section-label">Idle-pagina</div>
     <div class="card" style="margin-bottom:16px">
@@ -6920,7 +7006,294 @@ function renderIdlePage(){
 
 
 // ═══ WINDOW EXPORTS ═══
+// ═══════════════════════════════════════════════════════════════
+// SNELLE TOEGANG: verplichte snelcode, persoonlijke QR, apparaat-limiet
+// (Spark-plan: geen server. De beveiliging zit in firestore.rules — blok 'Snelcode / QR-toegang'.)
+// ═══════════════════════════════════════════════════════════════
+function randHex(n){ const a=new Uint8Array(n/2); crypto.getRandomValues(a); return [...a].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function randFastCode(len){
+  len=len||8;
+  const all='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // geen I/O/0/1 — voorkomt verwarring bij overtypen
+  let c;
+  do{ c=''; const a=new Uint8Array(len); crypto.getRandomValues(a); for(const b of a) c+=all[b%all.length]; }
+  while(!/[A-Z]/.test(c)||!/[0-9]/.test(c));
+  return c;
+}
+const WEAK_FAST=['123456','1234567','12345678','ABC123','ABCD123','QWERTY','PASSWORD','MHV123','MHV1931','MHVWORK','WELKOM','BAR123'];
+function validateFastCode(c){
+  if(!/^[A-Z0-9]{6,12}$/.test(c)) return 'Gebruik 6 tot 12 tekens: alleen letters en cijfers.';
+  if(!/[A-Z]/.test(c)||!/[0-9]/.test(c)) return 'Gebruik minstens één letter én één cijfer.';
+  if(/^(.)\1+$/.test(c)) return 'Te simpel: hetzelfde teken herhaald.';
+  if(WEAK_FAST.some(w=>c.startsWith(w))) return 'Die code is te makkelijk te raden. Kies iets anders of laat er een genereren.';
+  return '';
+}
+function accessBase(){ return window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,''); }
+async function loadAccessState(){
+  const{db,doc,getDoc,setDoc}=window._f;
+  const ref=doc(db,'accessOwners',U.uid);
+  let s=await getDoc(ref);
+  if(!s.exists()){
+    // startwaarde: versie 1, 'ingesteld' = 0 → de app dwingt dan eerst een snelcode af en maakt de QR aan
+    await setDoc(ref,{qrVer:1,fastVer:1,qrSetVer:0,fastSetVer:0});
+    s=await getDoc(ref);
+  }
+  return s.data();
+}
+async function createQrToken(){
+  const{db,doc,setDoc,updateDoc,serverTimestamp}=window._f;
+  const ao=await loadAccessState();
+  const secret=randHex(32);
+  await setDoc(doc(db,'accessTokens','q_'+secret),{uid:U.uid,kind:'qr',ver:ao.qrVer,createdAt:serverTimestamp()});
+  await setDoc(doc(db,'userSecrets',U.uid),{qrSecret:secret,qrVer:ao.qrVer},{merge:true});
+  await updateDoc(doc(db,'accessOwners',U.uid),{qrSetVer:ao.qrVer});
+  return secret;
+}
+// Geeft het huidige QR-geheim terug; maakt een nieuwe als er nog geen geldige is (bv. na vernieuwen door beheer)
+async function getMyQrSecret(){
+  const{db,doc,getDoc}=window._f;
+  const ao=await loadAccessState();
+  if(ao.qrSetVer===ao.qrVer){
+    const s=await getDoc(doc(db,'userSecrets',U.uid));
+    if(s.exists()&&s.data().qrSecret&&s.data().qrVer===ao.qrVer) return s.data().qrSecret;
+  }
+  return await createQrToken();
+}
+async function setFastCode(code){
+  const{db,doc,setDoc,updateDoc,serverTimestamp}=window._f;
+  let ao=await loadAccessState();
+  if(ao.fastSetVer===ao.fastVer){ // er is al een code → eerst de oude ongeldig maken (versie omhoog)
+    await updateDoc(doc(db,'accessOwners',U.uid),{fastVer:ao.fastVer+1});
+    ao=await loadAccessState();
+  }
+  try{
+    await setDoc(doc(db,'accessTokens','f_'+code),{uid:U.uid,kind:'fast',ver:ao.fastVer,createdAt:serverTimestamp()});
+  }catch(e){ throw Object.assign(new Error('taken'),{taken:true}); }
+  await updateDoc(doc(db,'accessOwners',U.uid),{fastSetVer:ao.fastVer});
+}
+
+// ── QR tekenen / kaartje maken / opslaan / printen ─────────────────────────────────────────────
+function qrUrl(secret){ return accessBase()+'/index.html#q='+secret; }
+function drawQr(canvas,text,size){
+  const qr=qrcode(0,'M'); qr.addData(text); qr.make();
+  const n=qr.getModuleCount(), quiet=4, cell=Math.max(2,Math.floor(size/(n+quiet*2))), px=cell*(n+quiet*2);
+  canvas.width=canvas.height=px;
+  const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,px,px); ctx.fillStyle='#000';
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++) if(qr.isDark(r,c)) ctx.fillRect((c+quiet)*cell,(r+quiet)*cell,cell,cell);
+}
+async function buildQrCard(secret){
+  try{ await document.fonts.load('800 60px Outfit'); }catch(e){}
+  const W=1080,H=1560,c=document.createElement('canvas'); c.width=W; c.height=H;
+  const x=c.getContext('2d'), F='Outfit, -apple-system, Helvetica, Arial, sans-serif';
+  x.fillStyle='#fff'; x.fillRect(0,0,W,H);
+  const g=x.createLinearGradient(0,0,W,260); g.addColorStop(0,'#1A3BB5'); g.addColorStop(1,'#0E2270');
+  x.fillStyle=g; x.fillRect(0,0,W,260);
+  x.fillStyle='#fff'; x.font='800 82px '+F; x.textAlign='center'; x.fillText('MHV',W/2-118,150);
+  x.fillStyle='#F5C800'; x.fillText('work',W/2+88,150);
+  x.fillStyle='rgba(255,255,255,.85)'; x.font='600 34px '+F; x.fillText('Persoonlijke inlog-QR',W/2,212);
+  x.fillStyle='#0B0E1A'; x.font='800 76px '+F;
+  let nm=(U.name||'').trim(); while(x.measureText(nm).width>W-120 && nm.length>3) nm=nm.slice(0,-2);
+  x.fillText(nm,W/2,380);
+  const qc=document.createElement('canvas'); drawQr(qc,qrUrl(secret),840);
+  const qs=800; x.fillStyle='#fff'; x.strokeStyle='#D3D7E4'; x.lineWidth=4;
+  x.strokeRect((W-qs)/2-14,430-14,qs+28,qs+28); x.drawImage(qc,(W-qs)/2,430,qs,qs);
+  x.fillStyle='#0B0E1A'; x.font='700 40px '+F; x.fillText('Scan om direct in te loggen',W/2,1330);
+  x.fillStyle='#C62B25'; x.font='700 33px '+F;
+  x.fillText('Geheim houden! Wie deze QR heeft, kan als jij inloggen.',W/2,1392);
+  x.fillStyle='#5C6278'; x.font='600 30px '+F;
+  x.fillText('Lekt hij toch? Vernieuw hem in je profiel of vraag de beheerder.',W/2,1442);
+  x.fillText('MHV 1931',W/2,1510);
+  return c;
+}
+async function saveQrCard(){
+  try{
+    const secret=await getMyQrSecret(), c=await buildQrCard(secret);
+    const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+    const slug=(U.name||'medewerker').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const file=new File([blob],'MHVwork-QR-'+slug+'.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file],title:'Mijn MHVwork QR'}); return; }
+      catch(e){ if(e&&e.name==='AbortError') return; }
+    }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=file.name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    toast('QR gedownload — bewaar hem op een veilige plek','ok');
+  }catch(e){ toast('Opslaan mislukt: '+(e.message||''),'err'); }
+}
+async function printQrCard(){
+  try{
+    const secret=await getMyQrSecret(), c=await buildQrCard(secret);
+    const old=document.getElementById('qr-print'); if(old) old.remove();
+    const el=document.createElement('div'); el.id='qr-print';
+    el.innerHTML='<style>@media screen{#qr-print{display:none}}@media print{body>*:not(#qr-print){display:none!important}#qr-print{display:block!important;text-align:center}#qr-print img{width:15cm;max-width:100%}}</style><img src="'+c.toDataURL('image/png')+'" alt="QR">';
+    document.body.appendChild(el);
+    window.addEventListener('afterprint',()=>el.remove(),{once:true});
+    setTimeout(()=>window.print(),150);
+  }catch(e){ toast('Printen mislukt: '+(e.message||''),'err'); }
+}
+async function mountQr(canvasId){
+  const cv=document.getElementById(canvasId); if(!cv) return;
+  try{ const secret=await getMyQrSecret(); drawQr(cv,qrUrl(secret),480); }
+  catch(e){ cv.replaceWith(Object.assign(document.createElement('div'),{textContent:'QR laden mislukt: '+(e.message||'onbekende fout'),style:'color:var(--red);font-size:13px'})); }
+}
+const QR_BTN_STYLE='margin-top:10px';
+function qrActionsHtml(){
+  return `<button class="btn btn-yellow btn-full" style="${QR_BTN_STYLE}" onclick="saveQrCard()"><span class="ic" data-icon="mobile-down"></span> Opslaan in galerij</button>
+    <button class="btn btn-ghost btn-full" style="${QR_BTN_STYLE}" onclick="printQrCard()"><span class="ic" data-icon="note"></span> Printen</button>`;
+}
+const QR_WARN='<div style="background:var(--red-dim);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--text);margin-top:14px"><b>Houd je QR geheim.</b> Wie hem scant, is meteen jou — met je hele account. Is hij toch uitgelekt? Vernieuw hem hieronder; de oude werkt dan direct niet meer.</div>';
+function openMyQr(){
+  modal(`<div class="modal-handle"></div><div class="modal-title">Mijn persoonlijke QR</div>
+    <div style="text-align:center;margin:6px 0 4px"><canvas id="myQrCanvas" style="width:250px;height:250px;border-radius:14px;background:#fff;border:1px solid var(--separator)"></canvas></div>
+    <div style="text-align:center;font-size:13px;color:var(--text3)">Scan met je camera om direct in te loggen.</div>
+    ${QR_WARN}${qrActionsHtml()}
+    <button class="btn btn-red btn-full" style="${QR_BTN_STYLE}" onclick="refreshMyQr()"><span class="ic" data-icon="swap"></span> QR vernieuwen</button>
+    <button class="btn btn-ghost btn-full" style="${QR_BTN_STYLE}" onclick="closeModal()">Sluiten</button>`);
+  mountQr('myQrCanvas');
+}
+async function refreshMyQr(){
+  if(window._qrSession){ toast('Je bent nu via QR ingelogd. Log in met e-mail en wachtwoord om je QR te vernieuwen.','err'); return; }
+  const ok=await confirm2('QR vernieuwen','Je huidige QR werkt daarna niet meer (ook niet op toestellen waar je er nu mee bent ingelogd). Je krijgt direct een nieuwe.','Vernieuwen','btn-red');
+  if(!ok) return;
+  try{
+    const{db,doc,updateDoc}=window._f; const ao=await loadAccessState();
+    await updateDoc(doc(db,'accessOwners',U.uid),{qrVer:ao.qrVer+1});
+    closeModal(); toast('Oude QR ingetrokken — nieuwe wordt gemaakt…','ok');
+    await createQrToken(); openMyQr();
+  }catch(e){ toast('Vernieuwen mislukt: '+(e.message||''),'err'); }
+}
+
+// ── Verplicht scherm: snelcode instellen ────────────────────────────────────────────────────────
+function closeFastGate(){ const g=document.getElementById('access-gate'); if(g) g.remove(); }
+function openFastGate(mandatory){
+  closeFastGate();
+  const el=document.createElement('div'); el.id='access-gate';
+  el.style.cssText='position:fixed;inset:0;z-index:100000;background:var(--bg);overflow-y:auto;display:flex;justify-content:center;padding:calc(30px + env(safe-area-inset-top)) 20px 40px;color:var(--text)';
+  el.innerHTML=`<div style="width:100%;max-width:420px" id="gateInner">
+    <div style="width:56px;height:56px;border-radius:16px;background:var(--mhv-yellow);display:flex;align-items:center;justify-content:center;margin-bottom:16px"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1a1000"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+    <div style="font-size:26px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px">${mandatory?'Stel je snelcode in':'Nieuwe snelcode'}</div>
+    <p style="font-size:14.5px;line-height:1.55;color:var(--text2);margin-bottom:18px">Met je persoonlijke code kun je op de inlogpagina razendsnel je dienst, de wedstrijden en berichten bekijken — zonder wachtwoord.${mandatory?' <b>Dit is verplicht</b> om je account te blijven gebruiken.':''}</p>
+    <label class="form-label">Jouw code (6–12 letters/cijfers, minstens 1 van allebei)</label>
+    <input class="form-input" id="gateCode" maxlength="12" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="BIJV. K7M2QX" style="letter-spacing:.25em;font-weight:800;text-transform:uppercase;text-align:center;font-size:20px">
+    <button class="btn btn-ghost btn-full" style="margin-top:10px" id="gateGen"><span class="ic" data-icon="swap"></span> Genereer een veilige code</button>
+    <div id="gateErr" style="color:var(--red);font-size:13.5px;font-weight:600;margin-top:12px;min-height:18px"></div>
+    <button class="btn btn-yellow btn-full" style="margin-top:6px" id="gateSave">Opslaan</button>
+    <p style="font-size:12.5px;line-height:1.5;color:var(--text3);margin-top:14px">Tip: kies geen naam of geboortedatum. Wie je code raadt, kan jouw dienst zien en namens jou berichten sturen (meer niet). Na 4 foute pogingen is een toestel 15 minuten geblokkeerd.</p>
+    ${mandatory?`<button class="btn btn-ghost btn-sm" style="margin-top:14px" id="gateOut">Uitloggen</button>`:`<button class="btn btn-ghost btn-sm" style="margin-top:14px" id="gateCancel">Annuleren</button>`}
+  </div>`;
+  document.body.appendChild(el);
+  const inp=el.querySelector('#gateCode'), err=el.querySelector('#gateErr');
+  inp.addEventListener('input',()=>{ inp.value=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,''); err.textContent=''; });
+  el.querySelector('#gateGen').onclick=()=>{ inp.value=randFastCode(8); err.textContent=''; };
+  const out=el.querySelector('#gateOut'); if(out) out.onclick=()=>window._f.signOut(window._f.auth).then(()=>window.location.href='index.html');
+  const cn=el.querySelector('#gateCancel'); if(cn) cn.onclick=closeFastGate;
+  el.querySelector('#gateSave').onclick=async()=>{
+    const code=inp.value.trim().toUpperCase(), bad=validateFastCode(code);
+    if(bad){ err.textContent=bad; return; }
+    const btn=el.querySelector('#gateSave'); btn.disabled=true; err.textContent='';
+    try{
+      await setFastCode(code);
+      showGateDone(code);
+    }catch(e){
+      btn.disabled=false;
+      err.textContent=e.taken?'Deze code is al in gebruik. Kies een andere (of laat er een genereren).':'Opslaan mislukt: '+(e.message||'onbekende fout');
+    }
+  };
+  setTimeout(()=>inp.focus(),80);
+}
+async function showGateDone(code){
+  const box=document.getElementById('gateInner'); if(!box) return;
+  box.innerHTML=`<div style="width:56px;height:56px;border-radius:50%;background:var(--green-dim);display:flex;align-items:center;justify-content:center;margin-bottom:14px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div style="font-size:24px;font-weight:800;margin-bottom:6px">Snelcode ingesteld</div>
+    <div style="font-size:34px;font-weight:900;letter-spacing:.2em;margin:10px 0 4px">${code}</div>
+    <p style="font-size:13.5px;color:var(--text3);margin-bottom:18px">Onthoud hem goed — hij wordt nergens meer getoond. Vergeten? Stel hier gewoon een nieuwe in.</p>
+    <div style="font-size:18px;font-weight:800;margin-bottom:6px">Je persoonlijke QR is klaar</div>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:12px">Bewaar hem in je galerij of print hem. Daarmee log je in je volledige account in.</p>
+    <div style="text-align:center"><canvas id="gateQr" style="width:230px;height:230px;border-radius:14px;background:#fff;border:1px solid var(--separator)"></canvas></div>
+    ${QR_WARN}${qrActionsHtml()}
+    <button class="btn btn-yellow btn-full" style="margin-top:18px" id="gateDone">Klaar</button>`;
+  document.getElementById('gateDone').onclick=closeFastGate;
+  mountQr('gateQr');
+}
+function changeFastCode(){ openFastGate(false); }
+
+// ── Opstart: tellers laden, QR automatisch aanmaken, snelcode afdwingen ──────────────────────────
+async function accessBoot(){
+  try{
+    let ao=await loadAccessState();
+    if(ao.qrSetVer!==ao.qrVer){ try{ await createQrToken(); }catch(e){ console.warn('QR aanmaken:',e); } ao=await loadAccessState(); }
+    if(ao.fastSetVer!==ao.fastVer) openFastGate(true);
+  }catch(e){ console.warn('accessBoot:',e); }
+}
+
+// ── Beheer: QR vernieuwen (beheerder + dev) en snelcode resetten (alleen dev) ──────────────────────
+async function adminRefreshQr(uid){
+  const u=allUsers.find(x=>x.uid===uid); if(!u) return;
+  const ok=await confirm2('QR vernieuwen',`De QR van ${u.name} wordt direct ongeldig (ook waar die nu mee is ingelogd) en ${u.name} krijgt een mail. Doorgaan?`,'Vernieuw QR','btn-red');
+  if(!ok) return;
+  try{
+    const{db,doc,getDoc,updateDoc}=window._f; const ref=doc(db,'accessOwners',uid), s=await getDoc(ref);
+    if(!s.exists()){ toast(`${u.name} heeft nog geen QR (nog niet ingelogd sinds deze update).`,'err'); return; }
+    await updateDoc(ref,{qrVer:s.data().qrVer+1});
+    const txt=`Je persoonlijke QR-code van MHVwork is vernieuwd door een beheerder (bijvoorbeeld omdat hij mogelijk bekend was bij anderen). De oude QR werkt niet meer. Log in met je e-mail en wachtwoord: je nieuwe QR staat dan klaar onder Profiel → Snelle toegang. Verwijder de oude uit je galerij.`;
+    await notifyUsers([uid],'Je QR-code is vernieuwd',txt,txt,{type:'message'});
+    toast(`QR van ${u.name} vernieuwd — mail verstuurd`,'ok');
+  }catch(e){ toast('Vernieuwen mislukt: '+(e.message||''),'err'); }
+}
+async function devResetFast(uid){
+  const u=allUsers.find(x=>x.uid===uid); if(!u) return;
+  const ok=await confirm2('Snelcode resetten',`De snelcode van ${u.name} werkt direct niet meer en moet bij de volgende keer inloggen opnieuw worden ingesteld. Doorgaan?`,'Reset code','btn-red');
+  if(!ok) return;
+  try{
+    const{db,doc,getDoc,updateDoc}=window._f; const ref=doc(db,'accessOwners',uid), s=await getDoc(ref);
+    if(!s.exists()){ toast(`${u.name} heeft nog geen snelcode.`,'err'); return; }
+    await updateDoc(ref,{fastVer:s.data().fastVer+1});
+    const txt='Je snelcode van MHVwork is gereset door een beheerder. Log in met e-mail en wachtwoord en stel direct een nieuwe snelcode in.';
+    await notifyUsers([uid],'Je snelcode is gereset',txt,txt,{type:'message'});
+    toast(`Snelcode van ${u.name} gereset`,'ok');
+  }catch(e){ toast('Resetten mislukt: '+(e.message||''),'err'); }
+}
+
+// ── Maximaal 10 ingelogde apparaten per account (zacht afgedwongen via het gebruikersdocument) ────────
+const MAX_DEVICES=10;
+async function registerLoginDevice(){
+  try{
+    const{db,doc,getDoc,updateDoc}=window._f;
+    let id=localStorage.getItem('mhv_device'); if(!id){ id=randHex(12); localStorage.setItem('mhv_device',id); }
+    const regKey='mhv_device_reg_'+U.uid;
+    const snap=await getDoc(doc(db,'users',U.uid));
+    let list=(snap.exists()&&Array.isArray(snap.data().devices))?snap.data().devices.slice():[];
+    const mine=list.find(d=>d.id===id);
+    if(!mine && localStorage.getItem(regKey)){
+      // dit toestel was eerder aangemeld maar is verwijderd omdat er een 11e apparaat bij kwam
+      localStorage.removeItem(regKey);
+      await window._f.signOut(window._f.auth);
+      window.location.href='index.html?devices=1'; return;
+    }
+    const now=Date.now();
+    if(mine && now-(mine.at||0)<12*3600*1000) return; // recent genoeg, niets schrijven
+    list=list.filter(d=>d.id!==id);
+    list.push({id,at:now,ua:(navigator.userAgent||'').replace(/\s+/g,' ').slice(0,60),qr:!!window._qrSession});
+    list.sort((a,b)=>(a.at||0)-(b.at||0));
+    while(list.length>MAX_DEVICES) list.shift();
+    await updateDoc(doc(db,'users',U.uid),{devices:list});
+    localStorage.setItem(regKey,'1');
+  }catch(e){ console.warn('registerDevice:',e); }
+}
+// QR-sessies: trekt beheer de QR in, dan loggen we hier zelf uit (anders zie je alleen "toegang geweigerd")
+function watchQrSession(){
+  if(!window._qrSession) return;
+  const check=async()=>{
+    try{ const{db,doc,getDoc}=window._f; await getDoc(doc(db,'users',U.uid)); }
+    catch(e){ if(e&&e.code==='permission-denied'){ try{ await window._f.signOut(window._f.auth); }catch(_){} window.location.href='index.html?qr=revoked'; } }
+  };
+  setInterval(check,60000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) check(); });
+}
+
+
 const _FN = {
+  openMyQr: openMyQr, refreshMyQr: refreshMyQr, saveQrCard: saveQrCard, printQrCard: printQrCard,
+  changeFastCode: changeFastCode, adminRefreshQr: adminRefreshQr, devResetFast: devResetFast,
   nav: nav,
   toast: toast,
   closeModal: closeModal,

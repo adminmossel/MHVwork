@@ -480,6 +480,16 @@ app te raken.
 
 ---
 
+## Update oktober 2026 (deel 7) — snelle toegang: snelcode + persoonlijke QR
+
+Naast Stap 1–3 hierboven moet je bij deze update **één extra ding aanzetten**:
+
+1. **Firebase Console → Authentication → Sign-in method → "Anonymous" → Inschakelen → Opslaan.** Zonder dit werken snelcode en QR niet (de inlogpagina meldt dan dat snel inloggen nog niet aan staat).
+2. Upload `fast.html` en `qr.js` (nieuw) en de aangepaste `app.html`, `index.html`, `firestore.rules`.
+3. Publiceer `firestore.rules` opnieuw.
+4. Test: log in als medewerker → je krijgt het verplichte scherm "Stel je snelcode in" → stel in → je ziet je QR. Open daarna in een privévenster de inlogpagina → "Snel inloggen met code" → je ziet je dienst, de wedstrijden en het berichtenvak. Scan je QR met je camera → je zit in je hele account.
+5. Test vernieuwen: Beheer → Medewerkers → "QR vernieuwen" → de oude QR toont daarna "niet meer geldig".
+
 ## Update oktober 2026
 
 1. Vervang `app.html`, `register.html` en `firestore.rules`, en publiceer de regels in de Firebase Console.

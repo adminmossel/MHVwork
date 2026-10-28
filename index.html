@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInAnonymously, signOut, setPersistence, browserSessionPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -68,6 +68,57 @@ window._login = async (email, pass) => {
 window._sendReset = async (email) => {
   const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
   return sendPasswordResetEmail(auth, email, {url:`${base}/reset-pw.html`, handleCodeInApp:true});
+};
+
+// ── Snel inloggen (snelcode) en QR-login ──────────────────────────────────────────────────────
+// Beide werken via een anonieme Firebase-sessie die door de beveiligingsregels aan het echte
+// account gekoppeld wordt (zie firestore.rules, blok 'Snelcode / QR-toegang').
+const FAST_MAX_TRIES = 4, FAST_LOCK_MS = 15*60*1000, FAST_KEY = 'mhv_fast_fail';
+function fastLockState(){
+  try{ const o=JSON.parse(localStorage.getItem(FAST_KEY)||'{}'); return {n:o.n||0, until:o.until||0}; }catch(e){ return {n:0,until:0}; }
+}
+function fastFail(){
+  const st=fastLockState(); const n=st.n+1;
+  const o = n>=FAST_MAX_TRIES ? {n:0, until:Date.now()+FAST_LOCK_MS} : {n, until:0};
+  try{ localStorage.setItem(FAST_KEY, JSON.stringify(o)); }catch(e){}
+  return o;
+}
+function fastOk(){ try{ localStorage.removeItem(FAST_KEY); }catch(e){} }
+
+async function makeSession(mode, tokenId, persistence){
+  await setPersistence(auth, persistence);
+  if(auth.currentUser) await signOut(auth);
+  const cred = await signInAnonymously(auth);
+  const t = await getDoc(doc(db,'accessTokens',tokenId));
+  if(!t.exists() || t.data().kind!==mode){ await signOut(auth).catch(()=>{}); throw {code:'token-invalid'}; }
+  try{
+    await setDoc(doc(db,'sessions',cred.user.uid),{uid:t.data().uid, mode, tokenId, createdAt:serverTimestamp()});
+  }catch(e){ await signOut(auth).catch(()=>{}); throw {code:'token-invalid'}; }
+  return t.data().uid;
+}
+window._fastLogin = async (raw) => {
+  const lock=fastLockState();
+  if(lock.until>Date.now()) throw {code:'locked', mins:Math.ceil((lock.until-Date.now())/60000)};
+  const code=String(raw||'').toUpperCase().replace(/[\s-]/g,'');
+  if(!/^[A-Z0-9]{6,12}$/.test(code)) throw {code:'bad-format'};
+  try{
+    // sessionStorage-persistentie: sluit je dit tabblad/venster, dan ben je weer uitgelogd —
+    // snel inloggen onthoudt dus niets, elke keer opnieuw je code.
+    await makeSession('fast','f_'+code,browserSessionPersistence);
+  }catch(e){
+    if(e.code==='token-invalid'){ const o=fastFail(); throw {code:'token-invalid', locked:o.until>Date.now(), left:FAST_MAX_TRIES-o.n}; }
+    throw e;
+  }
+  fastOk();
+  window.location.href='fast.html';
+};
+window._qrLogin = async (secret) => {
+  const s=String(secret||'').toLowerCase();
+  if(!/^[0-9a-f]{32}$/.test(s)) throw {code:'bad-format'};
+  const uid = await makeSession('qr','q_'+s,browserLocalPersistence);
+  const u = await getDoc(doc(db,'users',uid)).catch(()=>null);
+  if(!u||!u.exists()){ await signOut(auth).catch(()=>{}); throw {code:'token-invalid'}; }
+  window.location.replace('app.html');
 };
 window.openPromoModal = function(){
   window.open('./promo.html','_blank','width=1280,height=720,scrollbars=no,toolbar=no,location=no');
@@ -297,6 +348,25 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
   .form-card .field:nth-of-type(1){ animation-delay:.15s; }
   .form-card .field:nth-of-type(2){ animation-delay:.21s; }
 }
+
+/* ── Snel inloggen ── */
+.or-sep{ display:flex; align-items:center; gap:12px; margin:18px 0 12px; color:#8A8FA3; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.or-sep::before,.or-sep::after{ content:''; flex:1; height:1px; background:#D9DCE8; }
+.fast-btn{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:9px; cursor:pointer;
+  font-family:inherit; font-size:15.5px; font-weight:800; letter-spacing:.01em;
+  padding:14px 18px; border-radius:14px; color:#0B0E1A; background:#FFF6CC;
+  border:2px solid var(--mhv-yellow); transition:transform .12s ease, background .15s ease, box-shadow .15s ease;
+}
+.fast-btn svg{ color:#B88F00; }
+.fast-btn:hover{ background:#FFEFA8; box-shadow:0 8px 20px -10px rgba(245,200,0,.9); }
+.fast-btn:active{ transform:scale(.97); }
+.fast-hint{ margin:9px 4px 14px; font-size:12px; line-height:1.5; color:#6B7186; text-align:center; }
+.fast-code-in{ letter-spacing:.22em; font-weight:800; text-transform:uppercase; }
+@media (prefers-color-scheme: dark){
+  .fast-btn{ background:rgba(245,200,0,.14); color:#FFF; }
+  .fast-btn svg{ color:var(--mhv-yellow); }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="icons.js"></script>
@@ -398,6 +468,13 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
           <span id="loginBtnLabel">Inloggen</span>
         </button>
 
+        <div class="or-sep"><span>of</span></div>
+        <button onclick="openFast()" class="fast-btn" id="fastOpenBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+          Snel inloggen met code
+        </button>
+        <p class="fast-hint">Alleen je dienst, de wedstrijden en berichten sturen. Voor alles andere log je normaal in of scan je je persoonlijke QR.</p>
+
         <button onclick="openPromoModal()" class="ghost-btn">Wat is MHVwork? →</button>
 
         <div class="foot-links">
@@ -405,6 +482,26 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
         </div>
         <p class="foot-note">Geen account? Vraag je beheerder om een uitnodigingslink.</p>
         <p class="foot-note"><a href="promo%20met%20muziek.mp4" target="_blank" rel="noopener">▶ Bekijk wat MHVwork is</a></p>
+      </div>
+
+      <!-- Snel inloggen (verborgen tot je op de knop tikt) -->
+      <div id="fastWrap" style="display:none">
+        <div class="form-head">
+          <div class="eyebrow">Snel inloggen</div>
+          <h2>Je persoonlijke code</h2>
+          <p>De code (6–12 letters/cijfers) die je bij je account hebt ingesteld.</p>
+        </div>
+        <div id="fastErr" class="error-box"></div>
+        <div class="field">
+          <label>Snelcode</label>
+          <div class="field-shell">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="text" id="fastIn" class="fast-code-in" placeholder="BIJV. K7M2QX" maxlength="14" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text">
+          </div>
+        </div>
+        <button class="cta-btn" id="fastBtn" onclick="doFast()"><span>Open mijn overzicht</span></button>
+        <button onclick="closeFast()" class="ghost-btn">Terug naar normaal inloggen</button>
+        <p class="foot-note">Code vergeten? Log in met e-mail en wachtwoord en stel via Profiel een nieuwe in.</p>
       </div>
 
       <!-- Forgot password form (hidden by default) -->
@@ -451,6 +548,15 @@ window.addEventListener('DOMContentLoaded', () => {
     err.style.display = 'block';
     history.replaceState({}, '', window.location.pathname);
   }
+  const note = {
+    'qr=revoked':     'Je QR-sessie is niet meer geldig (de QR is vernieuwd of ingetrokken). Log in met e-mail en wachtwoord en pak je nieuwe QR in je profiel.',
+    'fast=timeout':   'Snel overzicht gesloten na 5 minuten zonder gebruik.',
+    'fast=invalid':   'Je snelcode-toegang is niet meer geldig. Log in met e-mail en wachtwoord en stel een nieuwe code in.',
+    'devices=1':      'Je bent uitgelogd op dit toestel: er zijn maximaal 10 apparaten tegelijk toegestaan en er is een nieuwer toestel bijgekomen.'
+  };
+  for (const k in note) { const [a,b]=k.split('='); if (params.get(a)===b) {
+    const err = document.getElementById('errBox'); err.textContent = note[k]; err.style.display = 'block';
+    history.replaceState({}, '', window.location.pathname); break; } }
 });
 
 function showAuthLoader(text){
@@ -489,7 +595,60 @@ function showErr(msg) {
   e.style.display = 'none'; void e.offsetWidth;
   e.textContent = msg; e.style.display = 'block';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.addEventListener('keydown', e => { if (e.key !== 'Enter') return; if (document.getElementById('fastWrap').style.display==='block') doFast(); else doLogin(); });
+
+
+function openFast(){
+  document.getElementById('loginMainSection').style.display='none';
+  document.getElementById('fastWrap').style.display='block';
+  document.getElementById('fastErr').style.display='none';
+  setTimeout(()=>document.getElementById('fastIn').focus(),60);
+}
+function closeFast(){
+  document.getElementById('fastWrap').style.display='none';
+  document.getElementById('loginMainSection').style.display='block';
+}
+function fastShowErr(msg){
+  const e=document.getElementById('fastErr'); e.style.display='none'; void e.offsetWidth;
+  e.textContent=msg; e.style.display='block';
+}
+function authErrText(e){
+  switch(e && e.code){
+    case 'locked': return 'Te veel foute pogingen op dit apparaat. Probeer het over '+e.mins+' min opnieuw, of log in met e-mail en wachtwoord.';
+    case 'bad-format': return 'Dat is geen geldige code. Gebruik 6–12 letters/cijfers.';
+    case 'token-invalid': return (e.locked?'Te veel foute pogingen — dit apparaat is 15 min geblokkeerd. ':'Code onbekend of niet meer geldig.'+(typeof e.left==='number'?' Nog '+e.left+' poging'+(e.left===1?'':'en')+'.':''));
+    case 'auth/operation-not-allowed': return 'Snel inloggen staat nog niet aan. Vraag de dev om "Anoniem inloggen" te activeren in Firebase.';
+    case 'auth/network-request-failed': return 'Geen verbinding. Probeer het opnieuw.';
+    case 'auth/too-many-requests': return 'Te veel pogingen. Probeer later opnieuw.';
+    default: return 'Inloggen mislukt. Probeer het opnieuw.';
+  }
+}
+async function doFast(){
+  const code=document.getElementById('fastIn').value;
+  const btn=document.getElementById('fastBtn');
+  document.getElementById('fastErr').style.display='none';
+  btn.disabled=true; showAuthLoader('Code controleren');
+  try{ await window._fastLogin(code); }
+  catch(e){ hideAuthLoader(); fastShowErr(authErrText(e)); btn.disabled=false; }
+}
+// QR-login: de QR bevat index.html#q=<geheim>. Het geheim staat in het fragment (#) en wordt dus nooit
+// naar een server gestuurd; we wissen het meteen uit de adresbalk en de geschiedenis.
+window.addEventListener('DOMContentLoaded', async () => {
+  const m = /[#&]q=([0-9a-fA-F]{32})\b/.exec(window.location.hash||'');
+  if(!m) return;
+  history.replaceState({}, '', window.location.pathname + window.location.search);
+  showAuthLoader('QR controleren');
+  try{
+    // wacht tot de module-code klaar is
+    for(let i=0;i<40 && !window._qrLogin;i++) await new Promise(r=>setTimeout(r,100));
+    await window._qrLogin(m[1]);
+  }catch(e){
+    hideAuthLoader();
+    const err=document.getElementById('errBox');
+    err.textContent = (e && e.code==='token-invalid') ? 'Deze QR-code is niet meer geldig (vernieuwd of ingetrokken). Log in met e-mail en wachtwoord en pak je nieuwe QR in je profiel.' : authErrText(e);
+    err.style.display='block';
+  }
+});
 
 function openForgot(){
   document.getElementById('forgotWrap').style.display='block';

@@ -74,6 +74,14 @@ altijd een actueel overzicht.
 </td>
 <td width="50%" valign="top">
 
+### 🔑 Snelle toegang (snelcode + QR)
+
+- **Snel inloggen met code** op de inlogpagina: een beperkt overzicht (resterende diensttijd, aantal thuiswedstrijden, bericht sturen). Vergeet je het tabblad niet af te sluiten? Na 5 min inactiviteit sluit het zelf.
+- **Verplichte snelcode** voor elk account (6–12 letters/cijfers); 4 foute pogingen blokkeren een toestel 15 min.
+- **Persoonlijke QR** per account: opslaan in de galerij of printen; scannen = direct in je volledige account. Uitgelekt? De eigenaar, een beheerder of de dev vernieuwt hem — de oude is direct ongeldig en de eigenaar krijgt een mail.
+- Maximaal 10 toestellen per account.
+- Draait volledig op het gratis Spark-plan (anonieme Firebase-sessies + Firestore-regels, geen Cloud Functions).
+
 ### 🔄 Dienst ruilen
 - Medewerker plaatst een ruilverzoek in de groepschat
 - Collega's tonen interesse

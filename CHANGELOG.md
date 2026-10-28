@@ -1,3 +1,26 @@
+# CHANGELOG — update oktober 2026 (deel 7, "snelle toegang")
+
+### ✨ Nieuw
+- **Snel inloggen met code** (knop op de inlogpagina, onder "Inloggen"). Een persoonlijke code van 6–12 letters/cijfers geeft een beperkt scherm (`fast.html`): hoe lang je dienst nog duurt, hoeveel thuiswedstrijden er zijn (vandaag + 7 dagen) en een bericht sturen (groepschat of privé naar iedereen). Niets wordt onthouden: nieuw tabblad = opnieuw je code; scherm sluit na 5 min zonder gebruik. 4 foute pogingen = 15 min geblokkeerd op dat toestel.
+- **Snelcode is verplicht** voor élk account (medewerker, beheerder, dev): na de update zie je bij de eerstvolgende login een scherm dat je niet kunt wegklikken tot je er een hebt ingesteld (of laat genereren). Wijzigen kan altijd via Profiel → Snelle toegang.
+- **Persoonlijke QR** per account. Opslaan in galerij (deelmenu) of printen als kaartje. Scannen = direct ingelogd in je VOLLEDIGE account, blijvend op dat toestel.
+- **QR vernieuwen**: de eigenaar zelf (Profiel), een beheerder (voor medewerkers) en de dev (voor iedereen) via Beheer → Medewerkers → "QR vernieuwen". De oude QR is direct dood, ook op toestellen waar al mee is ingelogd; de getroffen persoon krijgt een mail. De dev kan ook een snelcode resetten.
+- **Maximaal 10 toestellen** per account; een 11e logt het oudste toestel uit.
+- **Wit thema geoptimaliseerd**: contrast overal ≥ 5:1 (was op plekken 2,8–3,4:1), gele tekst op wit nu donkergeel, knoppen met rand + schaduw, actieve tab blauw, inputs met zichtbare rand, sterkere kaartranden.
+
+### ⚠️ Verplichte stappen bij deze update
+1. Firebase Console → Authentication → Sign-in method → **Anonymous** inschakelen (gratis, Spark). Hierop draaien snelcode en QR.
+2. `firestore.rules` opnieuw publiceren.
+3. Nieuwe bestanden uploaden: `fast.html`, `qr.js` (naast aangepaste `app.html`, `index.html`, `firestore.rules`).
+
+### ℹ️ Goed om te weten
+- Geen Blaze-plan nodig: alles werkt op Spark. De beveiliging zit volledig in de Firestore-regels (een QR/snelcode-sessie is een anonieme sessie die alleen geldig is zolang de teller van het account niet is opgehoogd).
+- Een geschorst account verliest direct ook zijn QR/snelcode-toegang.
+- De snelcode is geen wachtwoord: wie hem raadt kan jouw dienst zien en namens jou berichten sturen, meer niet. Gebruik daarom liefst de knop "Genereer een veilige code".
+- Het maximum van 10 toestellen en de 4-pogingen-blokkade worden in de app bewaakt, niet door de server (Spark kent geen servercode) — voldoende voor deze data, maar technisch te omzeilen door iemand die gericht aanvalt.
+
+---
+
 # CHANGELOG — update oktober 2026 (deel 6, "widget")
 
 ### ✨ Nieuw — het dichtstbijzijnde dat een PWA bij een widget kan komen

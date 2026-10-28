@@ -2,8 +2,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuth()    { return request.auth != null; }
-    function getRole()   { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    // ── Toegang via snelcode / persoonlijke QR (Spark-plan, geen server nodig) ─────────────────
+    // Een snelcode- of QR-login is een ANONIEME Firebase-sessie die via een document in
+    // 'sessions' aan een echt account gekoppeld wordt. De koppeling is alleen geldig zolang het
+    // token (accessTokens) bestaat én de versie ervan gelijk is aan de teller van de eigenaar
+    // (accessOwners). Verhoogt de eigenaar/beheerder/dev die teller → ALLE oude sessies + oude
+    // QR/codes zijn direct dood. Normale e-mail/wachtwoord-logins zijn nooit anoniem en dus
+    // volledig ongewijzigd.
+    function isAnon()     { return request.auth != null && request.auth.token.firebase.sign_in_provider == 'anonymous'; }
+    function sessDoc()    { return get(/databases/$(database)/documents/sessions/$(request.auth.uid)).data; }
+    function tokDoc(id)   { return get(/databases/$(database)/documents/accessTokens/$(id)).data; }
+    function ownerDoc(u)  { return get(/databases/$(database)/documents/accessOwners/$(u)).data; }
+    function sessValid()  {
+      return exists(/databases/$(database)/documents/sessions/$(request.auth.uid))
+        && tokDoc(sessDoc().tokenId).uid == sessDoc().uid
+        && tokDoc(sessDoc().tokenId).kind == sessDoc().mode
+        && tokDoc(sessDoc().tokenId).ver == ownerDoc(sessDoc().uid).get(sessDoc().mode + 'Ver', 0)
+        // een geschorst account verliest ook direct zijn QR/snelcode-toegang
+        && !get(/databases/$(database)/documents/users/$(sessDoc().uid)).data.get('suspended', false);
+    }
+    function isQrSess()   { return isAnon() && sessValid() && sessDoc().mode == 'qr'; }
+    function isFastSess() { return isAnon() && sessValid() && sessDoc().mode == 'fast'; }
+    function me()         { return isAnon() ? sessDoc().uid : request.auth.uid; }
+    function isReal()     { return request.auth != null && !isAnon(); }
+    // Volledige toegang: echte login of een geldige QR-sessie. Snelcode-sessies (beperkt) NIET.
+    function isAuth()     { return request.auth != null && (!isAnon() || isQrSess()); }
+    // Snelcode-modus mag alleen: eigen diensten/wedstrijden lezen en berichten versturen.
+    function isAuthOrFast() { return isAuth() || isFastSess(); }
+    function getRole()   { return get(/databases/$(database)/documents/users/$(me())).data.role; }
     function isAdmin()   { return isAuth() && getRole() == 'admin'; }
     function isSoftware(){ return isAuth() && getRole() == 'software'; }
     function isStaff()   { return isAdmin() || isSoftware(); }
@@ -11,7 +37,7 @@ service cloud.firestore {
     // zonder het hele account te schorsen) — leeg/ontbrekend veld = geen restricties.
     function restr(key) {
       return isAdmin()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('restrictions',{}).get(key,false) == true;
+        && get(/databases/$(database)/documents/users/$(me())).data.get('restrictions',{}).get(key,false) == true;
     }
 
     match /users/{uid} {
@@ -23,17 +49,17 @@ service cloud.firestore {
       // mailen bij bv. een ruilverzoek of privébericht) — maar NIET dat van een collega-
       // medewerker. Dat sluit het oorspronkelijke lek (elke medewerker kon elke andere
       // medewerkers' e-mail + loon zien) terwijl bestaande functionaliteit blijft werken.
-      allow read: if isAuth() && (request.auth.uid == uid || isStaff() || resource.data.role in ['admin','software']);
+      allow read: if isAuth() && (me() == uid || isStaff() || resource.data.role in ['admin','software']);
       // Zelf-registratie (na invite-link) blijft toegestaan, zoals voorheen. Geen hardcoded
       // email-bypass meer — rol komt uitsluitend uit het Firestore-document zelf.
       allow create: if isSoftware()
         || (isAdmin() && request.resource.data.role != 'software')
-        || (isAuth() && request.auth.uid == uid);
+        || (isAuth() && me() == uid);
       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions','guestUntil','guestPending']) && !restr('manageEmployees')
             && !(restr('toggleFeatures') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['disabledFeatures'])))
         || isSoftware()
-        || (isAuth() && request.auth.uid == uid
+        || (isAuth() && me() == uid
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','wage','verified','guestUntil','guestPending','guestApprovedBy']));
       allow delete: if isStaff() && !restr('manageEmployees');
     }
@@ -42,15 +68,15 @@ service cloud.firestore {
     // tonen elders in de app — géén e-mail, loon of andere gevoelige velden. 'role'/'verified'
     // zijn na aanmaken alleen door staff aan te passen (voorkomt een zelf-toegekende nep-badge).
     match /publicProfiles/{uid} {
-      allow read: if isAuth();
-      allow create: if isAuth() && (request.auth.uid == uid || isStaff());
-      allow update: if isStaff() || (isAuth() && request.auth.uid == uid
+      allow read: if isAuthOrFast();
+      allow create: if isAuth() && (me() == uid || isStaff());
+      allow update: if isStaff() || (isAuth() && me() == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData','name']));
       allow delete: if isStaff();
     }
 
     match /shifts/{id} {
-      allow read: if isAuth();
+      allow read: if isAuthOrFast();
       allow create: if isAdmin() && !restr('editShift');
       allow delete: if isStaff() && !restr('deleteShift');
       allow update: if (isAdmin()
@@ -61,22 +87,22 @@ service cloud.firestore {
               .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']))
         // Sluitchecklist afvinken: alleen wie zelf op deze dienst staat, en alleen dit ene veld.
         // (Of de dienst ook echt de sluit-/laatste dienst van de dag is, bewaakt de app zelf.)
-        || (isAuth() && (request.auth.uid in resource.data.workers)
+        || (isAuth() && (me() in resource.data.workers)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closingChecks']));
     }
 
     match /availability/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow delete: if (isAuth() && resource.data.uid == request.auth.uid) || isStaff();
-      allow update: if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid
+      allow create: if isAuth() && request.resource.data.uid == me();
+      allow delete: if (isAuth() && resource.data.uid == me()) || isStaff();
+      allow update: if isAdmin() || (isAuth() && resource.data.uid == me()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note','date']));
     }
 
     match /notifications/{id} {
       allow read: if isAuth()
-        && (resource.data.to.hasAny([request.auth.uid]) || isStaff());
-      allow create: if isAuth() && request.resource.data.from == request.auth.uid;
+        && (resource.data.to.hasAny([me()]) || isStaff());
+      allow create: if isAuthOrFast() && request.resource.data.from == me();
       allow update: if isAuth()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
       allow delete: if isStaff();
@@ -86,13 +112,13 @@ service cloud.firestore {
     // maar iedereen mag zien wie de chat tot wanneer gelezen heeft (nodig voor de vinkjes).
     match /chatReads/{uid} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == uid;
+      allow write: if isAuth() && me() == uid;
     }
 
     match /chat/{id} {
       allow read: if isAuth();
-      allow create: if isAuth()
-        && request.resource.data.uid == request.auth.uid
+      allow create: if isAuthOrFast()
+        && request.resource.data.uid == me()
         && request.resource.data.keys().hasAll(['uid','name','text','createdAt']);
       allow update: if isAuth()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','pinned','swapStatus','acceptedByName','interestedName','reactions']);
@@ -101,7 +127,7 @@ service cloud.firestore {
 
     match /swapRequests/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.requesterId == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.requesterId == me();
       allow update: if isAdmin()
         || (isAuth() && request.resource.data.diff(resource.data)
               .affectedKeys().hasOnly(['interestedUid','interestedName']));
@@ -125,7 +151,7 @@ service cloud.firestore {
 
     match /payments/{id} {
       allow read: if isAuth()
-        && (resource.data.uid == request.auth.uid || isAdmin());
+        && (resource.data.uid == me() || isAdmin());
       allow write: if isStaff() && !restr('payout');
     }
 
@@ -152,9 +178,9 @@ service cloud.firestore {
       // je iemand een bericht stuurt) — zonder die check crasht de regel op resource.data van een
       // niet-bestaand document, en behandelt Firestore dat als een blokkade ("missing or
       // insufficient permissions"), zelfs voor een volkomen legitieme aanvraag.
-      allow read: if isAuth() && (resource == null || resource.data.participants.hasAny([request.auth.uid]));
-      allow create: if isAuth() && request.resource.data.participants.hasAny([request.auth.uid]);
-      allow update: if isAuth() && resource.data.participants.hasAny([request.auth.uid])
+      allow read: if isAuthOrFast() && (resource == null || resource.data.participants.hasAny([me()]));
+      allow create: if isAuthOrFast() && request.resource.data.participants.hasAny([me()]);
+      allow update: if isAuthOrFast() && resource.data.participants.hasAny([me()])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages','updatedAt','readBy','lastText','lastFrom','typing']);
       allow delete: if isStaff();
     }
@@ -162,10 +188,10 @@ service cloud.firestore {
     // Bijlagen/foto's in privéberichten (max ±700 KB per bestand, als base64-tekst; blijft binnen het
     // 1 MiB-limiet van een Firestore-document en vereist dus geen Firebase Storage/Blaze-plan).
     match /dmFiles/{id} {
-      allow read: if isAuth() && resource.data.participants.hasAny([request.auth.uid]);
+      allow read: if isAuth() && resource.data.participants.hasAny([me()]);
       allow create: if isAuth()
-        && request.resource.data.from == request.auth.uid
-        && request.resource.data.participants.hasAny([request.auth.uid])
+        && request.resource.data.from == me()
+        && request.resource.data.participants.hasAny([me()])
         && request.resource.data.dataUrl.size() < 960000;
       allow delete: if isStaff();
     }
@@ -188,7 +214,7 @@ service cloud.firestore {
     // functie is bovendien met een schakelaar (settings/general → disabledFeatures.matches) door
     // dev uit te zetten; dat bepaalt de app, niet deze regel.
     match /matches/{id} {
-      allow read: if isAuth();
+      allow read: if isAuthOrFast();
       allow write: if isStaff();
     }
 
@@ -217,11 +243,72 @@ service cloud.firestore {
                 : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reminderHours'])));
     }
 
+
+    // ── Snelcode / QR-toegang ────────────────────────────────────────────────────────────────
+    // Tokens (QR-geheim 'q_<32 hex>' of snelcode 'f_<6-12 A-Z0-9>'): het document-ID ÍS het geheim.
+    // Opvragen kan alleen met het exacte ID (geen lijst/zoek). Aanmaken mag alleen voor
+    // jezelf, met de actuele versie. Wijzigen/verwijderen kan niet — vernieuwen = teller ophogen.
+    match /accessTokens/{id} {
+      // 'get' (één specifiek, onraadbaar ID) is nodig om bij inloggen te weten bij welk account een
+      // code/QR hoort. 'list' bestaat bewust niet: de tokens zijn dus niet op te vragen of door te zoeken.
+      allow get: if isAnon();
+      allow create: if isAuth()
+        && request.resource.data.uid == me()
+        && request.resource.data.keys().hasOnly(['uid','kind','ver','createdAt'])
+        && ((request.resource.data.kind == 'qr'   && id.matches('q_[0-9a-f]{32}'))
+         || (request.resource.data.kind == 'fast' && id.matches('f_[A-Z0-9]{6,12}')))
+        && request.resource.data.ver == ownerDoc(me()).get(request.resource.data.kind + 'Ver', 0);
+    }
+
+    // Tellers per medewerker. qrVer/fastVer ophogen = alles ongeldig. qrSetVer/fastSetVer zegt of de
+    // medewerker na de laatste vernieuwing al een nieuwe QR/code heeft ingesteld (dwingt de app af).
+    // Beheerder mag alleen de QR van een medewerker vernieuwen; de snelcode resetten mag alleen dev.
+    match /accessOwners/{uid} {
+      allow read: if isAuth() && (me() == uid || isStaff());
+      allow create: if isAuth() && me() == uid
+        && request.resource.data.keys().hasOnly(['qrVer','fastVer','qrSetVer','fastSetVer'])
+        && request.resource.data.qrVer == 1 && request.resource.data.fastVer == 1
+        && request.resource.data.qrSetVer == 0 && request.resource.data.fastSetVer == 0;
+      allow update: if isAuth() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qrVer','fastVer'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['qrVer'])
+              || request.resource.data.qrVer == resource.data.qrVer + 1)
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['fastVer'])
+              || request.resource.data.fastVer == resource.data.fastVer + 1)
+          && (me() == uid || isSoftware()
+              || (isAdmin() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['fastVer'])
+                  && !(get(/databases/$(database)/documents/users/$(uid)).data.role in ['admin','software']))))
+        || (me() == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qrSetVer','fastSetVer'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['qrSetVer'])
+              || request.resource.data.qrSetVer == resource.data.qrVer)
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['fastSetVer'])
+              || request.resource.data.fastSetVer == resource.data.fastVer)));
+    }
+
+    // Eigen geheimen (QR-geheim, zodat je je QR later opnieuw kunt tonen/printen) — alleen de
+    // eigenaar zelf; ook beheerder en dev kunnen dit NIET lezen.
+    match /userSecrets/{uid} {
+      allow read, write: if isAuth() && me() == uid;
+    }
+
+    // Koppeling anonieme sessie → echt account. Alleen aan te maken met een bestaand, geldig token.
+    match /sessions/{sid} {
+      allow read: if isAnon() && request.auth.uid == sid;
+      allow create: if isAnon() && request.auth.uid == sid
+        && request.resource.data.keys().hasOnly(['uid','mode','tokenId','createdAt'])
+        && request.resource.data.mode in ['qr','fast']
+        && tokDoc(request.resource.data.tokenId).uid == request.resource.data.uid
+        && tokDoc(request.resource.data.tokenId).kind == request.resource.data.mode
+        && tokDoc(request.resource.data.tokenId).ver == ownerDoc(request.resource.data.uid).get(request.resource.data.mode + 'Ver', 0);
+      allow delete: if isAnon() && request.auth.uid == sid;
+    }
+
     // Alleen zichtbaar voor de dev-rol
     match /loginLogs/{id} {
       allow read: if isSoftware();
-      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow update: if isAuth() && resource.data.uid == request.auth.uid
+      allow create: if isAuth() && request.resource.data.uid == me();
+      allow update: if isAuth() && resource.data.uid == me()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ip']);
       allow delete: if isSoftware();
     }

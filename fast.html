@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E2270">
+<title>MHVwork — Snel overzicht</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --yellow:#F5C800; --blue:#1A3BB5; --deep:#0E2270;
+  --bg:#EEF0F6; --card:#FFFFFF; --text:#0B0E1A; --text2:#3C4259; --text3:#5C6278; --line:#D3D7E4;
+  --green:#1E8C40; --red:#C62B25;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#000; --card:#1C1C1E; --text:#FFF; --text2:rgba(255,255,255,.8); --text3:rgba(255,255,255,.6); --line:rgba(255,255,255,.16); --green:#30D158; --red:#FF6A61; }
+}
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ min-height:100%; }
+body{ font-family:'Outfit',-apple-system,'Helvetica Neue',sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; padding-bottom:env(safe-area-inset-bottom); }
+.top{ background:linear-gradient(160deg,var(--blue),var(--deep)); color:#fff; padding:calc(18px + env(safe-area-inset-top)) 20px 26px; border-radius:0 0 26px 26px; }
+.top-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.badge{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; background:rgba(245,200,0,.2); color:var(--yellow); padding:5px 11px; border-radius:99px; }
+.out{ font-family:inherit; font-size:13px; font-weight:700; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); border-radius:99px; padding:8px 15px; cursor:pointer; }
+.hello{ font-size:26px; font-weight:800; letter-spacing:-.4px; margin-top:16px; }
+.sub{ font-size:14px; color:rgba(255,255,255,.75); margin-top:2px; }
+main{ max-width:560px; margin:0 auto; padding:16px 16px 40px; display:flex; flex-direction:column; gap:14px; margin-top:-8px; }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.label{ font-size:12px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
+.big{ font-size:44px; font-weight:900; letter-spacing:-1px; line-height:1.05; }
+.big small{ font-size:18px; font-weight:700; color:var(--text3); letter-spacing:0; }
+.muted{ color:var(--text3); font-size:14px; margin-top:6px; line-height:1.45; }
+.bar{ height:9px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:14px; }
+.bar span{ display:block; height:100%; background:var(--yellow); border-radius:6px; transition:width 1s linear; }
+.row{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; }
+.row:last-child{ border-bottom:none; }
+.row b{ font-weight:800; }
+.row .t{ font-weight:800; min-width:48px; }
+.row .off{ color:var(--red); text-decoration:line-through; }
+.stats{ display:flex; gap:10px; }
+.stat{ flex:1; background:var(--bg); border-radius:14px; padding:12px 14px; }
+.stat b{ display:block; font-size:30px; font-weight:900; letter-spacing:-.5px; }
+.stat span{ font-size:12.5px; color:var(--text3); font-weight:600; }
+select,textarea{ width:100%; font-family:inherit; font-size:16px; color:var(--text); background:var(--bg); border:1.5px solid var(--line); border-radius:12px; padding:12px 13px; outline:none; }
+select:focus,textarea:focus{ border-color:var(--blue); }
+textarea{ resize:none; min-height:84px; margin-top:10px; }
+.send{ width:100%; margin-top:12px; font-family:inherit; font-size:16px; font-weight:800; color:#1a1000; background:var(--yellow); border:none; border-radius:14px; padding:14px; cursor:pointer; box-shadow:0 8px 18px -10px rgba(245,200,0,.9); }
+.send:disabled{ opacity:.55; }
+.msg{ font-size:14px; font-weight:600; margin-top:10px; }
+.msg.ok{ color:var(--green); } .msg.err{ color:var(--red); }
+.foot{ text-align:center; font-size:12.5px; color:var(--text3); line-height:1.5; padding:4px 10px; }
+.load{ text-align:center; padding:70px 20px; color:var(--text3); font-weight:600; }
+</style>
+</head>
+<body>
+<div id="boot" class="load">Overzicht laden…</div>
+
+<div id="view" style="display:none">
+  <div class="top">
+    <div class="top-row">
+      <span class="badge">⚡ Snel overzicht</span>
+      <button class="out" id="outBtn">Uitloggen</button>
+    </div>
+    <div class="hello" id="hello">Hoi!</div>
+    <div class="sub" id="clock"></div>
+  </div>
+
+  <main>
+    <div class="card" id="shiftCard"></div>
+
+    <div class="card">
+      <div class="label">Thuiswedstrijden</div>
+      <div class="stats">
+        <div class="stat"><b id="mToday">–</b><span>vandaag</span></div>
+        <div class="stat"><b id="mWeek">–</b><span>komende 7 dagen</span></div>
+      </div>
+      <div id="mList" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Stuur een bericht</div>
+      <select id="rcpt"></select>
+      <textarea id="msgText" maxlength="1000" placeholder="Typ je bericht…"></textarea>
+      <button class="send" id="sendBtn">Versturen</button>
+      <div class="msg" id="sendMsg"></div>
+    </div>
+
+    <div class="foot">Je bent ingelogd met je snelcode. Hier zie je alleen het hoognodige.<br>Voor het volledige rooster log je in met e-mail en wachtwoord of scan je je persoonlijke QR.<br>Dit scherm sluit zichzelf na 5 minuten zonder gebruik.</div>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, getDocs, onSnapshot, deleteDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDqwDEf35KoH2850xFHZ6gN9ROwgcx0Kyw",
+  authDomain: "mhvwork-2376d.firebaseapp.com",
+  projectId: "mhvwork-2376d",
+  storageBucket: "mhvwork-2376d.firebasestorage.app",
+  messagingSenderId: "292563349134",
+  appId: "1:292563349134:web:6897c6e23536baf56ba3df"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const MATCH_MIN = 79;           // zelfde aanname als in de hoofdapp (speelduur voor 'bezig')
+const IDLE_MS = 5*60*1000;
+const $ = id => document.getElementById(id);
+
+let UID = null, MYNAME = 'collega', myShifts = [], matches = [];
+
+async function leave(reason){
+  try{ if(auth.currentUser){ await deleteDoc(doc(db,'sessions',auth.currentUser.uid)).catch(()=>{}); await signOut(auth); } }catch(e){}
+  window.location.replace('index.html' + (reason ? '?fast=' + reason : ''));
+}
+$('outBtn').onclick = () => leave();
+
+// ── tijd-helpers (zelfde logica als app.html) ─────────────────────────────────────────────────
+function toDate(d){
+  if(!d) return new Date(NaN);
+  if(d.toDate) return d.toDate();
+  if(d instanceof Date) return d;
+  if(typeof d === 'string'){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d); if(m) return new Date(+m[1],+m[2]-1,+m[3]); }
+  return new Date(d);
+}
+function dayKey(d){ const x=toDate(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function localMs(k,hhmm){ const [y,m,d]=k.split('-').map(Number); const [h,mi]=(hhmm||'00:00').split(':').map(Number); return new Date(y,m-1,d,h,mi||0,0,0).getTime(); }
+function winOf(s){
+  const k=dayKey(s.date), st=localMs(k,s.startTime);
+  let en = s.endTime==='sluit' ? Infinity : localMs(k,s.endTime);
+  if(en!==Infinity && en<=st) en += 86400000;
+  return {st,en};
+}
+function fmtDur(ms){
+  const mins=Math.max(0,Math.round(ms/60000)), h=Math.floor(mins/60), m=mins%60;
+  if(h>=24){ const d=Math.floor(h/24); return d+' dag'+(d===1?'':'en')+(h%24?' '+(h%24)+' u':''); }
+  return h? `${h} u ${String(m).padStart(2,'0')} min` : `${m} min`;
+}
+function fmtDay(d){ return toDate(d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'}); }
+function hm(ms){ return new Date(ms).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+
+// ── render ────────────────────────────────────────────────────────────────────────────────
+function renderShift(){
+  const now=Date.now(), el=$('shiftCard');
+  const wins=myShifts.map(s=>({s,...winOf(s)})).filter(x=>!isNaN(x.st));
+  const cur=wins.filter(x=>x.st<=now && now<x.en).sort((a,b)=>a.st-b.st)[0];
+  const next=wins.filter(x=>x.st>now).sort((a,b)=>a.st-b.st)[0];
+  let h='<div class="label">Jouw dienst</div>';
+  if(cur){
+    const s=cur.s;
+    if(cur.en===Infinity){
+      h+=`<div class="big">Tot sluit</div><div class="muted">Dienst bezig sinds ${s.startTime}. De eindtijd hangt af van wanneer er gesloten wordt.</div>`;
+    }else{
+      const left=cur.en-now, pct=Math.min(100,Math.max(0,(now-cur.st)/(cur.en-cur.st)*100));
+      h+=`<div class="big">${fmtDur(left)} <small>te gaan</small></div>
+          <div class="muted">${s.startTime} – ${s.endTime} · eindigt om ${s.endTime}</div>
+          <div class="bar"><span style="width:${pct.toFixed(1)}%"></span></div>`;
+    }
+  }else if(next){
+    const s=next.s;
+    h+=`<div class="big">${fmtDur(next.st-now)} <small>tot je volgende dienst</small></div>
+        <div class="muted" style="text-transform:capitalize">${fmtDay(s.date)}</div>
+        <div class="muted" style="margin-top:2px">${s.startTime} – ${s.endTime==='sluit'?'sluit':s.endTime}</div>`;
+  }else{
+    h+='<div class="big" style="font-size:26px">Geen dienst ingepland</div><div class="muted">Zodra je een dienst krijgt, zie je hier hoe lang hij nog duurt.</div>';
+  }
+  el.innerHTML=h;
+}
+function renderMatches(){
+  const now=new Date(), todayK=dayKey(now);
+  const weekEnd=Date.now()+7*86400000;
+  const live=matches.filter(m=>!['canceled','postponed','discontinued'].includes(m.status));
+  const today=matches.filter(m=>m.date===todayK);
+  const todayOn=today.filter(m=>!['canceled','postponed','discontinued'].includes(m.status));
+  const week=live.filter(m=>m.startMs>=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime() && m.startMs<weekEnd);
+  $('mToday').textContent=todayOn.length;
+  $('mWeek').textContent=week.length;
+  const list=today.sort((a,b)=>(a.startMs||0)-(b.startMs||0));
+  $('mList').innerHTML = list.length
+    ? list.map(m=>{ const off=['canceled','postponed','discontinued'].includes(m.status);
+        const t=document.createElement('div'); t.className='row';
+        const a=document.createElement('span'); a.className='t'; a.textContent=m.startTime||'tijd volgt';
+        const b=document.createElement('span'); b.style.flex='1'; b.textContent=(m.homeTeam||'?')+' – '+(m.awayTeam||'?'); if(off) b.className='off';
+        t.append(a,b); return t.outerHTML; }).join('')
+    : '<div class="muted">Vandaag geen thuiswedstrijden.</div>';
+}
+function tickClock(){
+  $('clock').textContent=new Date().toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})+' · '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+  renderShift();
+}
+
+// ── bericht versturen ─────────────────────────────────────────────────────────────────────────
+async function loadRecipients(){
+  const sel=$('rcpt');
+  sel.innerHTML='<option value="__chat">Groepschat (iedereen)</option>';
+  try{
+    const snap=await getDocs(collection(db,'publicProfiles'));
+    const people=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(p=>p.uid!==UID && p.name)
+      .sort((a,b)=>String(a.name).localeCompare(String(b.name),'nl'));
+    for(const p of people){
+      const o=document.createElement('option'); o.value=p.uid;
+      o.textContent=p.name+(p.role==='admin'?' (beheerder)':p.role==='software'?' (dev)':''); sel.appendChild(o);
+    }
+  }catch(e){ console.warn('ontvangers:',e); }
+}
+function say(txt,cls){ const m=$('sendMsg'); m.textContent=txt; m.className='msg '+(cls||''); }
+async function sendMessage(){
+  const text=$('msgText').value.trim(), to=$('rcpt').value;
+  if(!text){ say('Typ eerst een bericht.','err'); return; }
+  const btn=$('sendBtn'); btn.disabled=true; say('Versturen…');
+  try{
+    if(to==='__chat'){
+      await addDoc(collection(db,'chat'),{ uid:UID, name:MYNAME, role:'employee', text, imageData:null, mentions:[], type:'message', deleted:false, createdAt:serverTimestamp() });
+    }else{
+      const id=[UID,to].sort().join('_'), ref=doc(db,'dms',id);
+      const toName=$('rcpt').selectedOptions[0].textContent.replace(/ \((beheerder|dev)\)$/,'');
+      const snap=await getDoc(ref);
+      const msg={from:UID,text,ts:Date.now()};
+      if(!snap.exists()){
+        await setDoc(ref,{ participants:[UID,to], participantNames:{[UID]:MYNAME,[to]:toName}, messages:[msg], lastText:text, lastFrom:UID, readBy:[UID], updatedAt:serverTimestamp() });
+      }else{
+        await updateDoc(ref,{ messages:[...(snap.data().messages||[]),msg], lastText:text, lastFrom:UID, readBy:[UID], updatedAt:serverTimestamp() });
+      }
+      await addDoc(collection(db,'notifications'),{ to:[to], from:UID, title:'Bericht van '+MYNAME, body:text, notifType:'message', readBy:[], createdAt:serverTimestamp() });
+    }
+    $('msgText').value=''; say('Verstuurd ✓','ok');
+  }catch(e){
+    console.error(e); say('Versturen mislukt. Is je toegang nog geldig?','err');
+  }finally{ btn.disabled=false; }
+}
+$('sendBtn').onclick=sendMessage;
+
+// ── inactiviteit + start ────────────────────────────────────────────────────────────────────
+let idleT; function bump(){ clearTimeout(idleT); idleT=setTimeout(()=>leave('timeout'),IDLE_MS); }
+['click','keydown','touchstart','input'].forEach(ev=>window.addEventListener(ev,bump,{passive:true}));
+
+onAuthStateChanged(auth, async user=>{
+  if(!user || !user.isAnonymous){ window.location.replace('index.html'); return; }
+  try{
+    const ss=await getDoc(doc(db,'sessions',user.uid));
+    if(!ss.exists() || ss.data().mode!=='fast'){ await leave(); return; }
+    UID=ss.data().uid;
+    const prof=await getDoc(doc(db,'publicProfiles',UID));   // faalt als de toegang is ingetrokken of geschorst
+    if(prof.exists() && prof.data().name) MYNAME=prof.data().name;
+  }catch(e){ await leave('invalid'); return; }
+
+  $('hello').textContent='Hoi '+MYNAME.split(' ')[0]+'!';
+  $('boot').style.display='none'; $('view').style.display='block';
+
+  onSnapshot(query(collection(db,'shifts'),where('workers','array-contains',UID)),
+    s=>{ myShifts=s.docs.map(d=>({id:d.id,...d.data()})); renderShift(); }, ()=>leave('invalid'));
+  const from=Date.now()-86400000;
+  onSnapshot(query(collection(db,'matches'),where('startMs','>=',from),orderBy('startMs','asc')),
+    s=>{ matches=s.docs.map(d=>({id:d.id,...d.data()})); renderMatches(); }, e=>console.warn('wedstrijden:',e));
+  loadRecipients();
+  tickClock(); setInterval(tickClock,1000); bump();
+  // controleer elke minuut of de toegang nog geldig is (bv. ingetrokken door beheer)
+  setInterval(async()=>{ try{ await getDoc(doc(db,'publicProfiles',UID)); }catch(e){ leave('invalid'); } },60000);
+});
+</script>
+</body>
+</html>
