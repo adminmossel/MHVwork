@@ -215,62 +215,40 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
 .foot-note{ margin-top:14px; font-size:12.5px; color:#8A8FA3; text-align:center; line-height:1.6; }
 .foot-note a{ color:var(--mhv-blue); font-weight:600; text-decoration:none; }
 
-/* ── Auth loader — pint-glass fill, theme-aware (follows system light/dark) ──
-   Identical markup/CSS to app.html's #loader, so the handoff reads as one animation. */
+/* ── Auth loader — minimal: logo, wordmark, slim progress bar. Theme-aware (system light/dark).
+   Identical markup/CSS to app.html's #loader, so the handoff reads as one screen. */
 #authLoader{
-  --ld-bg:#ffffff; --ld-ink:#0B0E1A; --ld-sub:rgba(11,14,26,.5); --ld-glass:rgba(11,14,26,.22);
+  --ld-bg:#ffffff; --ld-ink:#0B0E1A; --ld-sub:rgba(11,14,26,.45);
   position:fixed; inset:0; background:var(--ld-bg); z-index:999;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
-  overflow:hidden; opacity:0; pointer-events:none; transition:opacity .4s ease;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  opacity:0; pointer-events:none; transition:opacity .35s ease;
   view-transition-name:authloader;
 }
 @media (prefers-color-scheme: dark){
-  #authLoader{ --ld-bg:#000000; --ld-ink:#ffffff; --ld-sub:rgba(255,255,255,.55); --ld-glass:rgba(255,255,255,.26); }
+  #authLoader{ --ld-bg:#000000; --ld-ink:#ffffff; --ld-sub:rgba(255,255,255,.5); }
 }
 #authLoader.show{ opacity:1; pointer-events:all; }
 
-.loader-glow{ position:absolute; width:55vmax; height:55vmax; border-radius:50%;
-  background:radial-gradient(circle,rgba(26,59,181,.20) 0%,rgba(245,200,0,.12) 45%,transparent 72%);
-  filter:blur(14px); animation:loaderGlowPulse 4s ease-in-out infinite; }
-@keyframes loaderGlowPulse{ 0%,100%{transform:scale(.9) rotate(0deg);opacity:.7} 50%{transform:scale(1.12) rotate(180deg);opacity:1} }
+.ld-mark{ width:58px; height:58px; border-radius:16px; display:block;
+  box-shadow:0 10px 24px -10px rgba(26,59,181,.5);
+  animation:ldBreathe 2.2s ease-in-out infinite; }
+@keyframes ldBreathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
 
-.loader-glass{ position:relative; width:96px; height:136px; z-index:1; }
-.loader-glass svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
-.loader-liquid-clip{ position:absolute; inset:0; overflow:hidden;
-  clip-path:polygon(16.7% 7%, 83.3% 7%, 75% 88%, 25% 88%); }
-.loader-liquid{ position:absolute; left:-50%; bottom:0; width:200%; height:0%; background:var(--mhv-yellow);
-  animation:ldFill 1.1s cubic-bezier(.34,1.56,.64,1) .2s both; }
-.loader-liquid::before,.loader-liquid::after{ content:''; position:absolute; width:200%; height:200%; top:-170%; left:-50%;
-  background:var(--mhv-yellow); border-radius:45%; animation:ldWave 6s linear infinite; }
-.loader-liquid::after{ opacity:.55; animation-duration:8.5s; animation-direction:reverse; }
-@keyframes ldFill{ from{ height:0%; } to{ height:64%; } }
-@keyframes ldWave{ to{ transform:rotate(360deg); } }
-.loader-bubble{ position:absolute; bottom:4%; width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,.65);
-  animation:ldBubble 2.4s linear infinite; opacity:0; }
-.loader-bubble:nth-child(2){ left:30%; animation-delay:.3s; }
-.loader-bubble:nth-child(3){ left:50%; animation-delay:.9s; animation-duration:2.1s; }
-.loader-bubble:nth-child(4){ left:68%; animation-delay:1.4s; animation-duration:2.7s; }
-.loader-bubble:nth-child(5){ left:42%; animation-delay:1.9s; animation-duration:2s; }
-@keyframes ldBubble{ 0%{ transform:translateY(0); opacity:0; } 10%{ opacity:1; } 85%{ opacity:.8; } 100%{ transform:translateY(-78px); opacity:0; } }
-.loader-foam{ position:absolute; left:19%; right:19%; bottom:64%; height:13px; background:#fff; border-radius:50% 50% 38% 38%/60% 60% 30% 30%;
-  opacity:0; transform:translateY(6px) scale(.9); box-shadow:0 2px 6px rgba(0,0,0,.1);
-  animation:ldFoamIn .45s ease 1.25s both, ldFoamBob 3s ease-in-out 1.7s infinite; }
-@keyframes ldFoamIn{ to{ opacity:1; transform:translateY(0) scale(1); } }
-@keyframes ldFoamBob{ 0%,100%{ transform:translateY(0) scale(1); } 50%{ transform:translateY(-2px) scale(1.02); } }
+.ld-word{ font-size:19px; font-weight:800; color:var(--ld-ink); letter-spacing:-.3px;
+  opacity:0; animation:ldFadeUp .45s ease .12s both; }
+.ld-word em{ font-style:normal; color:var(--mhv-yellow); }
 
-.loader-brand{ display:flex; align-items:center; gap:9px; z-index:1; opacity:0; animation:ldBrandIn .5s ease 1.3s both; }
-.loader-brand svg{ width:26px; height:26px; border-radius:8px; display:block; }
-.loader-brand span{ font-size:15px; font-weight:800; color:var(--ld-ink); letter-spacing:-.2px; }
-.loader-brand span em{ font-style:normal; color:var(--mhv-yellow); }
-@keyframes ldBrandIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+.ld-bar{ width:120px; height:3px; border-radius:3px; background:rgba(128,128,128,.18);
+  overflow:hidden; opacity:0; animation:ldFadeUp .45s ease .22s both; }
+.ld-bar span{ display:block; height:100%; width:40%; border-radius:3px;
+  background:linear-gradient(90deg, transparent, var(--mhv-yellow), transparent);
+  animation:ldSlide 1.3s ease-in-out infinite; }
+@keyframes ldSlide{ 0%{ transform:translateX(-130%); } 100%{ transform:translateX(330%); } }
 
-.loader-text{ font-size:13px; color:var(--ld-sub); font-weight:600; letter-spacing:.02em; display:flex; align-items:center; gap:2px; z-index:1; animation:loaderTextFade 2s ease-in-out infinite; }
-@keyframes loaderTextFade{ 0%,100%{opacity:.65} 50%{opacity:1} }
-.loader-dots{ display:inline-flex; gap:3px; margin-left:2px; }
-.loader-dots i{ width:4px; height:4px; border-radius:50%; background:var(--mhv-yellow); display:inline-block; animation:loaderDotBounce 1.2s ease-in-out infinite; }
-.loader-dots i:nth-child(2){ animation-delay:.15s; }
-.loader-dots i:nth-child(3){ animation-delay:.3s; }
-@keyframes loaderDotBounce{ 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-5px);opacity:1} }
+.ld-caption{ font-size:13px; font-weight:600; color:var(--ld-sub); letter-spacing:.02em;
+  opacity:0; animation:ldFadeUp .45s ease .3s both, ldCaptionPulse 2s ease-in-out .9s infinite; }
+@keyframes ldFadeUp{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes ldCaptionPulse{ 0%,100%{ opacity:.55 } 50%{ opacity:1 } }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
@@ -325,40 +303,25 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
 </head>
 <body>
 
-<!-- Full-screen loader — pint-glass fill, matches app.html exactly -->
+<!-- Full-screen loader — minimal: logo, wordmark, slim progress bar. Matches app.html exactly -->
 <div id="authLoader">
-  <div class="loader-glow"></div>
-  <div class="loader-glass">
-    <svg viewBox="0 0 120 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 12 H100 L90 150 Q90 158 82 158 H38 Q30 158 30 150 Z" stroke="var(--ld-glass)" stroke-width="4" stroke-linejoin="round"/>
-    </svg>
-    <div class="loader-liquid-clip">
-      <div class="loader-liquid"></div>
-      <span class="loader-bubble"></span>
-      <span class="loader-bubble"></span>
-      <span class="loader-bubble"></span>
-      <span class="loader-bubble"></span>
-      <div class="loader-foam"></div>
-    </div>
-  </div>
-  <div class="loader-brand">
-    <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MHVwork">
-      <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
-      <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
-      <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
-      <circle cx="340" cy="195" r="72" fill="#1A3BB5" stroke="#F5C800" stroke-width="20"/>
-      <line x1="340" y1="133" x2="340" y2="148" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
-      <line x1="340" y1="242" x2="340" y2="257" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
-      <line x1="278" y1="195" x2="293" y2="195" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
-      <line x1="387" y1="195" x2="402" y2="195" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
-      <line x1="340" y1="195" x2="340" y2="164" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
-      <line x1="340" y1="195" x2="366" y2="195" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
-      <circle cx="340" cy="195" r="16" fill="#1A3BB5"/>
-      <circle cx="340" cy="195" r="8" fill="#ffffff"/>
-    </svg>
-    <span>MHV<em>work</em></span>
-  </div>
-  <span class="loader-text" id="authLoaderText">Inloggen<span class="loader-dots"><i></i><i></i><i></i></span></span>
+  <svg class="ld-mark" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MHVwork">
+    <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
+    <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
+    <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
+    <circle cx="340" cy="195" r="72" fill="#1A3BB5" stroke="#F5C800" stroke-width="20"/>
+    <line x1="340" y1="133" x2="340" y2="148" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
+    <line x1="340" y1="242" x2="340" y2="257" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
+    <line x1="278" y1="195" x2="293" y2="195" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
+    <line x1="387" y1="195" x2="402" y2="195" stroke="#F5C800" stroke-width="10" stroke-linecap="round"/>
+    <line x1="340" y1="195" x2="340" y2="164" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+    <line x1="340" y1="195" x2="366" y2="195" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="340" cy="195" r="16" fill="#1A3BB5"/>
+    <circle cx="340" cy="195" r="8" fill="#ffffff"/>
+  </svg>
+  <div class="ld-word">MHV<em>work</em></div>
+  <div class="ld-bar"><span></span></div>
+  <div class="ld-caption" id="authLoaderText">Inloggen</div>
 </div>
 
 <div class="screen">
@@ -491,7 +454,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function showAuthLoader(text){
-  document.getElementById('authLoaderText').firstChild.textContent = text;
+  document.getElementById('authLoaderText').textContent = text;
   document.getElementById('authLoader').classList.add('show');
 }
 function hideAuthLoader(){
