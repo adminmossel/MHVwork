@@ -176,6 +176,13 @@ html[data-theme="light"] .badge-yellow { color:#8A6D00; }
 html[data-theme="light"] .stat-num.yellow { color:#8A6D00; }
 html[data-theme="light"] .card, html[data-theme="light"] .prof-card, html[data-theme="light"] .stat-tile { box-shadow:0 1px 3px rgba(0,0,0,0.06); }
 
+.bar-screen-wrap{ text-align:center; margin:26px 0 6px; }
+.bar-screen-btn{ display:inline-flex; align-items:center; gap:6px; font-family:inherit; font-size:12px; font-weight:600; color:var(--text3); background:transparent; border:1px solid var(--separator); border-radius:99px; padding:6px 13px; cursor:pointer; }
+.bar-screen-btn:active{ transform:scale(.96); }
+.shift-card.open-shift{ border:1.5px dashed var(--mhv-yellow); background:var(--mhv-yellow-dim); }
+.open-shift-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px; color:var(--text2); }
+.open-shift-people{ margin-top:12px; border-top:1px solid var(--separator); padding-top:10px; }
+.open-shift-person{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; font-size:14px; font-weight:600; }
 /* ═══ WIT THEMA — geoptimaliseerd (v. snelle toegang-update) ═══════════════════════════════════
    Probleem eerder: tekst3 had maar ±3,4:1 contrast (grenswaarde 4,5:1), geel als TEKST op wit was
    onleesbaar (1,6:1), kaarten en knoppen vielen weg tegen de achtergrond. Nu: alle tekst ≥ 5:1,
@@ -1163,7 +1170,7 @@ window.addEventListener('mhv:ready', async ()=>{
     try { updateOfflineBanner(); } catch(e){}
     try { handleShortcutParam(); } catch(e){}
     try { updateAppBadge(); } catch(e){}
-    try { setTimeout(()=>{ runOnboardingQueue(); watchQrSession(); },900); } catch(e){}
+    try { setTimeout(()=>{ runOnboardingQueue(); watchQrSession(); touchSessionInfo(); setInterval(touchSessionInfo,30*60*1000); bioKeepFresh(); },900); } catch(e){}
     // Ververst Home elke minuut zolang je erop staat — puur voor de live voortgangsbalk/
     // countdown tijdens een lopende dienst, geen extra netwerkverkeer (leest gewoon opnieuw
     // uit het al geladen allShifts).
@@ -2942,6 +2949,7 @@ async function renderAdminHome(c){
       ${U.name?.split(' ')[0]||'Admin'} ${WAVE_ICON}
     </div>
     ${shiftAdviceHtml()}
+    ${openShiftsSectionHtml(true)}
     <div id="announceArea" style="margin-bottom:4px"></div>
     ${restricted('announcements')?'':'<button onclick="openAnnouncementModal()" class="btn btn-ghost" style="font-size:13px;margin-bottom:8px;width:100%;border:1.5px dashed var(--separator)"><span class="ic" data-icon="megaphone"></span> Aankondiging plaatsen voor medewerkers</button>'}
 
@@ -2992,6 +3000,7 @@ async function renderAdminHome(c){
     <div class="section-label"><span class="ic" data-icon="calendar"></span> Diensten vandaag</div>
     ${todayShifts.length?todayShifts.map(s=>renderAdminShiftCard(s)).join('')
       :`<div class="empty"><div class="empty-icon"><span class="ic" data-icon="hockey"></span></div><p>Geen diensten vandaag</p></div>`}
+    ${barScreenButtonHtml()}
   `;
   const announcements = await loadAnnouncements();
   renderAnnouncementArea(document.getElementById('announceArea'), announcements);
@@ -3012,9 +3021,10 @@ function renderAdminShiftCard(s){
       <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'<span class="ic" data-icon="exclaim"></span>':'<span class="ic" data-icon="hourglass"></span>'}</span>
     </div>`;
   }).join('');
-  const headerBadge=!hasWorkers
+  const openBadge=(s.openSlots||0)>0?`<span class="badge badge-yellow" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="users"></span> Open dienst · ${s.openSlots} ${s.openSlots===1?'plek':'plekken'}${(s.signups||[]).length?` · ${(s.signups||[]).length} aangemeld`:''}</span>`:'';
+  const headerBadge=openBadge+(!hasWorkers&&!(s.openSlots>0)
     ? `<span class="badge badge-orange" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="dot" style="color:var(--orange)"></span> Niemand toegewezen</span>`
-    : (allPaid?`<span class="badge badge-green" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="check-circle"></span> Volledig afgehandeld & uitbetaald</span>`:'');
+    : (allPaid?`<span class="badge badge-green" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="check-circle"></span> Volledig afgehandeld & uitbetaald</span>`:''));
   return `<div class="card">${headerBadge}${rows||`<div style="padding:14px;color:var(--text3);font-size:13px">Nog geen medewerker toegewezen — je kunt de dienst wel al aanmaken en later invullen.</div>`}</div>`;
 }
 
@@ -3066,6 +3076,7 @@ async function renderEmployeeHome(c){
       ${U.name?.split(' ')[0]||'—'} ${WAVE_ICON}
     </div>
 
+    ${openShiftsSectionHtml(false)}
     <div class="stats-grid">
       <div class="stat-tile yellow anim-pop" style="animation-delay:.03s"><span class="stat-tile-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
         <div class="stat-num yellow">${upcoming.length}</div>
@@ -3135,6 +3146,7 @@ async function renderEmployeeHome(c){
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openShiftDetails('${next.id}')"><span class="ic" data-icon="info"></span> Details</button>
         </div>
       </div>` : `<div class="empty"><div class="empty-icon" style="font-size:36px">🎉</div><p>Geen komende diensten</p></div>`}
+    ${barScreenButtonHtml()}
   `;
 
   // Laad en toon aankondigingen
@@ -4060,6 +4072,7 @@ function openAddShift(pref){
     </div>
     <label class="form-label">Medewerkers</label>
     <div id="workerList">${buildWorkerList(tomKey)}</div>
+    ${openFieldsHtml('s',false,2,false)}
     ${noteFieldHtml(pref?escAnn(pref.note):'','')}
     <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveShift()">Opslaan</button>
   `);
@@ -4094,6 +4107,148 @@ window.refreshEditWorkers=(v,shiftId)=>{
   const[y,m,d]=v.split('-').map(Number);
   wl.innerHTML=buildWorkerList(dKey(new Date(y,m-1,d)), currentlyChecked.length?currentlyChecked:(s?.workers||[]));
 };
+// ═══════════════════════════════════════════════════════════════
+// OPEN DIENSTEN — beheerder maakt een dienst aan zonder iemand toe te wijzen en vraagt wie wil.
+// Veld-overzicht op de dienst: openSlots (nog vrije plekken), signups (aanmeldingen, uid's),
+// autoAssign (true = wie zich aanmeldt staat er direct op; false = beheerder kiest).
+// ═══════════════════════════════════════════════════════════════
+function openFieldsHtml(p,open,slots,auto){
+  return `<div class="form-section" style="margin-top:14px">
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;cursor:pointer">
+      <input type="checkbox" id="${p}Open" ${open?'checked':''} onchange="toggleOpenFields('${p}')"> Open dienst — vraag wie wil
+    </label>
+    <div id="${p}OpenFields" style="display:${open?'block':'none'};margin-top:10px">
+      <label class="form-label">Aantal open plekken</label>
+      <input type="number" class="form-input" id="${p}Slots" min="1" max="20" value="${slots||2}" style="max-width:120px">
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:13px;color:var(--text2);cursor:pointer;line-height:1.45">
+        <input type="checkbox" id="${p}Auto" ${auto?'checked':''} style="margin-top:3px">
+        <span>Wie zich het eerst aanmeldt, staat er direct op<br><span style="color:var(--text3);font-size:12px">Uit = jij kiest zelf uit de aanmeldingen.</span></span>
+      </label>
+    </div>
+  </div>`;
+}
+function toggleOpenFields(p){ const b=$(p+'OpenFields'); if(b) b.style.display=$(p+'Open').checked?'block':'none'; }
+function readOpenFields(p){
+  const open=!!$(p+'Open')?.checked;
+  const slots=open?Math.max(1,Math.min(20,parseInt($(p+'Slots')?.value)||1)):0;
+  return {open,slots,auto:open&&!!$(p+'Auto')?.checked};
+}
+function shiftLabel(s){
+  const d=toDate(s.date);
+  return d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})+' '+s.startTime+'–'+dispTime(s.endTime);
+}
+function openShiftsUpcoming(){
+  const today=nowKey();
+  return allShifts.filter(s=>(s.openSlots||0)>0 && dKey(s.date)>=today && !shiftFinished(s))
+    .sort((a,b)=>toDate(a.date)-toDate(b.date)||minsFrom(a.startTime)-minsFrom(b.startTime));
+}
+function openShiftCardHtml(s,isAdmin){
+  const d=toDate(s.date), day=d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const slots=s.openSlots||0, n=(s.signups||[]).length, signed=(s.signups||[]).includes(U.uid);
+  const blocked=!isAdmin && blockedOn(dKey(s.date)).some(a=>a.uid===U.uid);
+  const slotTxt=slots+(slots===1?' plekje':' plekjes');
+  let actions;
+  if(isAdmin){
+    actions=`<button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="openEditShift('${s.id}')">${n?`Bekijk ${n} aanmelding${n===1?'':'en'}`:'Beheer open dienst'}</button>`;
+  }else if(signed){
+    actions=`<div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <div style="flex:1;font-size:14px;font-weight:700;color:var(--green)"><span class="ic" data-icon="check-circle"></span> Je bent opgegeven</div>
+      <button class="btn btn-ghost btn-sm" onclick="withdrawOpenShift('${s.id}')">Terugtrekken</button></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">De beheerder maakt de keuze en laat het je weten.</div>`;
+  }else if(blocked){
+    actions=`<button class="btn btn-ghost btn-full" style="margin-top:12px" disabled>Je staat die dag als niet beschikbaar</button>`;
+  }else{
+    actions=`<button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="signupOpenShift('${s.id}')">Geef je op</button>`
+      +(s.autoAssign?`<div style="font-size:12px;color:var(--text3);margin-top:6px">Wie het eerst is, staat er direct op.</div>`:'');
+  }
+  return `<div class="shift-card open-shift" style="margin-bottom:10px;padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div><div style="font-size:20px;font-weight:800;letter-spacing:-.3px">${s.startTime} – ${dispTime(s.endTime)}</div>
+        <div style="font-size:14px;color:var(--text2);margin-top:2px;text-transform:capitalize">${day}</div></div>
+      <span class="badge badge-yellow">Open dienst</span>
+    </div>
+    <div class="open-shift-meta"><span class="ic" data-icon="users"></span><b>${slotTxt}</b>${isAdmin&&n?` · ${n} aangemeld`:''}${isAdmin?` · ${s.autoAssign?'direct toewijzen':'jij kiest'}`:''}</div>
+    ${s.note?`<div style="font-size:13px;color:var(--text2);margin-top:8px;line-height:1.45"><span class="ic" data-icon="note"></span> ${escAnn(s.note)}</div>`:''}
+    ${actions}
+  </div>`;
+}
+function openShiftsSectionHtml(isAdmin){
+  const list=openShiftsUpcoming(); if(!list.length) return '';
+  return `<div class="section-label" style="margin-top:6px"><span class="ic" data-icon="megaphone"></span> Open diensten</div>`
+    +list.map(s=>openShiftCardHtml(s,isAdmin)).join('');
+}
+function adminUids(){ return allUsers.filter(u=>u.role==='admin').map(u=>u.uid); }
+async function signupOpenShift(id){
+  const s=allShifts.find(x=>x.id===id); if(!s) return;
+  const slots=s.openSlots||0;
+  if(slots<1){ toast('Helaas, deze dienst is al vol','err'); return; }
+  if((s.workers||[]).includes(U.uid)||(s.signups||[]).includes(U.uid)){ toast('Je bent al opgegeven','err'); return; }
+  const{db,doc,updateDoc}=window._f, ref=doc(db,'shifts',id);
+  try{
+    if(s.autoAssign){
+      await updateDoc(ref,{workers:[...(s.workers||[]),U.uid],[`workerConfirmations.${U.uid}`]:'pending',openSlots:slots-1});
+      toast('Je staat op de dienst!','ok');
+      await notifyUsers(adminUids(),'Open dienst ingevuld',`${U.name} heeft zich opgegeven en staat nu op ${shiftLabel(s)}.`,`${U.name} heeft zich opgegeven en staat nu op ${shiftLabel(s)}.`,{type:'general',email:false});
+    }else{
+      await updateDoc(ref,{signups:[...(s.signups||[]),U.uid]});
+      toast('Opgegeven! De beheerder laat het je weten.','ok');
+      await notifyUsers(adminUids(),'Nieuwe aanmelding open dienst',`${U.name} wil graag op ${shiftLabel(s)}.`,`${U.name} wil graag op ${shiftLabel(s)}.`,{type:'general',email:false});
+    }
+  }catch(e){
+    console.warn('aanmelden:',e);
+    toast(s.autoAssign?'Net te laat: de plek is al weg.':'Aanmelden mislukt','err');
+  }
+}
+async function withdrawOpenShift(id){
+  const s=allShifts.find(x=>x.id===id); if(!s) return;
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'shifts',id),{signups:(s.signups||[]).filter(u=>u!==U.uid)});
+    toast('Aanmelding ingetrokken','ok');
+  }catch(e){ toast('Terugtrekken mislukt','err'); }
+}
+// Beheerder: kies uit de aanmeldingen
+function signupsListHtml(s){
+  const list=s.signups||[]; if(!list.length&&!(s.openSlots>0)) return '';
+  return `<div class="open-shift-people">
+    <div class="form-label" style="margin-bottom:4px">Aanmeldingen (${list.length}) · ${s.openSlots||0} ${(s.openSlots||0)===1?'plek':'plekken'} vrij</div>
+    ${list.length?list.map(uid=>`<div class="open-shift-person"><span>${userName(uid)}</span>
+      <span style="display:flex;gap:6px">
+        <button class="btn btn-yellow btn-sm" onclick="assignSignup('${s.id}','${uid}')">Toewijzen</button>
+        <button class="btn btn-ghost btn-sm" onclick="declineSignup('${s.id}','${uid}')">Afwijzen</button>
+      </span></div>`).join(''):'<div style="font-size:13px;color:var(--text3)">Nog niemand aangemeld.</div>'}
+  </div>`;
+}
+async function assignSignup(id,uid){
+  const s=allShifts.find(x=>x.id===id); if(!s) return;
+  const slots=s.openSlots||0;
+  if(slots<1){ toast('Geen vrije plekken meer','err'); return; }
+  const workers=[...new Set([...(s.workers||[]),uid])];
+  const left=(s.signups||[]).filter(u=>u!==uid), newSlots=slots-1;
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'shifts',id),{workers,workerConfirmations:{...(s.workerConfirmations||{}),[uid]:'pending'},openSlots:newSlots,signups:newSlots===0?[]:left});
+    const msg=`Je bent ingedeeld op ${shiftLabel(s)}. Bevestig je dienst in de app.`;
+    await notifyUsers([uid],'Je staat op de open dienst',msg,msg,{type:'general'});
+    if(newSlots===0&&left.length){
+      const m2=`De open dienst van ${shiftLabel(s)} is inmiddels vol. Bedankt dat je je opgaf!`;
+      await notifyUsers(left,'Open dienst is vol',m2,m2,{type:'general',email:false});
+    }
+    toast(`${userName(uid)} is ingedeeld`,'ok');
+    setTimeout(()=>{ if(newSlots>0) openEditShift(id); else closeModal(); },450);
+  }catch(e){ toast('Toewijzen mislukt: '+(e.message||''),'err'); }
+}
+async function declineSignup(id,uid){
+  const s=allShifts.find(x=>x.id===id); if(!s) return;
+  try{
+    const{db,doc,updateDoc}=window._f;
+    await updateDoc(doc(db,'shifts',id),{signups:(s.signups||[]).filter(u=>u!==uid)});
+    const msg=`Voor de open dienst van ${shiftLabel(s)} is helaas iemand anders gekozen. Bedankt dat je je opgaf!`;
+    await notifyUsers([uid],'Open dienst: niet gekozen',msg,msg,{type:'general',email:false});
+    setTimeout(()=>openEditShift(id),450);
+  }catch(e){ toast('Afwijzen mislukt','err'); }
+}
+
 async function saveShift(){
   const dateVal=$('sDate').value, start=$('sStart').value, end=$('sEnd').value;
   const sluit=$('sEndSluit')?.checked;
@@ -4105,18 +4260,29 @@ async function saveShift(){
   const[y,m,d]=dateVal.split('-').map(Number);
   const startR=roundTimeStr(start), endR=sluit?'sluit':roundTimeStr(end);
   const confs={}; workers.forEach(uid=>confs[uid]='pending');
+  const op=readOpenFields('s');
   const{db,collection,addDoc,Timestamp,serverTimestamp}=window._f;
   await addDoc(collection(db,'shifts'),{
     date:Timestamp.fromDate(new Date(y,m-1,d)),
     startTime:startR,endTime:endR,workers,
     workerConfirmations:confs,finalTimes:{},
+    openSlots:op.slots,autoAssign:op.auto,signups:[],
     note:note||null, noteImage:window._shiftNoteImg||null,
     createdBy:U.uid,createdAt:serverTimestamp()
   });
   window._shiftNoteImg=null;
   const dateStr=new Date(y,m-1,d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-  await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${dispTime(endR)}.`+(note?`\n\n${note}`:''));
-  closeModal(); toast('Dienst aangemaakt!','ok');
+  if(workers.length) await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${dispTime(endR)}.`+(note?`\n\n${note}`:''));
+  if(op.open){
+    // Open dienst: iedereen (die niet al op de dienst staat) krijgt een melding. Alleen in-app/push — geen mail,
+    // anders loopt het gratis mailtegoed bij elke open dienst leeg.
+    const bl=blockedOn(dateVal).map(a=>a.uid);
+    const targets=employees().map(u=>u.uid).filter(u=>!workers.includes(u)&&!bl.includes(u));
+    const ttl='Open dienst: '+dateStr;
+    const body=`Er is een open dienst op ${dateStr} van ${startR}–${dispTime(endR)} (${op.slots} ${op.slots===1?'plek':'plekken'}). Geef je op via Home.`;
+    if(targets.length) await notifyUsers(targets,ttl,body,body,{type:'general',email:false});
+  }
+  closeModal(); toast(op.open?'Open dienst geplaatst!':'Dienst aangemaakt!','ok');
 }
 // Eind-tijd-veld met een "Sluit"-optie: voor diensten waarvan de eindtijd pas 's avonds
 // bekend is (duurt tot de zaak dichtgaat). Wordt intern opgeslagen als endTime:'sluit'.
@@ -4181,6 +4347,8 @@ function openEditShift(shiftId){
     </div>
     <label class="form-label">Medewerkers</label>
     <div id="editWorkerList">${buildWorkerList(dateVal, s.workers||[])}</div>
+    ${openFieldsHtml('es',(s.openSlots||0)>0,s.openSlots||2,!!s.autoAssign)}
+    ${signupsListHtml(s)}
     ${noteFieldHtml(s.note, s.noteImage)}
     <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveEditShift('${shiftId}')">Opslaan</button>
   `);
@@ -4191,7 +4359,8 @@ async function saveEditShift(shiftId){
   const sluit=$('esEndSluit')?.checked;
   const workers=[...document.querySelectorAll('#editWorkerList input:checked')].map(i=>i.value);
   const note=($('esNote')?.value||'').trim();
-  if(!dateVal||!start||(!sluit&&!end)||!workers.length){toast('Vul alles in','err');return;}
+  const op=readOpenFields('es');
+  if(!dateVal||!start||(!sluit&&!end)||(!workers.length&&!op.open)){toast('Vul alles in','err');return;}
   const[y,m,d]=dateVal.split('-').map(Number);
   const startR=roundTimeStr(start), endR=sluit?'sluit':roundTimeStr(end);
   const s=allShifts.find(x=>x.id===shiftId);
@@ -4202,6 +4371,8 @@ async function saveEditShift(shiftId){
   await updateDoc(doc(db,'shifts',shiftId),{
     date:Timestamp.fromDate(new Date(y,m-1,d)),
     startTime:startR,endTime:endR,workers,workerConfirmations:newConf,
+    openSlots:op.slots,autoAssign:op.auto,
+    signups:op.open?((s?.signups||[]).filter(u=>!workers.includes(u))):[],
     note:note||null, noteImage:window._shiftNoteImg||null
   });
   // Nieuwe/gewijzigde notitie -> medewerkers een melding sturen
@@ -5004,14 +5175,6 @@ async function markTourSeen(){
     U.tourSeen=true;
   }catch(e){}
 }
-async function toggleEmailOptOut(receiveEmails){
-  try{
-    const{db,doc,updateDoc}=window._f;
-    await updateDoc(doc(db,'users',U.uid),{emailOptOut:!receiveEmails});
-    U.emailOptOut=!receiveEmails;
-    toast(receiveEmails?'Niet-urgente mails weer aan':'Niet-urgente mails uitgezet','ok');
-  }catch(e){ toast('Opslaan mislukt','err'); }
-}
 // Profielfoto — opgeslagen als gecomprimeerde base64-afbeelding IN het Firestore-document zelf,
 // net als bij chat-/aankondigingsfoto's. Zo is er geen Firebase Storage (en dus geen Blaze-plan)
 // voor nodig; Firestore-documenten mogen tot 1MB zijn, en na compressie past een profielfoto ruim.
@@ -5157,18 +5320,6 @@ function renderProfile(){
       <div class="card-row"><div class="card-row-label">Bekende apparaten</div><div style="color:var(--text3);font-size:13px">${(U.knownDevices||[simpleDeviceLabel()]).length}</div></div>
     </div>`:''}
 
-    <div class="section-label">E-mailvoorkeuren</div>
-    <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px;padding:0 2px"><span class="ic" data-icon="mail"></span> Dit gaat alleen over e-mail. In-app pushmeldingen zet je niet hier uit — die beheer je bij <span class="ic" data-icon="bell"></span> Meldingen.</p>
-    <div class="card" style="margin-bottom:16px">
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
-        <div style="flex:1;padding-right:12px">
-          <div style="font-size:14px;font-weight:600">Niet-urgente e-mails</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">Bijv. dienst vervallen of een notitie. Wachtwoord-mails en persoonlijke berichten van beheerder/dev blijven altijd binnenkomen.</div>
-        </div>
-        <input type="checkbox" id="emailOptOutToggle" ${U.emailOptOut?'':'checked'} onchange="toggleEmailOptOut(this.checked)" style="width:44px;height:26px;flex-shrink:0">
-      </label>
-    </div>
-
     ${(U.role==='admin'&&U.restrictions&&Object.values(U.restrictions).some(Boolean))?`
     <div class="section-label">Bevoegdheden</div>
     <div class="card" style="margin-bottom:16px;border:1px solid var(--orange)">
@@ -5240,6 +5391,13 @@ function renderProfile(){
           <div style="font-size:12px;color:var(--text3);margin-top:2px">Bewaar in je galerij of print — scannen = direct ingelogd in je hele account</div>
         </div>
         <div style="color:var(--text3)">›</div>
+      </div>
+      <div class="card-row" style="cursor:pointer" onclick="toggleBiometric()">
+        <div style="flex:1;padding-right:12px">
+          <div class="card-row-label"><span class="ic" data-icon="lock"></span> Vingerafdruk of gezicht</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${bioState()?'Staat aan op dit toestel — tik om uit te zetten':'Inloggen zonder wachtwoord op dit toestel, met je vingerafdruk of gezicht'}</div>
+        </div>
+        <div style="color:var(--text3)">${bioState()?'<span class="badge badge-green">Aan</span>':'›'}</div>
       </div>
       <div class="card-row" style="cursor:pointer" onclick="changeFastCode()">
         <div style="flex:1;padding-right:12px">
@@ -5483,9 +5641,6 @@ async function notifyUsers(uids, title, body, emailBody, opts){
   opts=opts||{};
   const notifType=opts.type||'general'; // 'general' | 'tag' | 'announce' | 'swap' | 'payment' | 'message'
   const sendEmail=opts.email!==false; // zet opts.email=false om NOOIT een mail te sturen (bv. bij @tag)
-  // Urgent = wordt ALTIJD gemaild, ook als iemand niet-urgente mails heeft uitgezet: wachtwoord-
-  // gerelateerd en een persoonlijk bericht van beheerder/dev.
-  const isUrgent = notifType==='message';
   const tplMap={
     tag: window._f.EMAILJS_TPL_TAG, announce: window._f.EMAILJS_TPL_ANNOUNCE,
     swap: window._f.EMAILJS_TPL_SWAP, general: window._f.EMAILJS_TPL_NOTIF,
@@ -5507,8 +5662,6 @@ async function notifyUsers(uids, title, body, emailBody, opts){
     for(const uid of uids){
       const u=allUsers.find(x=>x.uid===uid);
       if(!u||!u.email||uid===U.uid) continue;
-      // Niet-urgente mails respecteren de opt-out die de medewerker zelf bij Profiel instelt
-      if(!isUrgent && u.emailOptOut) continue;
       try{
         await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,tplId,{
           to_email:u.email, to_name:u.name, title, body:emailBody||body,
@@ -6316,7 +6469,7 @@ function renderDevAcc(){
   const tabBtn=(k,l,badge)=>`<button class="pill-tab ${devTab===k?'active':''}" style="font-size:12px;padding:8px 2px" onclick="setDevTab('${k}',this)">${l}${badge?` <span class="badge badge-orange" style="font-size:9px;padding:1px 5px">${badge}</span>`:''}</button>`;
   v.innerHTML=_p[0]+'<div style="padding:12px 16px 0"><div class="pill-tabs">'
     +tabBtn('accounts','Accounts')+tabBtn('guests','Gasten',pend||'')+tabBtn('matches','Wedstrijden')+tabBtn('berichten','Berichten')+tabBtn('instellingen','Instellingen')
-    +'</div></div><div id="devTabContent"></div>';
+    +'</div></div><div id="devTabContent"></div>'+barScreenButtonHtml();
   paintDevTab();
 }
 let devTab='accounts';
@@ -6402,7 +6555,9 @@ function renderDevLog(){
   const v=document.getElementById('view-devlog'); if(!v)return;
   v.innerHTML='<div class="page-title" style="padding:16px 16px 0"><span class="ic" data-icon="clipboard"></span> Logboek</div>'
     +'<div style="padding:0 16px 8px"><button class="btn btn-ghost btn-full" onclick="exportLoginLogsExcel()"><span class="ic" data-icon="chart"></span> Exporteer naar Excel</button></div>'
+    +'<div id="qrSessionsBox" style="padding:8px 16px 0"></div>'
     +'<div id="devLogContent" style="padding:16px;text-align:center;color:var(--text3)">Logboek laden…</div>';
+  paintQrSessions();
   loadLoginLogs().then(logs=>{
     const cont=document.getElementById('devLogContent'); if(!cont)return;
     if(!logs.length){ cont.innerHTML='<div class="empty"><div class="empty-icon"><span class="ic" data-icon="clipboard"></span></div><p>Nog geen inlog-activiteit</p></div>'; return; }
@@ -6906,12 +7061,16 @@ async function runHardReset(){
 // De uitgangscode wordt bewust NIET opgeslagen (niet in Firestore, niet in localStorage) —
 // degene die idle-modus start bedenkt 'm ter plekke, en die geldt alleen voor deze sessie.
 // ═══════════════════════════════════════════
+function barScreenButtonHtml(){
+  return `<div class="bar-screen-wrap"><button class="bar-screen-btn" onclick="openIdleGate()"><span class="ic" data-icon="tv"></span> Bar-scherm</button></div>`;
+}
 function openIdleGate(){
   modal(`
     <div class="modal-title"><span class="ic" data-icon="tv"></span> Idle-modus starten</div>
     <p style="font-size:13px;color:var(--text3);margin:-4px 0 16px;line-height:1.5">
       Dit toont het rooster van vandaag, groot en leesbaar — handig om op een tablet te laten
-      hangen. Bedenk een code van 4 cijfers waarmee je 'm straks weer kunt afsluiten.
+      hangen. <b>Het scherm blijft aan</b> zolang idle-modus draait. Bedenk een code van 4 cijfers
+      waarmee je 'm straks weer kunt afsluiten.
     </p>
     <div class="form-section"><label class="form-label">Uitgangscode (4 cijfers)</label>
       <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="form-input" id="idleCodeIn" placeholder="••••" style="letter-spacing:6px;font-size:20px;text-align:center"></div>
@@ -6932,6 +7091,8 @@ async function startIdleMode(){
     await document.documentElement.requestFullscreen?.().catch(()=>{});
     await screen.orientation?.lock?.('landscape').catch(()=>{});
   }catch(e){}
+  const awake=await acquireWakeLock();
+  if(!awake) toast('Dit toestel kan het scherm niet zelf aanhouden. Zet automatisch vergrendelen uit in de toestelinstellingen.','');
   renderIdlePage();
   if(idleTimer)clearInterval(idleTimer);
   idleTimer=setInterval(renderIdlePage,30000); // elke 30s de klok/balkjes verversen, puur client-side, geen serververkeer
@@ -6951,7 +7112,21 @@ function checkIdleExit(){
   closeModal();
   exitIdleMode();
 }
+// ── Scherm aan houden zolang idle-modus draait (Screen Wake Lock) ────────────────────────────────
+// De browser geeft het slot automatisch vrij als je het tabblad verlaat; daarom vragen we het opnieuw
+// aan zodra de app weer zichtbaar is.
+let _wakeLock=null;
+async function acquireWakeLock(){
+  try{
+    if(!('wakeLock' in navigator)) return false;
+    _wakeLock=await navigator.wakeLock.request('screen');
+    return true;
+  }catch(e){ return false; }
+}
+function releaseWakeLock(){ try{ if(_wakeLock) _wakeLock.release(); }catch(e){} _wakeLock=null; }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && idleTimer) acquireWakeLock(); });
 function exitIdleMode(){
+  releaseWakeLock();
   if(idleTimer){ clearInterval(idleTimer); idleTimer=null; }
   idleExitCode=null;
   $('idle-overlay').classList.remove('open');
@@ -6994,10 +7169,11 @@ function renderIdlePage(){
     return `<div class="idle-shift">
       <div class="idle-shift-time">${s.startTime} – ${dispTime(s.endTime)}</div>
       ${s.note?`<div class="idle-shift-note"><span class="ic" data-icon="note"></span> ${s.note}</div>`:''}
+      ${(s.openSlots||0)>0?`<div class="idle-shift-note" style="color:#F5C800"><span class="ic" data-icon="users"></span> Open dienst — nog ${s.openSlots} ${s.openSlots===1?'plek':'plekken'} vrij</div>`:''}
       ${names.length?names.map(n=>`<div class="idle-worker">
         <div class="idle-worker-name"><span>${n}</span><span class="idle-worker-sub">${subHtml}</span></div>
         ${barHtml}
-      </div>`).join(''):'<div style="color:rgba(255,255,255,0.4);font-size:14px">Niemand toegewezen</div>'}
+      </div>`).join(''):((s.openSlots||0)>0?'':'<div style="color:rgba(255,255,255,0.4);font-size:14px">Niemand toegewezen</div>')}
     </div>`;
   }).join('');
 }
@@ -7006,7 +7182,7 @@ function renderIdlePage(){
 
 // ═══ WINDOW EXPORTS ═══
 // ═══════════════════════════════════════════════════════════════
-// SNELLE TOEGANG: verplichte snelcode, persoonlijke QR, apparaat-limiet
+// SNELLE TOEGANG: verplichte snelcode, persoonlijke QR, vingerafdruk-login, QR-sessies
 // (Spark-plan: geen server. De beveiliging zit in firestore.rules — blok 'Snelcode / QR-toegang'.)
 // ═══════════════════════════════════════════════════════════════
 function randHex(n){ const a=new Uint8Array(n/2); crypto.getRandomValues(a); return [...a].map(b=>b.toString(16).padStart(2,'0')).join(''); }
@@ -7208,6 +7384,7 @@ function openMyQr(){
   modal(`<div class="modal-handle"></div><div class="modal-title">Mijn persoonlijke QR</div>
     <div style="text-align:center;margin:6px 0 4px"><canvas id="myQrCanvas" style="width:250px;height:250px;border-radius:14px;background:#fff;border:1px solid var(--separator)"></canvas></div>
     <div style="text-align:center;font-size:13px;color:var(--text3)">Scan met je camera om direct in te loggen.</div>
+    <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="showQrFullscreen()">Schermvullend tonen</button>
     ${QR_WARN}${qrActionsHtml()}
     <button class="btn btn-red btn-full" style="${QR_BTN_STYLE}" onclick="refreshMyQr()"><span class="ic" data-icon="swap"></span> QR vernieuwen</button>
     <button class="btn btn-ghost btn-full" style="${QR_BTN_STYLE}" onclick="closeModal()">Sluiten</button>`);
@@ -7309,6 +7486,108 @@ async function accessBoot(){
   }catch(e){ console.warn('accessBoot:',e); }
 }
 
+// ── Dev: wie is er via QR ingelogd? (Logboek) ───────────────────────────────────────────────────
+// 'sessionInfo' bevat per QR-sessie alleen uid, toestel-omschrijving en laatst gezien — géén geheim.
+// "Overal uitloggen" = de QR van dat account vernieuwen: alle QR-sessies zijn dan direct ongeldig.
+// Wachtwoord-logins staan hier niet in en zijn niet op afstand uit te loggen (Firebase vraagt daarvoor een server).
+function uaLabel(ua){
+  ua=ua||'';
+  const os=/iPhone/.test(ua)?'iPhone':/iPad/.test(ua)?'iPad':/Android/.test(ua)?'Android':/Windows/.test(ua)?'Windows':/Mac OS X|Macintosh/.test(ua)?'Mac':/Linux/.test(ua)?'Linux':'Onbekend toestel';
+  const br=/Edg\//.test(ua)?'Edge':/OPR\/|Opera/.test(ua)?'Opera':/Firefox|FxiOS/.test(ua)?'Firefox':/Chrome|CriOS/.test(ua)?'Chrome':/Safari/.test(ua)?'Safari':'';
+  return os+(br?' · '+br:'');
+}
+async function loadQrSessions(){
+  const{db,collection,getDocs,doc,getDoc}=window._f;
+  const snap=await getDocs(collection(db,'sessionInfo'));
+  const cutoff=Date.now()-30*86400000;
+  const infos=snap.docs.map(d=>({id:d.id,...d.data()})).filter(i=>i.mode==='qr');
+  const uids=[...new Set(infos.map(i=>i.uid))], owners={};
+  await Promise.all(uids.map(async u=>{ try{ const o=await getDoc(doc(db,'accessOwners',u)); owners[u]=o.exists()?o.data():null; }catch(e){ owners[u]=null; } }));
+  const by={};
+  infos.forEach(i=>{
+    const ow=owners[i.uid]; if(!ow||i.ver!==ow.qrVer) return;           // ingetrokken = niet meer actief
+    const ls=i.lastSeen?.toDate?.()?.getTime()||i.createdAt?.toDate?.()?.getTime()||0;
+    if(ls<cutoff) return;                                                // 30+ dagen niet gezien
+    (by[i.uid]=by[i.uid]||[]).push({...i,ls});
+  });
+  return by;
+}
+async function paintQrSessions(){
+  const box=document.getElementById('qrSessionsBox'); if(!box) return;
+  try{
+    const by=await loadQrSessions(), uids=Object.keys(by);
+    const head='<div class="section-label" style="margin:0 0 8px"><span class="ic" data-icon="lock"></span> QR-sessies</div>';
+    if(!uids.length){
+      box.innerHTML=head+'<div class="card" style="padding:14px 16px;font-size:13px;color:var(--text3)">Niemand is op dit moment via QR ingelogd (laatste 30 dagen).</div>';
+      return;
+    }
+    box.innerHTML=head+'<div class="card">'+uids.sort((a,b)=>userName(a).localeCompare(userName(b),'nl')).map(uid=>{
+      const list=by[uid].sort((a,b)=>b.ls-a.ls);
+      return `<div style="padding:12px 16px;border-bottom:1px solid var(--separator)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div style="font-weight:700">${userName(uid)} <span class="badge badge-blue" style="margin-left:4px">${list.length} ${list.length===1?'sessie':'sessies'}</span></div>
+          <button class="btn btn-red btn-sm" onclick="devRevokeQrSessions('${uid}')">Overal uitloggen</button>
+        </div>
+        ${list.map(i=>`<div style="font-size:12.5px;color:var(--text3);margin-top:4px">${uaLabel(i.ua)} · laatst gezien ${new Date(i.ls).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>`).join('')}
+      </div>`;
+    }).join('')+'</div><div style="font-size:11.5px;color:var(--text3);margin:6px 2px 0;line-height:1.5">Overal uitloggen vernieuwt de QR van dat account: alle QR-sessies zijn direct ongeldig en de persoon krijgt een mail. Wachtwoord-logins staan hier niet in.</div>';
+    if(window.hydrateIcons) window.hydrateIcons(box);
+  }catch(e){
+    box.innerHTML='<div class="card" style="padding:14px 16px;font-size:13px;color:var(--red)">QR-sessies laden mislukt. Zijn de nieuwe firestore.rules gepubliceerd?</div>';
+  }
+}
+async function devRevokeQrSessions(uid){ await adminRefreshQr(uid); paintQrSessions(); }
+async function touchSessionInfo(){
+  if(!window._qrSession) return;
+  try{ const{db,doc,updateDoc,serverTimestamp,auth}=window._f; await updateDoc(doc(db,'sessionInfo',auth.currentUser.uid),{lastSeen:serverTimestamp()}); }catch(e){}
+}
+
+// ── Inloggen met vingerafdruk of gezicht (per toestel) ──────────────────────────────────────────
+// Eerlijk over wat dit is: een toestel-slot. De browser vraagt vingerafdruk/gezicht/schermcode (WebAuthn,
+// 'userVerification: required') en pas daarna gebruikt de app de QR van dit account om in te loggen.
+// Er is geen server die het WebAuthn-antwoord controleert (Spark-plan), dus dit beschermt tegen iemand die
+// je ontgrendelde telefoon pakt en op "doorgaan" tikt — niet tegen iemand met toegang tot de browserdata.
+// Vernieuwt iemand de QR, dan werkt dit vanzelf niet meer en zet de app het uit.
+const BIO_KEY='mhv_bio';
+function bioState(){ try{ const o=JSON.parse(localStorage.getItem(BIO_KEY)||'null'); return (o&&o.uid===U.uid)?o:null; }catch(e){ return null; } }
+function bytesToB64(buf){ let s=''; new Uint8Array(buf).forEach(b=>s+=String.fromCharCode(b)); return btoa(s); }
+async function toggleBiometric(){
+  if(bioState()){ localStorage.removeItem(BIO_KEY); toast('Vingerafdruk-login staat uit op dit toestel','ok'); renderProfile(); return; }
+  let ok=false; try{ ok=!!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); }catch(e){}
+  if(!ok){ toast('Dit toestel of deze browser ondersteunt geen vingerafdruk of gezicht','err'); return; }
+  try{
+    const secret=await getMyQrSecret();
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:crypto.getRandomValues(new Uint8Array(32)),
+      rp:{name:'MHVwork',id:window.location.hostname},
+      user:{id:new TextEncoder().encode(U.uid).slice(0,32),name:U.email||U.name||'medewerker',displayName:U.name||'medewerker'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},
+      attestation:'none',timeout:60000
+    }});
+    localStorage.setItem(BIO_KEY,JSON.stringify({uid:U.uid,name:U.name,cred:bytesToB64(cred.rawId),secret}));
+    toast('Vingerafdruk-login staat aan op dit toestel','ok'); renderProfile();
+  }catch(e){ if(e&&e.name!=='NotAllowedError') toast('Instellen mislukt: '+(e.message||''),'err'); }
+}
+async function bioKeepFresh(){ // na een QR-vernieuwing de opgeslagen QR bijwerken
+  const o=bioState(); if(!o) return;
+  try{ const secret=await getMyQrSecret(); if(secret!==o.secret){ o.secret=secret; localStorage.setItem(BIO_KEY,JSON.stringify(o)); } }catch(e){}
+}
+
+// ── QR schermvullend tonen (om te laten scannen, bv. bij het bar-scherm) ─────────────────────────────
+async function showQrFullscreen(){
+  try{
+    const secret=await getMyQrSecret();
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;z-index:100001;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px';
+    const cv=document.createElement('canvas'); drawQr(cv,qrUrl(secret),900);
+    cv.style.cssText='width:min(86vw,60vh);height:min(86vw,60vh);image-rendering:pixelated';
+    const nm=document.createElement('div'); nm.textContent=U.name||''; nm.style.cssText='font:800 26px Outfit,sans-serif;color:#0B0E1A';
+    const hint=document.createElement('div'); hint.textContent='Tik ergens om te sluiten'; hint.style.cssText='font:600 14px Outfit,sans-serif;color:#5C6278';
+    ov.append(cv,nm,hint); ov.onclick=()=>ov.remove(); document.body.appendChild(ov);
+  }catch(e){ toast('QR tonen mislukt','err'); }
+}
+
 // ── Beheer: QR vernieuwen (beheerder + dev) en snelcode resetten (alleen dev) ──────────────────────
 async function adminRefreshQr(uid){
   const u=allUsers.find(x=>x.uid===uid); if(!u) return;
@@ -7350,6 +7629,9 @@ function watchQrSession(){
 
 
 const _FN = {
+  toggleBiometric: toggleBiometric, showQrFullscreen: showQrFullscreen, devRevokeQrSessions: devRevokeQrSessions,
+  toggleOpenFields: toggleOpenFields, signupOpenShift: signupOpenShift, withdrawOpenShift: withdrawOpenShift,
+  assignSignup: assignSignup, declineSignup: declineSignup,
   openMyQr: openMyQr, refreshMyQr: refreshMyQr, saveQrCard: saveQrCard, printQrCard: printQrCard,
   changeFastCode: changeFastCode, savePassCard: savePassCard, adminRefreshQr: adminRefreshQr, devResetFast: devResetFast,
   nav: nav,
@@ -7444,7 +7726,6 @@ const _FN = {
   toggleSuspend: toggleSuspend,
   confirmSuspend: confirmSuspend,
   toggleVerified: toggleVerified,
-  toggleEmailOptOut: toggleEmailOptOut,
   handleProfilePhoto: handleProfilePhoto,
   exportShiftsExcel: exportShiftsExcel,
   openImageLightbox: openImageLightbox,

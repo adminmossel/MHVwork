@@ -480,6 +480,12 @@ app te raken.
 
 ---
 
+## Versie 1.6 — open diensten, bar-scherm, QR-sessies
+
+1. Upload `app.html`, `index.html` en de docs.
+2. **Publiceer `firestore.rules` opnieuw.** Zonder dit werkt aanmelden op open diensten en het QR-sessies-overzicht niet.
+3. Test: maak als beheerder een dienst met *Open dienst* aan, geef je op als medewerker en wijs toe via *Dienst bewerken*. Open onderaan de homepage het *Bar-scherm* en controleer dat het scherm aan blijft.
+
 ## Versie 1.5 — snelle toegang: snelcode + persoonlijke QR
 
 Naast de stappen hierboven moet je bij deze update **één extra ding aanzetten**:

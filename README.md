@@ -74,6 +74,12 @@ altijd een actueel overzicht.
 </td>
 <td width="50%" valign="top">
 
+### 📣 Open diensten
+Een beheerder kan een dienst aanmaken zonder iemand toe te wijzen en vragen wie wil. Kies het aantal plekken en of de beheerder zelf kiest uit de aanmeldingen, of dat wie zich het eerst opgeeft er direct op staat. Medewerkers zien op hun homepage een kaart *Open dienst* (dag, tijd, aantal plekjes) met de knop **Geef je op**; de beheerder wijst toe via *Dienst bewerken*.
+
+### 📺 Bar-scherm
+Onderaan de homepage staat een klein knopje *Bar-scherm* dat de idle-modus opent (rooster van vandaag en wedstrijden, groot en leesbaar, met eigen uitgangscode). Het scherm blijft aan zolang de idle-modus draait.
+
 ### 🔑 Snelle toegang (snelcode + QR)
 **Snel inloggen met code.** Onder "Inloggen" staat de knop *Snelcode*. Je typt alleen je persoonlijke code (6–12 letters/cijfers) en krijgt een beperkt, mooi overzicht: een aftelring voor je lopende of volgende dienst (met wie er nog meer staat), je komende diensten, de thuiswedstrijden van vandaag en de komende dagen (met een label als een wedstrijd tijdens jouw dienst valt) en een berichtenvak met snelle zinnen. Niets wordt onthouden: nieuw tabblad = opnieuw je code, en het scherm sluit na 5 minuten zonder gebruik. Na 4 foute pogingen is een toestel 15 minuten geblokkeerd.
 
@@ -81,7 +87,7 @@ altijd een actueel overzicht.
 
 **Persoonlijke QR.** Elke medewerker heeft een eigen QR waarmee je direct in je volledige account komt. Scannen kan met de camera-app of met de knop *QR scannen* op de inlogpagina (die opent de camera). Opslaan in de galerij, printen als A4-kaartje, of als **pinpas** (bankpasformaat 85,6 × 54 mm, voor- en achterkant, als PDF of afbeelding).
 
-**QR uitgelekt?** De eigenaar (Profiel → Snelle toegang), een beheerder (voor medewerkers) en de dev (voor iedereen) kunnen de QR vernieuwen. De oude QR is direct ongeldig, ook op toestellen waar al mee is ingelogd, en de getroffen persoon krijgt een mail. De dev kan ook een snelcode resetten. Een geschorst account verliest direct ook zijn QR- en snelcode-toegang.
+**QR uitgelekt?** De eigenaar (Profiel → Snelle toegang), een beheerder (voor medewerkers) en de dev (voor iedereen) kunnen de QR vernieuwen. De oude QR is direct ongeldig, ook op toestellen waar al mee is ingelogd, en de getroffen persoon krijgt een mail. De dev kan ook een snelcode resetten. Een geschorst account verliest direct ook zijn QR- en snelcode-toegang. De dev ziet in het Logboek wie er via QR is ingelogd en kan per account *Overal uitloggen*. Op een toestel kun je ook inloggen met vingerafdruk of gezicht (aan te zetten in Profiel).
 
 Alles draait op het gratis Spark-plan: anonieme Firebase-sessies plus Firestore-regels, geen Cloud Functions. Vereist wel dat **Anonymous** is ingeschakeld bij Authentication → Sign-in method.
 

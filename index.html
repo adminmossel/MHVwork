@@ -93,6 +93,8 @@ async function makeSession(mode, tokenId, persistence){
   if(!t.exists() || t.data().kind!==mode){ await signOut(auth).catch(()=>{}); throw {code:'token-invalid'}; }
   try{
     await setDoc(doc(db,'sessions',cred.user.uid),{uid:t.data().uid, mode, tokenId, createdAt:serverTimestamp()});
+    // informatie voor het dev-logboek (zonder geheim); mag falen zonder dat inloggen mislukt
+    setDoc(doc(db,'sessionInfo',cred.user.uid),{uid:t.data().uid, mode, ver:t.data().ver, ua:(navigator.userAgent||'').replace(/\s+/g,' ').slice(0,90), createdAt:serverTimestamp(), lastSeen:serverTimestamp()}).catch(()=>{});
   }catch(e){ await signOut(auth).catch(()=>{}); throw {code:'token-invalid'}; }
   return t.data().uid;
 }
@@ -490,6 +492,10 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
             QR scannen
           </button>
         </div>
+        <button class="alt-btn" id="bioBtn" style="display:none;width:100%;margin-top:10px" onclick="bioLogin()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v3a5 5 0 0 1-1 3"/><path d="M8 12a4 4 0 0 1 8 0v1a9 9 0 0 1-1.5 5"/><path d="M5 12a7 7 0 0 1 14 0v1c0 2-.4 3.5-1 5"/><path d="M12 7a2 2 0 0 0-2 2"/></svg>
+          <span id="bioLbl">Vingerafdruk of gezicht</span>
+        </button>
 
         <button onclick="openPromoModal()" class="ghost-btn">Wat is MHVwork? →</button>
 
@@ -741,6 +747,36 @@ async function handleScanned(secret){
     const err=document.getElementById('errBox');
     err.textContent=(e&&e.code==='token-invalid')?'Deze QR is niet meer geldig (vernieuwd of ingetrokken). Log in met e-mail en wachtwoord en pak je nieuwe QR in je profiel.':authErrText(e);
     err.style.display='block';
+  }
+}
+
+// ── Inloggen met vingerafdruk of gezicht ───────────────────────────────────────────────────────
+// Alleen zichtbaar op een toestel waar je dit in je profiel hebt aangezet. Zie app.html (toggleBiometric)
+// voor wat dit wel en niet beschermt: het is een toestel-slot vóór de QR-login, geen serverside controle.
+function bioData(){ try{ return JSON.parse(localStorage.getItem('mhv_bio')||'null'); }catch(e){ return null; } }
+window.addEventListener('DOMContentLoaded',()=>{
+  const o=bioData(); if(!o||!o.cred||!o.secret||!window.PublicKeyCredential) return;
+  document.getElementById('bioLbl').textContent='Doorgaan als '+String(o.name||'jij').split(' ')[0];
+  document.getElementById('bioBtn').style.display='flex';
+});
+async function bioLogin(){
+  const o=bioData(); if(!o) return;
+  try{
+    const id=Uint8Array.from(atob(o.cred),c=>c.charCodeAt(0));
+    await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials:[{type:'public-key',id,transports:['internal']}],userVerification:'required',timeout:60000,rpId:window.location.hostname}});
+  }catch(e){
+    if(e&&e.name!=='NotAllowedError') showErr('Vingerafdruk of gezicht lukt niet op dit toestel. Log gewoon in met je wachtwoord.');
+    return;
+  }
+  showAuthLoader('Inloggen');
+  try{ await window._qrLogin(o.secret); }
+  catch(e){
+    hideAuthLoader();
+    if(e&&e.code==='token-invalid'){
+      localStorage.removeItem('mhv_bio'); document.getElementById('bioBtn').style.display='none';
+      showErr('Je QR is vernieuwd, daarom staat vingerafdruk-login uit. Log in met je wachtwoord en zet het opnieuw aan in je profiel.');
+    }else showErr(authErrText(e));
   }
 }
 

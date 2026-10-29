@@ -77,6 +77,12 @@ up-to-date overview.
 </td>
 <td width="50%" valign="top">
 
+### 📣 Open shifts
+A manager can create a shift without assigning anyone and ask who wants it. Pick the number of places and whether the manager chooses from the sign-ups or whether the first to sign up gets the place right away. Volunteers see an *Open shift* card on their home page (day, time, number of places) with a **Sign up** button; the manager assigns people via *Edit shift*.
+
+### 📺 Bar screen
+A small *Bar screen* button at the bottom of the home page opens idle mode (today's roster and matches, large and readable, with its own exit code). The screen stays on while idle mode runs.
+
 ### 🔑 Quick access (quick code + personal QR)
 **Quick sign-in with a code.** Below "Sign in" there is a *Quick code* button. Enter your personal code (6–12 letters/digits) to get a limited but polished overview: a countdown ring for your current or next shift (and who else is on it), your upcoming shifts, today's and the coming days' home matches (flagged when a match falls during your shift), and a message box with quick phrases. Nothing is remembered: new tab = enter your code again, and the screen closes after 5 minutes idle. After 4 wrong attempts a device is blocked for 15 minutes.
 
@@ -84,7 +90,7 @@ up-to-date overview.
 
 **Personal QR.** Everyone has their own QR that signs you straight into your full account. Scan it with the camera app or with the *Scan QR* button on the login page (opens the camera). Save to your gallery, print as an A4 slip, or as a **bank-card sized pass** (85.6 × 54 mm, front and back, as PDF or image).
 
-**QR leaked?** The owner (Profile → Quick access), a manager (for volunteers) and the dev (for everyone) can renew the QR. The old one stops working immediately, including on devices already signed in, and the person gets an email. The dev can also reset a quick code. A suspended account instantly loses QR and quick-code access too.
+**QR leaked?** The owner (Profile → Quick access), a manager (for volunteers) and the dev (for everyone) can renew the QR. The old one stops working immediately, including on devices already signed in, and the person gets an email. The dev can also reset a quick code. A suspended account instantly loses QR and quick-code access too. The dev sees in the logbook who is signed in via QR and can *Sign out everywhere* per account. On a device you can also sign in with fingerprint or face (enable in Profile).
 
 Runs entirely on the free Spark plan: anonymous Firebase sessions plus Firestore rules, no Cloud Functions. Requires **Anonymous** to be enabled under Authentication → Sign-in method.
 

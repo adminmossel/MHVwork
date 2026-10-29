@@ -85,6 +85,17 @@ service cloud.firestore {
             && !(restr('editShift') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['startTime','endTime','workers','date','note'])))
         || (isAuth() && request.resource.data.diff(resource.data)
               .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']))
+        // Open dienst ("vraag wie wil"): jezelf aanmelden of weer terugtrekken — alleen jezelf, alleen het veld 'signups'.
+        || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signups'])
+              && request.resource.data.signups.size() <= 50
+              && request.resource.data.signups.toSet().difference(resource.data.get('signups', []).toSet()).hasOnly([me()])
+              && resource.data.get('signups', []).toSet().difference(request.resource.data.signups.toSet()).hasOnly([me()]))
+        // Open dienst met 'direct toewijzen': jezelf op de dienst zetten zolang er plek is (precies één plek per keer).
+        || (isAuth() && resource.data.get('autoAssign', false) == true && resource.data.get('openSlots', 0) > 0
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workers','workerConfirmations','openSlots','signups'])
+              && request.resource.data.workers.toSet().difference(resource.data.workers.toSet()).hasOnly([me()])
+              && resource.data.workers.toSet().difference(request.resource.data.workers.toSet()).size() == 0
+              && request.resource.data.openSlots == resource.data.openSlots - 1)
         // Sluitchecklist afvinken: alleen wie zelf op deze dienst staat, en alleen dit ene veld.
         // (Of de dienst ook echt de sluit-/laatste dienst van de dag is, bewaakt de app zelf.)
         || (isAuth() && (me() in resource.data.workers)
@@ -302,6 +313,19 @@ service cloud.firestore {
         && tokDoc(request.resource.data.tokenId).kind == request.resource.data.mode
         && tokDoc(request.resource.data.tokenId).ver == ownerDoc(request.resource.data.uid).get(request.resource.data.mode + 'Ver', 0);
       allow delete: if isAnon() && request.auth.uid == sid;
+    }
+
+    // Wie is er via QR/snelcode ingelogd? Alleen informatie voor de dev (Logboek). Bevat bewust GEEN
+    // token/geheim (dat staat in 'sessions', onleesbaar voor iedereen behalve de sessie zelf).
+    match /sessionInfo/{sid} {
+      allow read: if isSoftware();
+      allow create: if isAnon() && request.auth.uid == sid && sessValid()
+        && request.resource.data.keys().hasOnly(['uid','mode','ver','ua','createdAt','lastSeen'])
+        && request.resource.data.uid == sessDoc().uid
+        && request.resource.data.mode == sessDoc().mode;
+      allow update: if isAnon() && request.auth.uid == sid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen']);
+      allow delete: if (isAnon() && request.auth.uid == sid) || isSoftware();
     }
 
     // Alleen zichtbaar voor de dev-rol

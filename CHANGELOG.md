@@ -1,3 +1,25 @@
+# CHANGELOG — versie 1.6 (oktober 2026)
+
+Volledige beschrijving: zie [V1.6.md](./V1.6.md).
+
+### ✨ Nieuw
+- **Open diensten**: beheerder maakt een dienst aan zonder iemand toe te wijzen en vraagt wie wil (aantal plekken; "jij kiest" of "direct toewijzen"). Op ieders homepage staat een kaart *Open dienst* met dag, tijd, aantal plekjes en de knop **Geef je op**. Beheerder wijst toe via *Dienst bewerken*.
+- **Bar-scherm**: klein knopje onderaan de homepage opent de idle-modus, en het scherm blijft aan zolang die draait (Screen Wake Lock).
+- **QR-sessies in het Logboek** (dev): wie is er via QR ingelogd, met een knop *Overal uitloggen* per account.
+- **Inloggen met vingerafdruk of gezicht** (per toestel, aan te zetten in Profiel → Snelle toegang).
+- **QR schermvullend tonen**.
+
+### 🗑️ Verwijderd
+- De knop/instelling **Niet-urgente e-mails** en alle logica daarachter: alle mails worden nu altijd verstuurd.
+
+### ⚠️ Bij deze update
+- `firestore.rules` opnieuw publiceren. Geen nieuwe Firebase-instellingen nodig.
+
+### ℹ️ Niet mogelijk op Spark
+- Apple/Google Wallet-pas (vraagt een server om te ondertekenen). Uitleg en alternatieven staan in V1.6.md.
+
+---
+
 # CHANGELOG — versie 1.5 "snelle toegang" (oktober 2026)
 
 Volledige beschrijving: zie [V1.5.md](./V1.5.md).
