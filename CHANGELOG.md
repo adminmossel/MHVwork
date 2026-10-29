@@ -1,34 +1,27 @@
-# CHANGELOG — update oktober 2026 (deel 7b)
+# CHANGELOG — versie 1.5 "snelle toegang" (oktober 2026)
 
-### ✨ Aangepast
-- **Eerste login: één popup tegelijk.** Volgorde nu strikt: (installatie →) rondleiding → teamkeuze → snelcode met QR. Wat al gedaan is, wordt overgeslagen; terugkerende gebruikers zien alleen wat nog ontbreekt.
-- **QR scannen op de inlogpagina**: knop "QR scannen" opent de camera en logt direct in. Gebruikt de ingebouwde scanner van de browser waar die er is, anders `jsqr.js` (nieuw bestand, wordt pas geladen als je op de knop tikt). Je kunt je QR ook nog steeds met de gewone camera-app scannen.
-- **Snelcode-knop rustiger**: twee gewone knoppen onder "Inloggen" (Snelcode / QR scannen) in dezelfde stijl als de rest, geen gele flitsknop meer.
-- **Duidelijkere foutmelding** als "Anonymous" in Firebase nog niet aan staat (nieuwere Firebase geeft daarvoor `auth/admin-restricted-operation`).
-- Nieuw bestand uploaden: `jsqr.js` (en `jsqr.LICENSE.txt`, Apache-2.0).
-
----
-
-# CHANGELOG — update oktober 2026 (deel 7, "snelle toegang")
+Volledige beschrijving: zie [V1.5.md](./V1.5.md).
 
 ### ✨ Nieuw
-- **Snel inloggen met code** (knop op de inlogpagina, onder "Inloggen"). Een persoonlijke code van 6–12 letters/cijfers geeft een beperkt scherm (`fast.html`): hoe lang je dienst nog duurt, hoeveel thuiswedstrijden er zijn (vandaag + 7 dagen) en een bericht sturen (groepschat of privé naar iedereen). Niets wordt onthouden: nieuw tabblad = opnieuw je code; scherm sluit na 5 min zonder gebruik. 4 foute pogingen = 15 min geblokkeerd op dat toestel.
-- **Snelcode is verplicht** voor élk account (medewerker, beheerder, dev): na de update zie je bij de eerstvolgende login een scherm dat je niet kunt wegklikken tot je er een hebt ingesteld (of laat genereren). Wijzigen kan altijd via Profiel → Snelle toegang.
-- **Persoonlijke QR** per account. Opslaan in galerij (deelmenu) of printen als kaartje. Scannen = direct ingelogd in je VOLLEDIGE account, blijvend op dat toestel.
-- **QR vernieuwen**: de eigenaar zelf (Profiel), een beheerder (voor medewerkers) en de dev (voor iedereen) via Beheer → Medewerkers → "QR vernieuwen". De oude QR is direct dood, ook op toestellen waar al mee is ingelogd; de getroffen persoon krijgt een mail. De dev kan ook een snelcode resetten.
-- **Maximaal 10 toestellen** per account; een 11e logt het oudste toestel uit.
-- **Wit thema geoptimaliseerd**: contrast overal ≥ 5:1 (was op plekken 2,8–3,4:1), gele tekst op wit nu donkergeel, knoppen met rand + schaduw, actieve tab blauw, inputs met zichtbare rand, sterkere kaartranden.
+- **Snelcode-login** (knop *Snelcode* op de inlogpagina) met een rijk snel-overzicht (`fast.html`): aftelring voor je dienst, collega's op dezelfde dienst, komende diensten, thuiswedstrijden (vandaag, komende 7 dagen, "tijdens je dienst"-label) en berichten sturen met snelle zinnen. Niets onthouden, sluit na 5 minuten.
+- **Verplichte snelcode** voor elk account, met knop voor een veilige gegenereerde code.
+- **Persoonlijke QR** per account: inloggen in je volledige account. Opslaan in galerij, A4-kaartje printen of **pinpasformaat** (85,6 × 54 mm, voor + achter, PDF of PNG).
+- **QR scannen** op de inlogpagina (opent de camera; ook gewoon de camera-app werkt).
+- **QR vernieuwen** door eigenaar, beheerder (medewerkers) of dev (iedereen): oude QR direct ongeldig, mail naar de getroffene. Dev kan een snelcode resetten.
+- **Wit thema geoptimaliseerd**: alle tekst ≥ 5:1 contrast, gele tekst op wit donkergeel, knoppen met rand en schaduw, blauwe actieve tab, zichtbare invoervelden en kaartranden.
+- **Eerste login: één popup tegelijk**: (installatie →) rondleiding → teamkeuze → snelcode (+ QR).
+- Rustigere knoppen (*Snelcode* / *QR scannen*) in de stijl van de rest van de inlogpagina.
 
 ### ⚠️ Verplichte stappen bij deze update
-1. Firebase Console → Authentication → Sign-in method → **Anonymous** inschakelen (gratis, Spark). Hierop draaien snelcode en QR.
+1. Firebase Console → Authentication → Sign-in method → **Anonymous** inschakelen (gratis, Spark).
 2. `firestore.rules` opnieuw publiceren.
-3. Nieuwe bestanden uploaden: `fast.html`, `qr.js` (naast aangepaste `app.html`, `index.html`, `firestore.rules`).
+3. Uploaden: `app.html`, `index.html`, `firestore.rules`, en de nieuwe `fast.html`, `qr.js`, `jsqr.js`, `jsqr.LICENSE.txt`, `V1.5.md`.
 
 ### ℹ️ Goed om te weten
-- Geen Blaze-plan nodig: alles werkt op Spark. De beveiliging zit volledig in de Firestore-regels (een QR/snelcode-sessie is een anonieme sessie die alleen geldig is zolang de teller van het account niet is opgehoogd).
-- Een geschorst account verliest direct ook zijn QR/snelcode-toegang.
-- De snelcode is geen wachtwoord: wie hem raadt kan jouw dienst zien en namens jou berichten sturen, meer niet. Gebruik daarom liefst de knop "Genereer een veilige code".
-- Het maximum van 10 toestellen en de 4-pogingen-blokkade worden in de app bewaakt, niet door de server (Spark kent geen servercode) — voldoende voor deze data, maar technisch te omzeilen door iemand die gericht aanvalt.
+- Geen Blaze-plan nodig: alles werkt op Spark, de beveiliging zit in de Firestore-regels.
+- Een geschorst account verliest direct ook zijn QR-/snelcode-toegang.
+- De snelcode is geen wachtwoord: wie hem raadt kan jouw dienst zien en namens jou berichten sturen, meer niet. Gebruik liefst "Genereer een veilige code".
+- De 4-pogingen-blokkade (15 min) zit in de app per toestel, niet op de server (Spark kent geen servercode): voldoende voor deze data, maar omzeilbaar door iemand die gericht aanvalt.
 
 ---
 

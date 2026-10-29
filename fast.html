@@ -11,47 +11,85 @@
 <style>
 :root{
   --yellow:#F5C800; --blue:#1A3BB5; --deep:#0E2270;
-  --bg:#EEF0F6; --card:#FFFFFF; --text:#0B0E1A; --text2:#3C4259; --text3:#5C6278; --line:#D3D7E4;
-  --green:#1E8C40; --red:#C62B25;
+  --bg:#E9ECF3; --card:#FFFFFF; --inset:#F2F4F9; --text:#0B0E1A; --text2:rgba(11,14,26,.82); --text3:rgba(11,14,26,.62);
+  --line:rgba(11,14,26,.14); --green:#15703A; --red:#B3221C; --accent:#7A5F00; --chip:#E0E6FB; --chipText:#1D3FBB;
+  --shadow:0 1px 2px rgba(11,14,26,.06), 0 10px 24px -14px rgba(11,14,26,.28);
 }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#000; --card:#1C1C1E; --text:#FFF; --text2:rgba(255,255,255,.8); --text3:rgba(255,255,255,.6); --line:rgba(255,255,255,.16); --green:#30D158; --red:#FF6A61; }
+  :root{ --bg:#000; --card:#1C1C1E; --inset:#2A2A2D; --text:#FFF; --text2:rgba(255,255,255,.84); --text3:rgba(255,255,255,.62);
+    --line:rgba(255,255,255,.14); --green:#30D158; --red:#FF6A61; --accent:#F5C800; --chip:rgba(245,200,0,.16); --chipText:#F5C800; --shadow:none; }
 }
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body{ min-height:100%; }
-body{ font-family:'Outfit',-apple-system,'Helvetica Neue',sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; padding-bottom:env(safe-area-inset-bottom); }
-.top{ background:linear-gradient(160deg,var(--blue),var(--deep)); color:#fff; padding:calc(18px + env(safe-area-inset-top)) 20px 26px; border-radius:0 0 26px 26px; }
+body{ font-family:'Outfit',-apple-system,'Helvetica Neue',sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+
+/* kop */
+.top{ background:linear-gradient(165deg,var(--blue),var(--deep)); color:#fff; padding:calc(16px + env(safe-area-inset-top)) 20px 64px; }
 .top-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.badge{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; background:rgba(245,200,0,.2); color:var(--yellow); padding:5px 11px; border-radius:99px; }
-.out{ font-family:inherit; font-size:13px; font-weight:700; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); border-radius:99px; padding:8px 15px; cursor:pointer; }
-.hello{ font-size:26px; font-weight:800; letter-spacing:-.4px; margin-top:16px; }
-.sub{ font-size:14px; color:rgba(255,255,255,.75); margin-top:2px; }
-main{ max-width:560px; margin:0 auto; padding:16px 16px 40px; display:flex; flex-direction:column; gap:14px; margin-top:-8px; }
-.card{ background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-.label{ font-size:12px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
-.big{ font-size:44px; font-weight:900; letter-spacing:-1px; line-height:1.05; }
-.big small{ font-size:18px; font-weight:700; color:var(--text3); letter-spacing:0; }
-.muted{ color:var(--text3); font-size:14px; margin-top:6px; line-height:1.45; }
-.bar{ height:9px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:14px; }
-.bar span{ display:block; height:100%; background:var(--yellow); border-radius:6px; transition:width 1s linear; }
-.row{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; }
-.row:last-child{ border-bottom:none; }
-.row b{ font-weight:800; }
-.row .t{ font-weight:800; min-width:48px; }
-.row .off{ color:var(--red); text-decoration:line-through; }
-.stats{ display:flex; gap:10px; }
-.stat{ flex:1; background:var(--bg); border-radius:14px; padding:12px 14px; }
-.stat b{ display:block; font-size:30px; font-weight:900; letter-spacing:-.5px; }
+.brand{ font-weight:800; font-size:19px; letter-spacing:-.3px; } .brand b{ color:var(--yellow); font-weight:800; }
+.out{ font-family:inherit; font-size:13px; font-weight:700; color:#fff; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); border-radius:99px; padding:8px 15px; cursor:pointer; }
+.hello{ font-size:28px; font-weight:800; letter-spacing:-.5px; margin-top:22px; line-height:1.1; }
+.sub{ font-size:14px; color:rgba(255,255,255,.74); margin-top:5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.live{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#fff; background:rgba(255,255,255,.14); border-radius:99px; padding:3px 10px 3px 8px; }
+.live i{ width:7px; height:7px; border-radius:50%; background:#43E57A; box-shadow:0 0 0 0 rgba(67,229,122,.6); animation:pulse 2s infinite; }
+@keyframes pulse{ 70%{ box-shadow:0 0 0 7px rgba(67,229,122,0); } 100%{ box-shadow:0 0 0 0 rgba(67,229,122,0); } }
+
+main{ max-width:560px; margin:-44px auto 0; padding:0 14px; display:flex; flex-direction:column; gap:14px; }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:22px; padding:18px; box-shadow:var(--shadow); animation:rise .45s ease both; }
+.card:nth-child(2){ animation-delay:.05s } .card:nth-child(3){ animation-delay:.1s } .card:nth-child(4){ animation-delay:.15s } .card:nth-child(5){ animation-delay:.2s }
+@keyframes rise{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+.label{ font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text3); margin-bottom:12px; }
+
+/* hero */
+.hero{ background:linear-gradient(150deg,#1D3FBB 0%,#102580 100%); color:#fff; border:none; padding:20px; }
+.hero .label{ color:rgba(255,255,255,.72); }
+.hero-row{ display:flex; align-items:center; gap:18px; }
+.ring{ position:relative; width:128px; height:128px; flex:none; }
+.ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+.ring .bg{ stroke:rgba(255,255,255,.18); } .ring .fg{ stroke:var(--yellow); transition:stroke-dashoffset 1s linear; }
+.ring-mid{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.ring-mid b{ font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1; }
+.ring-mid span{ font-size:12px; font-weight:600; color:rgba(255,255,255,.78); margin-top:4px; }
+.hero-info{ min-width:0; flex:1; }
+.hero-title{ font-size:21px; font-weight:800; letter-spacing:-.3px; line-height:1.15; }
+.hero-meta{ font-size:14px; color:rgba(255,255,255,.8); margin-top:5px; line-height:1.4; }
+.crew{ display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.crew span{ font-size:12.5px; font-weight:700; background:rgba(255,255,255,.16); border-radius:99px; padding:4px 10px; }
+.hero-empty{ font-size:22px; font-weight:800; line-height:1.2; }
+.hero-empty small{ display:block; font-size:14px; font-weight:500; color:rgba(255,255,255,.76); margin-top:6px; }
+
+/* lijsten */
+.row{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+.row:last-child{ border-bottom:none; padding-bottom:0; } .row:first-child{ padding-top:0; }
+.date{ width:46px; flex:none; text-align:center; background:var(--inset); border-radius:12px; padding:6px 0 5px; }
+.date b{ display:block; font-size:19px; font-weight:800; line-height:1.05; }
+.date span{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); }
+.r-main{ flex:1; min-width:0; }
+.r-main b{ display:block; font-size:15.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.r-main b.off{ text-decoration:line-through; color:var(--red); }
+.r-main span{ font-size:13px; color:var(--text3); }
+.tag{ flex:none; font-size:11.5px; font-weight:800; border-radius:99px; padding:4px 10px; background:var(--chip); color:var(--chipText); }
+.tag.hot{ background:rgba(245,200,0,.28); color:var(--accent); }
+.time{ width:52px; flex:none; font-weight:800; font-size:16px; }
+.empty{ font-size:14px; color:var(--text3); line-height:1.5; }
+.stats{ display:flex; gap:10px; margin-bottom:14px; }
+.stat{ flex:1; background:var(--inset); border-radius:16px; padding:13px 14px; }
+.stat b{ display:block; font-size:32px; font-weight:900; letter-spacing:-.8px; line-height:1; }
 .stat span{ font-size:12.5px; color:var(--text3); font-weight:600; }
-select,textarea{ width:100%; font-family:inherit; font-size:16px; color:var(--text); background:var(--bg); border:1.5px solid var(--line); border-radius:12px; padding:12px 13px; outline:none; }
+.sep{ font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--text3); margin:16px 0 10px; }
+
+/* bericht */
+.chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
+.chips button{ font-family:inherit; font-size:13px; font-weight:700; color:var(--chipText); background:var(--chip); border:none; border-radius:99px; padding:8px 13px; cursor:pointer; }
+select,textarea{ width:100%; font-family:inherit; font-size:16px; color:var(--text); background:var(--inset); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px; outline:none; }
 select:focus,textarea:focus{ border-color:var(--blue); }
-textarea{ resize:none; min-height:84px; margin-top:10px; }
-.send{ width:100%; margin-top:12px; font-family:inherit; font-size:16px; font-weight:800; color:#1a1000; background:var(--yellow); border:none; border-radius:14px; padding:14px; cursor:pointer; box-shadow:0 8px 18px -10px rgba(245,200,0,.9); }
-.send:disabled{ opacity:.55; }
-.msg{ font-size:14px; font-weight:600; margin-top:10px; }
-.msg.ok{ color:var(--green); } .msg.err{ color:var(--red); }
-.foot{ text-align:center; font-size:12.5px; color:var(--text3); line-height:1.5; padding:4px 10px; }
-.load{ text-align:center; padding:70px 20px; color:var(--text3); font-weight:600; }
+textarea{ resize:none; min-height:88px; margin-top:10px; }
+.send{ width:100%; margin-top:12px; font-family:inherit; font-size:16px; font-weight:800; color:#1a1000; background:var(--yellow); border:none; border-radius:15px; padding:15px; cursor:pointer; box-shadow:inset 0 0 0 1.5px rgba(26,16,0,.2), 0 8px 18px -10px rgba(160,125,0,.8); }
+.send:active{ transform:scale(.98); } .send:disabled{ opacity:.55; }
+.msg{ font-size:14px; font-weight:600; margin-top:10px; min-height:20px; } .msg.ok{ color:var(--green); } .msg.err{ color:var(--red); }
+.foot{ text-align:center; font-size:12.5px; color:var(--text3); line-height:1.55; padding:6px 14px 0; }
+.load{ text-align:center; padding:90px 20px; color:var(--text3); font-weight:600; }
+@media (prefers-reduced-motion: reduce){ .card,.live i{ animation:none; } .ring .fg{ transition:none; } }
 </style>
 </head>
 <body>
@@ -60,15 +98,20 @@ textarea{ resize:none; min-height:84px; margin-top:10px; }
 <div id="view" style="display:none">
   <div class="top">
     <div class="top-row">
-      <span class="badge">Snel overzicht</span>
+      <div class="brand">MHV<b>work</b></div>
       <button class="out" id="outBtn">Uitloggen</button>
     </div>
     <div class="hello" id="hello">Hoi!</div>
-    <div class="sub" id="clock"></div>
+    <div class="sub"><span id="clock"></span><span class="live"><i></i>Live</span></div>
   </div>
 
   <main>
-    <div class="card" id="shiftCard"></div>
+    <div class="card hero" id="hero"></div>
+
+    <div class="card" id="upcomingCard">
+      <div class="label">Komende diensten</div>
+      <div id="upcoming"></div>
+    </div>
 
     <div class="card">
       <div class="label">Thuiswedstrijden</div>
@@ -76,18 +119,20 @@ textarea{ resize:none; min-height:84px; margin-top:10px; }
         <div class="stat"><b id="mToday">–</b><span>vandaag</span></div>
         <div class="stat"><b id="mWeek">–</b><span>komende 7 dagen</span></div>
       </div>
-      <div id="mList" style="margin-top:10px"></div>
+      <div id="mTodayList"></div>
+      <div id="mNextWrap"><div class="sep">Hierna</div><div id="mNext"></div></div>
     </div>
 
     <div class="card">
       <div class="label">Stuur een bericht</div>
+      <div class="chips" id="chips"></div>
       <select id="rcpt"></select>
       <textarea id="msgText" maxlength="1000" placeholder="Typ je bericht…"></textarea>
       <button class="send" id="sendBtn">Versturen</button>
       <div class="msg" id="sendMsg"></div>
     </div>
 
-    <div class="foot">Je bent ingelogd met je snelcode. Hier zie je alleen het hoognodige.<br>Voor het volledige rooster log je in met e-mail en wachtwoord of scan je je persoonlijke QR.<br>Dit scherm sluit zichzelf na 5 minuten zonder gebruik.</div>
+    <div class="foot">Je bent ingelogd met je snelcode: je ziet hier alleen het hoognodige.<br>Het volledige rooster en je account open je met e-mail en wachtwoord of met je QR.<br>Dit scherm sluit zichzelf na 5 minuten zonder gebruik.</div>
   </main>
 </div>
 
@@ -108,17 +153,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const MATCH_MIN = 79;           // zelfde aanname als in de hoofdapp (speelduur voor 'bezig')
+const MATCH_MIN = 90;            // aanname: een wedstrijd 'beslaat' ± 90 min (voor "tijdens je dienst")
 const IDLE_MS = 5*60*1000;
+const OFF = ['canceled','postponed','discontinued'];
 const $ = id => document.getElementById(id);
 
-let UID = null, MYNAME = 'collega', myShifts = [], matches = [];
+let UID = null, MYNAME = 'collega', myShifts = [], matches = [], people = {};
 
 async function leave(reason){
   try{ if(auth.currentUser){ await deleteDoc(doc(db,'sessions',auth.currentUser.uid)).catch(()=>{}); await signOut(auth); } }catch(e){}
   window.location.replace('index.html' + (reason ? '?fast=' + reason : ''));
 }
 $('outBtn').onclick = () => leave();
+
+// kleine DOM-helper: tekst gaat altijd via textContent (namen/berichten van anderen nooit als HTML)
+function h(tag, cls, text, kids){
+  const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text;
+  (kids||[]).forEach(k=>k&&e.appendChild(k)); return e;
+}
 
 // ── tijd-helpers (zelfde logica als app.html) ─────────────────────────────────────────────────
 function toDate(d){
@@ -129,83 +181,130 @@ function toDate(d){
   return new Date(d);
 }
 function dayKey(d){ const x=toDate(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
-function localMs(k,hhmm){ const [y,m,d]=k.split('-').map(Number); const [h,mi]=(hhmm||'00:00').split(':').map(Number); return new Date(y,m-1,d,h,mi||0,0,0).getTime(); }
+function localMs(k,hhmm){ const [y,m,d]=k.split('-').map(Number); const [hh,mi]=(hhmm||'00:00').split(':').map(Number); return new Date(y,m-1,d,hh,mi||0,0,0).getTime(); }
 function winOf(s){
   const k=dayKey(s.date), st=localMs(k,s.startTime);
   let en = s.endTime==='sluit' ? Infinity : localMs(k,s.endTime);
   if(en!==Infinity && en<=st) en += 86400000;
   return {st,en};
 }
-function fmtDur(ms){
-  const mins=Math.max(0,Math.round(ms/60000)), h=Math.floor(mins/60), m=mins%60;
-  if(h>=24){ const d=Math.floor(h/24); return d+' dag'+(d===1?'':'en')+(h%24?' '+(h%24)+' u':''); }
-  return h? `${h} u ${String(m).padStart(2,'0')} min` : `${m} min`;
+const todayStart = () => { const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime(); };
+function relDay(ms){
+  const d=new Date(ms), diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()-todayStart())/86400000);
+  return diff===0?'Vandaag':diff===1?'Morgen':'';
 }
-function fmtDay(d){ return toDate(d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'}); }
-function hm(ms){ return new Date(ms).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+const fmtLong=ms=>new Date(ms).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+const fmtHM=ms=>new Date(ms).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+function dateBox(ms){
+  const d=new Date(ms);
+  return h('div','date',null,[h('b',null,String(d.getDate())), h('span',null,d.toLocaleDateString('nl-NL',{month:'short'}).replace('.',''))]);
+}
+function leftParts(ms){
+  const mins=Math.max(0,Math.round(ms/60000)), hh=Math.floor(mins/60), mm=mins%60;
+  if(hh>=48) return [Math.floor(hh/24)+'', 'dagen'];
+  if(hh>=1)  return [hh+':'+String(mm).padStart(2,'0'), 'uur'];
+  return [String(mm), 'min'];
+}
+const crewOf=s=>(s.workers||[]).filter(u=>u!==UID).map(u=>people[u]&&people[u].name).filter(Boolean);
+const endLbl=s=>s.endTime==='sluit'?'sluit':s.endTime;
 
 // ── render ────────────────────────────────────────────────────────────────────────────────
-function renderShift(){
-  const now=Date.now(), el=$('shiftCard');
-  const wins=myShifts.map(s=>({s,...winOf(s)})).filter(x=>!isNaN(x.st));
-  const cur=wins.filter(x=>x.st<=now && now<x.en).sort((a,b)=>a.st-b.st)[0];
-  const next=wins.filter(x=>x.st>now).sort((a,b)=>a.st-b.st)[0];
-  let h='<div class="label">Jouw dienst</div>';
+const R=52, C=2*Math.PI*R;
+function ringEl(frac, big, small){
+  const wrap=h('div','ring');
+  wrap.innerHTML='<svg viewBox="0 0 128 128"><circle class="bg" cx="64" cy="64" r="'+R+'" fill="none" stroke-width="11"/><circle class="fg" cx="64" cy="64" r="'+R+'" fill="none" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-Math.min(1,Math.max(0,frac)))).toFixed(1)+'"/></svg>';
+  wrap.appendChild(h('div','ring-mid',null,[h('b',null,big),h('span',null,small)]));
+  return wrap;
+}
+function wins(){ return myShifts.map(s=>({s,...winOf(s)})).filter(x=>!isNaN(x.st)).sort((a,b)=>a.st-b.st); }
+function renderHero(){
+  const now=Date.now(), W=wins(), el=$('hero'); el.replaceChildren();
+  const cur=W.find(x=>x.st<=now && now<x.en), next=W.find(x=>x.st>now);
+  el.appendChild(h('div','label',cur?'Jouw dienst · bezig':next?'Jouw volgende dienst':'Jouw dienst'));
+  const row=h('div','hero-row');
   if(cur){
-    const s=cur.s;
-    if(cur.en===Infinity){
-      h+=`<div class="big">Tot sluit</div><div class="muted">Dienst bezig sinds ${s.startTime}. De eindtijd hangt af van wanneer er gesloten wordt.</div>`;
-    }else{
-      const left=cur.en-now, pct=Math.min(100,Math.max(0,(now-cur.st)/(cur.en-cur.st)*100));
-      h+=`<div class="big">${fmtDur(left)} <small>te gaan</small></div>
-          <div class="muted">${s.startTime} – ${s.endTime} · eindigt om ${s.endTime}</div>
-          <div class="bar"><span style="width:${pct.toFixed(1)}%"></span></div>`;
-    }
+    const s=cur.s, sluit=cur.en===Infinity;
+    if(sluit) row.appendChild(ringEl(1,'Sluit','eindtijd open'));
+    else{ const p=leftParts(cur.en-now); row.appendChild(ringEl((now-cur.st)/(cur.en-cur.st),p[0],p[1]+' te gaan')); }
+    const info=h('div','hero-info',null,[
+      h('div','hero-title',sluit?'Tot sluit':'Eindigt om '+s.endTime),
+      h('div','hero-meta',s.startTime+' – '+endLbl(s)+' · '+cap(fmtLong(cur.st)))
+    ]);
+    const crew=crewOf(s); if(crew.length) info.appendChild(h('div','crew',null,crew.map(n=>h('span',null,n))));
+    row.appendChild(info);
   }else if(next){
-    const s=next.s;
-    h+=`<div class="big">${fmtDur(next.st-now)} <small>tot je volgende dienst</small></div>
-        <div class="muted" style="text-transform:capitalize">${fmtDay(s.date)}</div>
-        <div class="muted" style="margin-top:2px">${s.startTime} – ${s.endTime==='sluit'?'sluit':s.endTime}</div>`;
+    const s=next.s, p=leftParts(next.st-now), rd=relDay(next.st);
+    row.appendChild(ringEl(0,p[0],p[1]+' te gaan'));
+    const info=h('div','hero-info',null,[
+      h('div','hero-title',(rd?rd+' om ':'Om ')+s.startTime),
+      h('div','hero-meta',cap(fmtLong(next.st))+' · '+s.startTime+' – '+endLbl(s))
+    ]);
+    const crew=crewOf(s); if(crew.length) info.appendChild(h('div','crew',null,crew.map(n=>h('span',null,'Met '+n))));
+    row.appendChild(info);
   }else{
-    h+='<div class="big" style="font-size:26px">Geen dienst ingepland</div><div class="muted">Zodra je een dienst krijgt, zie je hier hoe lang hij nog duurt.</div>';
+    row.appendChild(h('div','hero-empty','Geen dienst ingepland',[h('small',null,'Zodra je ingeroosterd wordt, zie je hier de aftelling.')]));
   }
-  el.innerHTML=h;
+  el.appendChild(row);
+}
+function renderUpcoming(){
+  const now=Date.now(), all=wins(), W=all.filter(x=>x.st>now);
+  const running=all.some(x=>x.st<=now&&now<x.en);
+  const list=(running?W:W.slice(1)).slice(0,4), box=$('upcoming'); box.replaceChildren();
+  $('upcomingCard').style.display=list.length?'block':'none';
+  list.forEach(x=>{
+    const rd=relDay(x.st), crew=crewOf(x.s);
+    box.appendChild(h('div','row',null,[
+      dateBox(x.st),
+      h('div','r-main',null,[
+        h('b',null,cap(new Date(x.st).toLocaleDateString('nl-NL',{weekday:'long'}))+' · '+x.s.startTime+' – '+endLbl(x.s)),
+        h('span',null,crew.length?'Met '+crew.slice(0,3).join(', ')+(crew.length>3?' +'+(crew.length-3):''):'Nog geen collega\u2019s bekend')
+      ]),
+      rd?h('div','tag',rd):null
+    ]));
+  });
+}
+function matchRow(m, W, withDate){
+  const off=OFF.includes(m.status), tijd=m.startTime||'tijd volgt';
+  const overlap=!off && m.startMs && W.some(x=>m.startMs<x.en && m.startMs+MATCH_MIN*60000>x.st);
+  const left = withDate ? dateBox(m.startMs) : h('div','time',tijd);
+  const title=h('b',off?'off':null,(m.homeTeam||'?')+' – '+(m.awayTeam||'?'));
+  const meta=withDate ? h('span',null,tijd) : h('span',null,off?'Gaat niet door':'Thuiswedstrijd');
+  return h('div','row',null,[left,h('div','r-main',null,[title,meta]),overlap?h('div','tag hot','Tijdens je dienst'):null]);
 }
 function renderMatches(){
-  const now=new Date(), todayK=dayKey(now);
-  const weekEnd=Date.now()+7*86400000;
-  const live=matches.filter(m=>!['canceled','postponed','discontinued'].includes(m.status));
-  const today=matches.filter(m=>m.date===todayK);
-  const todayOn=today.filter(m=>!['canceled','postponed','discontinued'].includes(m.status));
-  const week=live.filter(m=>m.startMs>=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime() && m.startMs<weekEnd);
-  $('mToday').textContent=todayOn.length;
-  $('mWeek').textContent=week.length;
-  const list=today.sort((a,b)=>(a.startMs||0)-(b.startMs||0));
-  $('mList').innerHTML = list.length
-    ? list.map(m=>{ const off=['canceled','postponed','discontinued'].includes(m.status);
-        const t=document.createElement('div'); t.className='row';
-        const a=document.createElement('span'); a.className='t'; a.textContent=m.startTime||'tijd volgt';
-        const b=document.createElement('span'); b.style.flex='1'; b.textContent=(m.homeTeam||'?')+' – '+(m.awayTeam||'?'); if(off) b.className='off';
-        t.append(a,b); return t.outerHTML; }).join('')
-    : '<div class="muted">Vandaag geen thuiswedstrijden.</div>';
+  const t0=todayStart(), t1=t0+86400000, wk=Date.now()+7*86400000, W=wins();
+  const live=matches.filter(m=>!OFF.includes(m.status));
+  const todayAll=matches.filter(m=>m.startMs>=t0&&m.startMs<t1).sort((a,b)=>a.startMs-b.startMs);
+  $('mToday').textContent=todayAll.filter(m=>!OFF.includes(m.status)).length;
+  $('mWeek').textContent=live.filter(m=>m.startMs>=t0&&m.startMs<wk).length;
+  const tl=$('mTodayList'); tl.replaceChildren();
+  if(todayAll.length) todayAll.forEach(m=>tl.appendChild(matchRow(m,W,false)));
+  else tl.appendChild(h('div','empty','Vandaag geen thuiswedstrijden.'));
+  const next=live.filter(m=>m.startMs>=t1).sort((a,b)=>a.startMs-b.startMs).slice(0,4), nb=$('mNext'); nb.replaceChildren();
+  $('mNextWrap').style.display=next.length?'block':'none';
+  next.forEach(m=>nb.appendChild(matchRow(m,W,true)));
 }
 function tickClock(){
-  $('clock').textContent=new Date().toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})+' · '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-  renderShift();
+  const n=new Date(), hr=n.getHours();
+  $('clock').textContent=cap(n.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'}))+' · '+fmtHM(n.getTime());
+  $('hello').textContent=(hr<6?'Goedenacht':hr<12?'Goedemorgen':hr<18?'Goedemiddag':'Goedenavond')+', '+MYNAME.split(' ')[0];
+  renderHero();
 }
 
 // ── bericht versturen ─────────────────────────────────────────────────────────────────────────
-async function loadRecipients(){
+const QUICK=['Ik ben er','Ik ben 10 min later','Kan iemand mijn dienst overnemen?','Ik heb hulp nodig bij de bar'];
+QUICK.forEach(t=>{ const b=h('button',null,t); b.type='button'; b.onclick=()=>{ $('msgText').value=t; $('msgText').focus(); }; $('chips').appendChild(b); });
+async function loadPeople(){
   const sel=$('rcpt');
-  sel.innerHTML='<option value="__chat">Groepschat (iedereen)</option>';
+  sel.replaceChildren(Object.assign(document.createElement('option'),{value:'__chat',textContent:'Groepschat (iedereen)'}));
   try{
     const snap=await getDocs(collection(db,'publicProfiles'));
-    const people=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(p=>p.uid!==UID && p.name)
-      .sort((a,b)=>String(a.name).localeCompare(String(b.name),'nl'));
-    for(const p of people){
-      const o=document.createElement('option'); o.value=p.uid;
-      o.textContent=p.name+(p.role==='admin'?' (beheerder)':p.role==='software'?' (dev)':''); sel.appendChild(o);
-    }
+    snap.docs.forEach(d=>{ people[d.id]={uid:d.id,...d.data()}; });
+    Object.values(people).filter(p=>p.uid!==UID && p.name).sort((a,b)=>String(a.name).localeCompare(String(b.name),'nl')).forEach(p=>{
+      sel.appendChild(Object.assign(document.createElement('option'),{value:p.uid,textContent:p.name+(p.role==='admin'?' (beheerder)':p.role==='software'?' (dev)':'')}));
+    });
+    renderHero(); renderUpcoming();
   }catch(e){ console.warn('ontvangers:',e); }
 }
 function say(txt,cls){ const m=$('sendMsg'); m.textContent=txt; m.className='msg '+(cls||''); }
@@ -218,9 +317,8 @@ async function sendMessage(){
       await addDoc(collection(db,'chat'),{ uid:UID, name:MYNAME, role:'employee', text, imageData:null, mentions:[], type:'message', deleted:false, createdAt:serverTimestamp() });
     }else{
       const id=[UID,to].sort().join('_'), ref=doc(db,'dms',id);
-      const toName=$('rcpt').selectedOptions[0].textContent.replace(/ \((beheerder|dev)\)$/,'');
-      const snap=await getDoc(ref);
-      const msg={from:UID,text,ts:Date.now()};
+      const toName=(people[to]&&people[to].name)||'';
+      const snap=await getDoc(ref), msg={from:UID,text,ts:Date.now()};
       if(!snap.exists()){
         await setDoc(ref,{ participants:[UID,to], participantNames:{[UID]:MYNAME,[to]:toName}, messages:[msg], lastText:text, lastFrom:UID, readBy:[UID], updatedAt:serverTimestamp() });
       }else{
@@ -249,17 +347,15 @@ onAuthStateChanged(auth, async user=>{
     if(prof.exists() && prof.data().name) MYNAME=prof.data().name;
   }catch(e){ await leave('invalid'); return; }
 
-  $('hello').textContent='Hoi '+MYNAME.split(' ')[0]+'!';
   $('boot').style.display='none'; $('view').style.display='block';
-
+  loadPeople();
   onSnapshot(query(collection(db,'shifts'),where('workers','array-contains',UID)),
-    s=>{ myShifts=s.docs.map(d=>({id:d.id,...d.data()})); renderShift(); }, ()=>leave('invalid'));
-  const from=Date.now()-86400000;
-  onSnapshot(query(collection(db,'matches'),where('startMs','>=',from),orderBy('startMs','asc')),
+    s=>{ myShifts=s.docs.map(d=>({id:d.id,...d.data()})); renderHero(); renderUpcoming(); renderMatches(); }, ()=>leave('invalid'));
+  onSnapshot(query(collection(db,'matches'),where('startMs','>=',todayStart()-86400000),orderBy('startMs','asc')),
     s=>{ matches=s.docs.map(d=>({id:d.id,...d.data()})); renderMatches(); }, e=>console.warn('wedstrijden:',e));
-  loadRecipients();
   tickClock(); setInterval(tickClock,1000); bump();
-  // controleer elke minuut of de toegang nog geldig is (bv. ingetrokken door beheer)
+  setInterval(renderUpcoming,60000);
+  // elke minuut controleren of de toegang nog geldig is (bv. ingetrokken door beheer)
   setInterval(async()=>{ try{ await getDoc(doc(db,'publicProfiles',UID)); }catch(e){ leave('invalid'); } },60000);
 });
 </script>

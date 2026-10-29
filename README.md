@@ -75,12 +75,17 @@ altijd een actueel overzicht.
 <td width="50%" valign="top">
 
 ### 🔑 Snelle toegang (snelcode + QR)
+**Snel inloggen met code.** Onder "Inloggen" staat de knop *Snelcode*. Je typt alleen je persoonlijke code (6–12 letters/cijfers) en krijgt een beperkt, mooi overzicht: een aftelring voor je lopende of volgende dienst (met wie er nog meer staat), je komende diensten, de thuiswedstrijden van vandaag en de komende dagen (met een label als een wedstrijd tijdens jouw dienst valt) en een berichtenvak met snelle zinnen. Niets wordt onthouden: nieuw tabblad = opnieuw je code, en het scherm sluit na 5 minuten zonder gebruik. Na 4 foute pogingen is een toestel 15 minuten geblokkeerd.
 
-- **Snel inloggen met code** op de inlogpagina: een beperkt overzicht (resterende diensttijd, aantal thuiswedstrijden, bericht sturen). Vergeet je het tabblad niet af te sluiten? Na 5 min inactiviteit sluit het zelf.
-- **Verplichte snelcode** voor elk account (6–12 letters/cijfers); 4 foute pogingen blokkeren een toestel 15 min.
-- **Persoonlijke QR** per account: opslaan in de galerij of printen; scannen = direct in je volledige account. Uitgelekt? De eigenaar, een beheerder of de dev vernieuwt hem — de oude is direct ongeldig en de eigenaar krijgt een mail.
-- Maximaal 10 toestellen per account.
-- Draait volledig op het gratis Spark-plan (anonieme Firebase-sessies + Firestore-regels, geen Cloud Functions).
+**Verplichte snelcode.** Elk account (medewerker, beheerder, dev) stelt er bij de eerstvolgende login één in; tot dat gebeurd is, is de app niet te gebruiken. Een knop genereert een veilige code. Tijdens de eerste login komen de popups netjes na elkaar: (installatie →) rondleiding → teamkeuze → snelcode.
+
+**Persoonlijke QR.** Elke medewerker heeft een eigen QR waarmee je direct in je volledige account komt. Scannen kan met de camera-app of met de knop *QR scannen* op de inlogpagina (die opent de camera). Opslaan in de galerij, printen als A4-kaartje, of als **pinpas** (bankpasformaat 85,6 × 54 mm, voor- en achterkant, als PDF of afbeelding).
+
+**QR uitgelekt?** De eigenaar (Profiel → Snelle toegang), een beheerder (voor medewerkers) en de dev (voor iedereen) kunnen de QR vernieuwen. De oude QR is direct ongeldig, ook op toestellen waar al mee is ingelogd, en de getroffen persoon krijgt een mail. De dev kan ook een snelcode resetten. Een geschorst account verliest direct ook zijn QR- en snelcode-toegang.
+
+Alles draait op het gratis Spark-plan: anonieme Firebase-sessies plus Firestore-regels, geen Cloud Functions. Vereist wel dat **Anonymous** is ingeschakeld bij Authentication → Sign-in method.
+
+---
 
 ### 🔄 Dienst ruilen
 - Medewerker plaatst een ruilverzoek in de groepschat
@@ -151,7 +156,7 @@ altijd een actueel overzicht.
 
 ### 🎨 Weergave
 Zwevende, glazen navigatie of de klassieke volle-breedte-balk — naar keuze per account. Licht,
-donker of een verborgen NASA-APOD-thema, los van de systeeminstelling. Wachtwoord-sterktemeter
+donker of een verborgen NASA-APOD-thema, los van de systeeminstelling. Het witte thema is in 1.5 volledig herzien: alle tekst minstens 5:1 contrast, duidelijke knoppen en invoervelden, leesbare badges. Wachtwoord-sterktemeter
 bij aanmaken én wijzigen. **Eigen achtergrond**: kies een foto uit je galerij, die alleen op dat toestel wordt bewaard (IndexedDB) en dus geen databaseruimte kost.
 
 ---
@@ -240,14 +245,15 @@ Gebruik Chrome of Edge en klik op het installatie-icoon in de adresbalk.
 ## 🚀 Aan de slag
 
 Volledige installatie- en updatehandleiding: zie **[HANDLEIDING.md](./HANDLEIDING.md)**.
-Overzicht van alle wijzigingen per versie: zie **[CHANGELOG.md](./CHANGELOG.md)**.
+Overzicht van alle wijzigingen per versie: zie **[CHANGELOG.md](./CHANGELOG.md)**. Alles over versie 1.5: **[V1.5.md](./V1.5.md)**.
 
 In het kort:
 1. Fork of clone deze repository
 2. Maak een eigen [Firebase](https://console.firebase.google.com)-project aan (Spark-plan volstaat)
-3. Vul je Firebase-configuratie in bovenaan `app.html`, `index.html`, `register.html` en `reset-pw.html`
-4. Publiceer de `firestore.rules` in de Firebase Console
-5. Zet GitHub Pages aan voor deze repository
+3. Vul je Firebase-configuratie in bovenaan `app.html`, `index.html`, `fast.html`, `register.html` en `reset-pw.html`
+4. Zet in Authentication → Sign-in method **Anonymous** aan (nodig voor snelcode en QR)
+5. Publiceer de `firestore.rules` in de Firebase Console
+6. Zet GitHub Pages aan voor deze repository
 
 ---
 
@@ -258,6 +264,9 @@ In het kort:
 ├── register.html        Accountregistratie (via uitnodigingslink)
 ├── reset-pw.html         Wachtwoord opnieuw instellen
 ├── app.html              De volledige applicatie (alle rollen)
+├── fast.html             Snelcode-overzicht (beperkt: dienst, wedstrijden, bericht)
+├── qr.js                 QR-generator (qrcode-generator, MIT)
+├── jsqr.js               QR-lezer voor de camera-scanner (jsQR, Apache-2.0)
 ├── voorwaarden.html       Gebruiksvoorwaarden & privacyverklaring
 ├── promo.html             Presentatie "Wat is MHVwork?"
 ├── firestore.rules        Firestore security rules
@@ -266,7 +275,8 @@ In het kort:
 ├── index.js               Optionele Cloud Functions (Gmail SMTP, accountbeheer)
 ├── icon.svg / icon-*.png  App-iconen
 ├── HANDLEIDING.md         Installatie- en updatehandleiding
-└── CHANGELOG.md           Overzicht van alle wijzigingen
+├── CHANGELOG.md           Overzicht van alle wijzigingen
+└── V1.5.md                Volledige inhoud van versie 1.5 (snelle toegang)
 ```
 
 ---
@@ -281,7 +291,8 @@ In het kort:
   specifieke bevoegdheden ontnemen — of een app-brede functie uitzetten — allebei afgedwongen in
   zowel de app als de databaseregels, niet alleen in het scherm
 - Wachtwoord-reset verloopt via Firebase's eigen, beveiligde flow
-- Geschorste accounts worden bij inloggen direct geweigerd
+- Geschorste accounts worden bij inloggen direct geweigerd (en verliezen direct hun QR-/snelcode-toegang)
+- Snelcode en QR werken via anonieme Firebase-sessies die de Firestore-regels alleen als geldig zien zolang de teller van het account niet is opgehoogd; tokens zijn niet te lijsten of te zoeken, een snelcode-sessie mag alleen eigen diensten/wedstrijden lezen en berichten versturen
 
 > ⚠️ Controleer altijd de actuele `firestore.rules` voordat je naar een productieomgeving gaat.
 
@@ -308,6 +319,8 @@ MHVwork is zelf geschreven zonder framework, maar leunt op de volgende diensten 
 | [Firebase](https://firebase.google.com) (Firestore, Auth, Cloud Functions) | Database, login, optionele mailserver | [Google APIs Terms of Service](https://developers.google.com/terms) |
 | [EmailJS](https://www.emailjs.com) | E-mailverzending vanuit de browser | Eigen servicevoorwaarden ([emailjs.com/legal](https://www.emailjs.com/legal/terms-of-service/)) |
 | [SheetJS (xlsx)](https://sheetjs.com) | Excel-export in de browser | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+| [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) | QR-codes tekenen (`qr.js`) | MIT License |
+| [jsQR](https://github.com/cozmo/jsQR) | QR lezen met de camera (`jsqr.js`) | Apache License 2.0 |
 | [Nodemailer](https://nodemailer.com) | Gmail SMTP-verzending (optioneel, `index.js`) | MIT License |
 | [Outfit](https://fonts.google.com/specimen/Outfit) (Google Fonts) | Lettertype | [SIL Open Font License 1.1](https://openfontlicense.org) |
 

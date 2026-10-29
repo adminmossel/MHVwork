@@ -77,6 +77,19 @@ up-to-date overview.
 </td>
 <td width="50%" valign="top">
 
+### 🔑 Quick access (quick code + personal QR)
+**Quick sign-in with a code.** Below "Sign in" there is a *Quick code* button. Enter your personal code (6–12 letters/digits) to get a limited but polished overview: a countdown ring for your current or next shift (and who else is on it), your upcoming shifts, today's and the coming days' home matches (flagged when a match falls during your shift), and a message box with quick phrases. Nothing is remembered: new tab = enter your code again, and the screen closes after 5 minutes idle. After 4 wrong attempts a device is blocked for 15 minutes.
+
+**Mandatory quick code.** Every account (volunteer, manager, dev) sets one at the next login; the app is unusable until then. A button generates a strong code. During first login the pop-ups come one after another: (install →) tour → team choice → quick code.
+
+**Personal QR.** Everyone has their own QR that signs you straight into your full account. Scan it with the camera app or with the *Scan QR* button on the login page (opens the camera). Save to your gallery, print as an A4 slip, or as a **bank-card sized pass** (85.6 × 54 mm, front and back, as PDF or image).
+
+**QR leaked?** The owner (Profile → Quick access), a manager (for volunteers) and the dev (for everyone) can renew the QR. The old one stops working immediately, including on devices already signed in, and the person gets an email. The dev can also reset a quick code. A suspended account instantly loses QR and quick-code access too.
+
+Runs entirely on the free Spark plan: anonymous Firebase sessions plus Firestore rules, no Cloud Functions. Requires **Anonymous** to be enabled under Authentication → Sign-in method.
+
+---
+
 ### 🔄 Shift swaps
 - A staff member posts a swap request in the group chat
 - Colleagues show interest
@@ -251,6 +264,9 @@ In short:
 ├── index.html          Login page
 ├── register.html        Account registration (via invite link)
 ├── reset-pw.html         Password reset
+├── fast.html             Quick-code overview (limited: shift, matches, message)
+├── qr.js                 QR generator (qrcode-generator, MIT)
+├── jsqr.js               QR reader for the camera scanner (jsQR, Apache-2.0)
 ├── app.html              The full application (all roles)
 ├── voorwaarden.html       Terms of use & privacy policy (Dutch)
 ├── promo.html             "What is MHVwork?" presentation

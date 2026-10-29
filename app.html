@@ -1163,7 +1163,7 @@ window.addEventListener('mhv:ready', async ()=>{
     try { updateOfflineBanner(); } catch(e){}
     try { handleShortcutParam(); } catch(e){}
     try { updateAppBadge(); } catch(e){}
-    try { setTimeout(()=>{ runOnboardingQueue(); registerLoginDevice(); watchQrSession(); },900); } catch(e){}
+    try { setTimeout(()=>{ runOnboardingQueue(); watchQrSession(); },900); } catch(e){}
     // Ververst Home elke minuut zolang je erop staat — puur voor de live voortgangsbalk/
     // countdown tijdens een lopende dienst, geen extra netwerkverkeer (leest gewoon opnieuw
     // uit het al geladen allShifts).
@@ -7103,20 +7103,79 @@ async function buildQrCard(secret){
   x.fillText('MHV 1931',W/2,1510);
   return c;
 }
+async function shareOrDownload(blob,filename,title){
+  const file=new File([blob],filename,{type:blob.type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title}); return; }
+    catch(e){ if(e&&e.name==='AbortError') return; }
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  toast('Gedownload — bewaar het op een veilige plek','ok');
+}
+function nameSlug(){ return (U.name||'medewerker').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 async function saveQrCard(){
   try{
     const secret=await getMyQrSecret(), c=await buildQrCard(secret);
     const blob=await new Promise(r=>c.toBlob(r,'image/png'));
-    const slug=(U.name||'medewerker').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-    const file=new File([blob],'MHVwork-QR-'+slug+'.png',{type:'image/png'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file],title:'Mijn MHVwork QR'}); return; }
-      catch(e){ if(e&&e.name==='AbortError') return; }
-    }
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=file.name;
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-    toast('QR gedownload — bewaar hem op een veilige plek','ok');
+    await shareOrDownload(blob,'MHVwork-QR-'+nameSlug()+'.png','Mijn MHVwork QR');
   }catch(e){ toast('Opslaan mislukt: '+(e.message||''),'err'); }
+}
+
+// ── Pinpasformaat (ID-1, 85,6 × 54 mm — zelfde als een bankpas) ─────────────────────────────────
+// 300 dpi → 1011 × 638 px. Voorkant: naam + QR. Achterkant: korte uitleg. Als PDF staat het op exact
+// 85,6 × 54 mm (print op 100%, niet 'passend maken'); als PNG voor delen of opslaan.
+async function buildPassCard(secret,side){
+  try{ await document.fonts.load('800 60px Outfit'); }catch(e){}
+  const W=1011,H=638,c=document.createElement('canvas'); c.width=W; c.height=H;
+  const x=c.getContext('2d'), F='Outfit, -apple-system, Helvetica, Arial, sans-serif';
+  const g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,'#1A3BB5'); g.addColorStop(1,'#0E2270');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.fillStyle='#F5C800'; x.fillRect(0,H-14,W,14);
+  x.textAlign='left';
+  if(side==='front'){
+    x.fillStyle='#fff'; x.font='800 74px '+F; x.fillText('MHV',58,128);
+    const w1=x.measureText('MHV').width; x.fillStyle='#F5C800'; x.fillText('work',58+w1+4,128);
+    x.fillStyle='rgba(255,255,255,.78)'; x.font='700 25px '+F; x.fillText('PERSOONLIJKE INLOG-QR',60,172);
+    // naam, desnoods over twee regels
+    x.fillStyle='#fff';
+    const words=(U.name||'').trim().split(/\s+/), maxW=430;
+    let fs=62, lines;
+    do{ // kleiner lettertype tot de naam (max. 2 regels) naast de QR past
+      x.font='800 '+fs+'px '+F; lines=[''];
+      for(const w of words){ const t=(lines[lines.length-1]+' '+w).trim(); if(x.measureText(t).width>maxW && lines[lines.length-1]) lines.push(w); else lines[lines.length-1]=t; }
+      fs-=2;
+    }while((lines.length>2||lines.some(l=>x.measureText(l).width>maxW)) && fs>=36);
+    lines.slice(0,2).forEach((l,i)=>x.fillText(l,58,340+i*(fs+2+12)));
+    x.fillStyle='rgba(255,255,255,.82)'; x.font='600 27px '+F;
+    x.fillText('Scan met je camera of via',60,520); x.fillText('MHVwork › QR scannen',60,556);
+    // QR op een wit vlak rechts
+    const P=438, px=W-P-56, py=Math.round((H-14-P)/2);
+    x.fillStyle='#fff'; x.beginPath(); x.roundRect?x.roundRect(px,py,P,P,26):x.rect(px,py,P,P); x.fill();
+    const qc=document.createElement('canvas'); drawQr(qc,qrUrl(secret),P-30); x.drawImage(qc,px+15,py+15,P-30,P-30);
+  }else{
+    x.fillStyle='#F5C800'; x.font='800 54px '+F; x.fillText('Geheim houden',58,118);
+    x.fillStyle='#fff'; x.font='600 33px '+F;
+    ['Wie deze QR scant, is meteen jij —','met je hele MHVwork-account.','','Kwijt of uitgelekt? Vernieuw hem in je','profiel of meld het de beheerder.','De oude QR werkt dan direct niet meer.'].forEach((l,i)=>x.fillText(l,58,196+i*50));
+    x.fillStyle='rgba(255,255,255,.7)'; x.font='700 26px '+F; x.fillText('MHV 1931',58,H-44);
+  }
+  return c;
+}
+async function savePassCard(kind){
+  try{
+    const secret=await getMyQrSecret();
+    const front=await buildPassCard(secret,'front'), back=await buildPassCard(secret,'back');
+    if(kind==='png'){
+      const blob=await new Promise(r=>front.toBlob(r,'image/png'));
+      await shareOrDownload(blob,'MHVwork-pinpas-'+nameSlug()+'.png','Mijn MHVwork pinpas'); return;
+    }
+    const J=window.jspdf&&window.jspdf.jsPDF; if(!J) throw new Error('PDF-onderdeel niet geladen');
+    const pdf=new J({orientation:'landscape',unit:'mm',format:[85.6,54]});
+    pdf.addImage(front.toDataURL('image/png'),'PNG',0,0,85.6,54);
+    pdf.addPage([85.6,54],'landscape');
+    pdf.addImage(back.toDataURL('image/png'),'PNG',0,0,85.6,54);
+    await shareOrDownload(pdf.output('blob'),'MHVwork-pinpas-'+nameSlug()+'.pdf','Mijn MHVwork pinpas');
+  }catch(e){ toast('Pinpas maken mislukt: '+(e.message||''),'err'); }
 }
 async function printQrCard(){
   try{
@@ -7137,7 +7196,12 @@ async function mountQr(canvasId){
 const QR_BTN_STYLE='margin-top:10px';
 function qrActionsHtml(){
   return `<button class="btn btn-yellow btn-full" style="${QR_BTN_STYLE}" onclick="saveQrCard()"><span class="ic" data-icon="mobile-down"></span> Opslaan in galerij</button>
-    <button class="btn btn-ghost btn-full" style="${QR_BTN_STYLE}" onclick="printQrCard()"><span class="ic" data-icon="note"></span> Printen</button>`;
+    <div style="display:flex;gap:8px;${QR_BTN_STYLE}">
+      <button class="btn btn-ghost" style="flex:1" onclick="savePassCard('pdf')">Pinpas · PDF</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="savePassCard('png')">Pinpas · afbeelding</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:6px;line-height:1.45">Pinpas = bankpasformaat (85,6 × 54 mm), voor- en achterkant. Print de PDF op 100%, niet "passend maken".</div>
+    <button class="btn btn-ghost btn-full" style="${QR_BTN_STYLE}" onclick="printQrCard()"><span class="ic" data-icon="note"></span> Printen (A4-kaartje)</button>`;
 }
 const QR_WARN='<div style="background:var(--red-dim);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--text);margin-top:14px"><b>Houd je QR geheim.</b> Wie hem scant, is meteen jou — met je hele account. Is hij toch uitgelekt? Vernieuw hem hieronder; de oude werkt dan direct niet meer.</div>';
 function openMyQr(){
@@ -7273,32 +7337,6 @@ async function devResetFast(uid){
   }catch(e){ toast('Resetten mislukt: '+(e.message||''),'err'); }
 }
 
-// ── Maximaal 10 ingelogde apparaten per account (zacht afgedwongen via het gebruikersdocument) ────────
-const MAX_DEVICES=10;
-async function registerLoginDevice(){
-  try{
-    const{db,doc,getDoc,updateDoc}=window._f;
-    let id=localStorage.getItem('mhv_device'); if(!id){ id=randHex(12); localStorage.setItem('mhv_device',id); }
-    const regKey='mhv_device_reg_'+U.uid;
-    const snap=await getDoc(doc(db,'users',U.uid));
-    let list=(snap.exists()&&Array.isArray(snap.data().devices))?snap.data().devices.slice():[];
-    const mine=list.find(d=>d.id===id);
-    if(!mine && localStorage.getItem(regKey)){
-      // dit toestel was eerder aangemeld maar is verwijderd omdat er een 11e apparaat bij kwam
-      localStorage.removeItem(regKey);
-      await window._f.signOut(window._f.auth);
-      window.location.href='index.html?devices=1'; return;
-    }
-    const now=Date.now();
-    if(mine && now-(mine.at||0)<12*3600*1000) return; // recent genoeg, niets schrijven
-    list=list.filter(d=>d.id!==id);
-    list.push({id,at:now,ua:(navigator.userAgent||'').replace(/\s+/g,' ').slice(0,60),qr:!!window._qrSession});
-    list.sort((a,b)=>(a.at||0)-(b.at||0));
-    while(list.length>MAX_DEVICES) list.shift();
-    await updateDoc(doc(db,'users',U.uid),{devices:list});
-    localStorage.setItem(regKey,'1');
-  }catch(e){ console.warn('registerDevice:',e); }
-}
 // QR-sessies: trekt beheer de QR in, dan loggen we hier zelf uit (anders zie je alleen "toegang geweigerd")
 function watchQrSession(){
   if(!window._qrSession) return;
@@ -7313,7 +7351,7 @@ function watchQrSession(){
 
 const _FN = {
   openMyQr: openMyQr, refreshMyQr: refreshMyQr, saveQrCard: saveQrCard, printQrCard: printQrCard,
-  changeFastCode: changeFastCode, adminRefreshQr: adminRefreshQr, devResetFast: devResetFast,
+  changeFastCode: changeFastCode, savePassCard: savePassCard, adminRefreshQr: adminRefreshQr, devResetFast: devResetFast,
   nav: nav,
   toast: toast,
   closeModal: closeModal,

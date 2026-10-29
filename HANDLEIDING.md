@@ -480,15 +480,17 @@ app te raken.
 
 ---
 
-## Update oktober 2026 (deel 7) — snelle toegang: snelcode + persoonlijke QR
+## Versie 1.5 — snelle toegang: snelcode + persoonlijke QR
 
-Naast Stap 1–3 hierboven moet je bij deze update **één extra ding aanzetten**:
+Naast de stappen hierboven moet je bij deze update **één extra ding aanzetten**:
 
-1. **Firebase Console → Authentication → Sign-in method → "Anonymous" → Inschakelen → Opslaan.** Zonder dit werken snelcode en QR niet (de inlogpagina meldt dan dat snel inloggen nog niet aan staat).
-2. Upload `fast.html` en `qr.js` (nieuw) en de aangepaste `app.html`, `index.html`, `firestore.rules`.
-3. Publiceer `firestore.rules` opnieuw.
-4. Test: log in als medewerker → je krijgt het verplichte scherm "Stel je snelcode in" → stel in → je ziet je QR. Open daarna in een privévenster de inlogpagina → "Snel inloggen met code" → je ziet je dienst, de wedstrijden en het berichtenvak. Scan je QR met je camera → je zit in je hele account.
-5. Test vernieuwen: Beheer → Medewerkers → "QR vernieuwen" → de oude QR toont daarna "niet meer geldig".
+1. **Firebase Console → Authentication → Sign-in method → "Anonymous" → Inschakelen → Opslaan.** Zonder dit werken snelcode en QR niet (de inlogpagina meldt dan dat ze nog niet aan staan).
+2. Upload de nieuwe bestanden `fast.html`, `qr.js`, `jsqr.js`, `jsqr.LICENSE.txt` en de aangepaste `app.html`, `index.html`, `firestore.rules`.
+3. Controleer in `fast.html` dat de Firebase-configuratie bovenaan klopt (zelfde als in `app.html`).
+4. Publiceer `firestore.rules` opnieuw.
+5. Test: log in als medewerker, je krijgt (na rondleiding en teamkeuze) het verplichte scherm "Kies je snelcode" → stel in → je ziet je QR. Open een privévenster → *Snelcode* → je ziet je overzicht. Tik *QR scannen* en scan je QR → je zit in je hele account.
+6. Test vernieuwen: Beheer → Medewerkers → "QR vernieuwen" → de oude QR toont daarna "niet meer geldig".
+7. Test de pinpas: Profiel → Snelle toegang → Mijn persoonlijke QR → *Pinpas · PDF* en print op 100%.
 
 ## Update oktober 2026
 

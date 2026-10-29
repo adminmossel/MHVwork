@@ -567,8 +567,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const note = {
     'qr=revoked':     'Je QR-sessie is niet meer geldig (de QR is vernieuwd of ingetrokken). Log in met e-mail en wachtwoord en pak je nieuwe QR in je profiel.',
     'fast=timeout':   'Snel overzicht gesloten na 5 minuten zonder gebruik.',
-    'fast=invalid':   'Je snelcode-toegang is niet meer geldig. Log in met e-mail en wachtwoord en stel een nieuwe code in.',
-    'devices=1':      'Je bent uitgelogd op dit toestel: er zijn maximaal 10 apparaten tegelijk toegestaan en er is een nieuwer toestel bijgekomen.'
+    'fast=invalid':   'Je snelcode-toegang is niet meer geldig. Log in met e-mail en wachtwoord en stel een nieuwe code in.'
   };
   for (const k in note) { const [a,b]=k.split('='); if (params.get(a)===b) {
     const err = document.getElementById('errBox'); err.textContent = note[k]; err.style.display = 'block';
