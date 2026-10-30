@@ -30,6 +30,19 @@ service cloud.firestore {
     // Snelcode-modus mag alleen: eigen diensten/wedstrijden lezen en berichten versturen.
     function isAuthOrFast() { return isAuth() || isFastSess(); }
     function getRole()   { return get(/databases/$(database)/documents/users/$(me())).data.role; }
+    // Zelf-registratie mag ALLEEN met een geldige, nog niet gebruikte uitnodiging, en alleen met precies de
+    // gegevens (rol, e-mail, loon) die de beheerder in die uitnodiging heeft gezet. Zonder deze controle kon
+    // iedereen die zich via de (publieke) Firebase-sleutel aanmeldde zichzelf een profiel met rol 'software'
+    // of 'admin' geven. Het eerste admin-account maak je daardoor in de Firebase Console aan (zie HANDLEIDING).
+    function validSelfRegistration(uid) {
+      return isReal() && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['name','email','role','inviteId'])
+        && request.resource.data.keys().hasOnly(['name','email','wage','role','createdAt','memberSince','termsAcceptedAt','termsVersion','guestUntil','guestPending','inviteId'])
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.get('used', false) == false
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.email == request.resource.data.email
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.get('role', 'employee') == request.resource.data.role
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.get('wage', 0) == request.resource.data.get('wage', 0);
+    }
     function isAdmin()   { return isAuth() && getRole() == 'admin'; }
     function isSoftware(){ return isAuth() && getRole() == 'software'; }
     function isStaff()   { return isAdmin() || isSoftware(); }
@@ -54,7 +67,7 @@ service cloud.firestore {
       // email-bypass meer — rol komt uitsluitend uit het Firestore-document zelf.
       allow create: if isSoftware()
         || (isAdmin() && request.resource.data.role != 'software')
-        || (isAuth() && me() == uid);
+        || validSelfRegistration(uid);
       allow update: if (isAdmin() && !(request.resource.data.role=='software') && !(resource.data.role=='software' && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
             && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified','restrictions','guestUntil','guestPending']) && !restr('manageEmployees')
             && !(restr('toggleFeatures') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['disabledFeatures'])))
@@ -87,7 +100,8 @@ service cloud.firestore {
               .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']))
         // Open dienst ("vraag wie wil"): jezelf aanmelden of weer terugtrekken — alleen jezelf, alleen het veld 'signups'.
         || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signups'])
-              && request.resource.data.signups.size() <= 50
+              && (request.resource.data.signups.size() <= resource.data.get('openSlots', 0)
+                  || request.resource.data.signups.size() < resource.data.get('signups', []).size())
               && request.resource.data.signups.toSet().difference(resource.data.get('signups', []).toSet()).hasOnly([me()])
               && resource.data.get('signups', []).toSet().difference(request.resource.data.signups.toSet()).hasOnly([me()]))
         // Open dienst met 'direct toewijzen': jezelf op de dienst zetten zolang er plek is (precies één plek per keer).

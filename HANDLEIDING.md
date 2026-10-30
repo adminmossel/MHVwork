@@ -484,7 +484,8 @@ app te raken.
 
 1. Upload `app.html`, `index.html` en de docs.
 2. **Publiceer `firestore.rules` opnieuw.** Zonder dit werkt aanmelden op open diensten en het QR-sessies-overzicht niet.
-3. Test: maak als beheerder een dienst met *Open dienst* aan, geef je op als medewerker en wijs toe via *Dienst bewerken*. Open onderaan de homepage het *Bar-scherm* en controleer dat het scherm aan blijft.
+3. **Test registreren:** maak een uitnodiging en registreer er een testaccount mee (de regels voor zelf-registratie zijn aangescherpt). Het eerste admin-account maak je voortaan in de Firebase Console aan, niet meer via `seed-admin.html`.
+4. Test: maak als beheerder een dienst met *Open dienst* aan, geef je op als medewerker en wijs toe via *Dienst bewerken*. Open onderaan de homepage het *Bar-scherm* en controleer dat het scherm aan blijft.
 
 ## Versie 1.5 — snelle toegang: snelcode + persoonlijke QR
 

@@ -3021,7 +3021,7 @@ function renderAdminShiftCard(s){
       <span class="badge ${st==='approved'||st==='paid'?'badge-green':st==='reviewing'?'badge-orange':st==='unconfirmed_locked'?'badge-red':'badge-gray'}" style="font-size:10px">${st==='approved'||st==='paid'?'✓':st==='reviewing'?'…':st==='unconfirmed_locked'?'<span class="ic" data-icon="exclaim"></span>':'<span class="ic" data-icon="hourglass"></span>'}</span>
     </div>`;
   }).join('');
-  const openBadge=(s.openSlots||0)>0?`<span class="badge badge-yellow" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="users"></span> Open dienst · ${s.openSlots} ${s.openSlots===1?'plek':'plekken'}${(s.signups||[]).length?` · ${(s.signups||[]).length} aangemeld`:''}</span>`:'';
+  const openBadge=(s.openSlots||0)>0?`<span class="badge badge-yellow" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="users"></span> Open dienst · ${freeSlots(s)} ${freeSlots(s)===1?'plek':'plekken'} vrij${(s.signups||[]).length?` · ${(s.signups||[]).length} aangemeld`:''}</span>`:'';
   const headerBadge=openBadge+(!hasWorkers&&!(s.openSlots>0)
     ? `<span class="badge badge-orange" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="dot" style="color:var(--orange)"></span> Niemand toegewezen</span>`
     : (allPaid?`<span class="badge badge-green" style="margin:8px 12px 0;display:inline-block"><span class="ic" data-icon="check-circle"></span> Volledig afgehandeld & uitbetaald</span>`:''));
@@ -4137,6 +4137,9 @@ function shiftLabel(s){
   const d=toDate(s.date);
   return d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})+' '+s.startTime+'–'+dispTime(s.endTime);
 }
+// Vrije plekken = nog te vergeven plekken min het aantal aanmeldingen. Elke aanmelding haalt er dus direct
+// één af (bij 'direct toewijzen' gaat openSlots zelf omlaag, signups blijft dan leeg).
+function freeSlots(s){ return Math.max(0,(s.openSlots||0)-(s.signups||[]).length); }
 function openShiftsUpcoming(){
   const today=nowKey();
   return allShifts.filter(s=>(s.openSlots||0)>0 && dKey(s.date)>=today && !shiftFinished(s))
@@ -4144,9 +4147,9 @@ function openShiftsUpcoming(){
 }
 function openShiftCardHtml(s,isAdmin){
   const d=toDate(s.date), day=d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
-  const slots=s.openSlots||0, n=(s.signups||[]).length, signed=(s.signups||[]).includes(U.uid);
+  const slots=freeSlots(s), n=(s.signups||[]).length, signed=(s.signups||[]).includes(U.uid);
   const blocked=!isAdmin && blockedOn(dKey(s.date)).some(a=>a.uid===U.uid);
-  const slotTxt=slots+(slots===1?' plekje':' plekjes');
+  const slotTxt=slots>0?slots+(slots===1?' plekje vrij':' plekjes vrij'):'Alle plekken zijn opgegeven';
   let actions;
   if(isAdmin){
     actions=`<button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="openEditShift('${s.id}')">${n?`Bekijk ${n} aanmelding${n===1?'':'en'}`:'Beheer open dienst'}</button>`;
@@ -4157,6 +4160,8 @@ function openShiftCardHtml(s,isAdmin){
       <div style="font-size:12px;color:var(--text3);margin-top:6px">De beheerder maakt de keuze en laat het je weten.</div>`;
   }else if(blocked){
     actions=`<button class="btn btn-ghost btn-full" style="margin-top:12px" disabled>Je staat die dag als niet beschikbaar</button>`;
+  }else if(slots<1){
+    actions=`<button class="btn btn-ghost btn-full" style="margin-top:12px" disabled>Vol</button>`;
   }else{
     actions=`<button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="signupOpenShift('${s.id}')">Geef je op</button>`
       +(s.autoAssign?`<div style="font-size:12px;color:var(--text3);margin-top:6px">Wie het eerst is, staat er direct op.</div>`:'');
@@ -4167,13 +4172,15 @@ function openShiftCardHtml(s,isAdmin){
         <div style="font-size:14px;color:var(--text2);margin-top:2px;text-transform:capitalize">${day}</div></div>
       <span class="badge badge-yellow">Open dienst</span>
     </div>
-    <div class="open-shift-meta"><span class="ic" data-icon="users"></span><b>${slotTxt}</b>${isAdmin&&n?` · ${n} aangemeld`:''}${isAdmin?` · ${s.autoAssign?'direct toewijzen':'jij kiest'}`:''}</div>
+    <div class="open-shift-meta"><span class="ic" data-icon="users"></span><b>${slotTxt}</b>${n&&(isAdmin||signedUp(s))?` · ${n} aangemeld`:''}${isAdmin?` · ${s.autoAssign?'direct toewijzen':'jij kiest'}`:''}</div>
     ${s.note?`<div style="font-size:13px;color:var(--text2);margin-top:8px;line-height:1.45"><span class="ic" data-icon="note"></span> ${escAnn(s.note)}</div>`:''}
     ${actions}
   </div>`;
 }
+function signedUp(s){ return (s.signups||[]).includes(U.uid); }
 function openShiftsSectionHtml(isAdmin){
-  const list=openShiftsUpcoming(); if(!list.length) return '';
+  // medewerkers zien alleen diensten met nog een vrije plek (of waar ze zelf voor zijn opgegeven)
+  const list=openShiftsUpcoming().filter(s=>isAdmin||freeSlots(s)>0||signedUp(s)); if(!list.length) return '';
   return `<div class="section-label" style="margin-top:6px"><span class="ic" data-icon="megaphone"></span> Open diensten</div>`
     +list.map(s=>openShiftCardHtml(s,isAdmin)).join('');
 }
@@ -4181,7 +4188,7 @@ function adminUids(){ return allUsers.filter(u=>u.role==='admin').map(u=>u.uid);
 async function signupOpenShift(id){
   const s=allShifts.find(x=>x.id===id); if(!s) return;
   const slots=s.openSlots||0;
-  if(slots<1){ toast('Helaas, deze dienst is al vol','err'); return; }
+  if(freeSlots(s)<1){ toast('Helaas, deze dienst is al vol','err'); return; }
   if((s.workers||[]).includes(U.uid)||(s.signups||[]).includes(U.uid)){ toast('Je bent al opgegeven','err'); return; }
   const{db,doc,updateDoc}=window._f, ref=doc(db,'shifts',id);
   try{
@@ -4211,8 +4218,8 @@ async function withdrawOpenShift(id){
 function signupsListHtml(s){
   const list=s.signups||[]; if(!list.length&&!(s.openSlots>0)) return '';
   return `<div class="open-shift-people">
-    <div class="form-label" style="margin-bottom:4px">Aanmeldingen (${list.length}) · ${s.openSlots||0} ${(s.openSlots||0)===1?'plek':'plekken'} vrij</div>
-    ${list.length?list.map(uid=>`<div class="open-shift-person"><span>${userName(uid)}</span>
+    <div class="form-label" style="margin-bottom:4px">Aanmeldingen (${list.length}) · ${s.openSlots||0} ${(s.openSlots||0)===1?'plek':'plekken'} te vergeven · nog ${freeSlots(s)} vrij voor aanmelden</div>
+    ${list.length?list.map(uid=>`<div class="open-shift-person"><span>${escAnn(userName(uid))}</span>
       <span style="display:flex;gap:6px">
         <button class="btn btn-yellow btn-sm" onclick="assignSignup('${s.id}','${uid}')">Toewijzen</button>
         <button class="btn btn-ghost btn-sm" onclick="declineSignup('${s.id}','${uid}')">Afwijzen</button>
@@ -7169,7 +7176,7 @@ function renderIdlePage(){
     return `<div class="idle-shift">
       <div class="idle-shift-time">${s.startTime} – ${dispTime(s.endTime)}</div>
       ${s.note?`<div class="idle-shift-note"><span class="ic" data-icon="note"></span> ${s.note}</div>`:''}
-      ${(s.openSlots||0)>0?`<div class="idle-shift-note" style="color:#F5C800"><span class="ic" data-icon="users"></span> Open dienst — nog ${s.openSlots} ${s.openSlots===1?'plek':'plekken'} vrij</div>`:''}
+      ${(s.openSlots||0)>0?`<div class="idle-shift-note" style="color:#F5C800"><span class="ic" data-icon="users"></span> ${freeSlots(s)>0?`Open dienst — nog ${freeSlots(s)} ${freeSlots(s)===1?'plek':'plekken'} vrij`:'Open dienst — alle plekken opgegeven'}</div>`:''}
       ${names.length?names.map(n=>`<div class="idle-worker">
         <div class="idle-worker-name"><span>${n}</span><span class="idle-worker-sub">${subHtml}</span></div>
         ${barHtml}
@@ -7337,20 +7344,28 @@ async function buildPassCard(secret,side){
   }
   return c;
 }
+function downloadBlob(blob,filename){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+}
+// Gewone download (geen deelmenu): PDF = voor- en achterkant op exact 85,6 × 54 mm; PNG = alleen de voorkant.
 async function savePassCard(kind){
   try{
     const secret=await getMyQrSecret();
-    const front=await buildPassCard(secret,'front'), back=await buildPassCard(secret,'back');
+    const front=await buildPassCard(secret,'front');
     if(kind==='png'){
       const blob=await new Promise(r=>front.toBlob(r,'image/png'));
-      await shareOrDownload(blob,'MHVwork-pinpas-'+nameSlug()+'.png','Mijn MHVwork pinpas'); return;
+      downloadBlob(blob,'MHVwork-pinpas-'+nameSlug()+'.png');
+    }else{
+      const back=await buildPassCard(secret,'back');
+      const J=window.jspdf&&window.jspdf.jsPDF; if(!J) throw new Error('PDF-onderdeel niet geladen');
+      const pdf=new J({orientation:'landscape',unit:'mm',format:[85.6,54]});
+      pdf.addImage(front.toDataURL('image/png'),'PNG',0,0,85.6,54);
+      pdf.addPage([85.6,54],'landscape');
+      pdf.addImage(back.toDataURL('image/png'),'PNG',0,0,85.6,54);
+      downloadBlob(pdf.output('blob'),'MHVwork-pinpas-'+nameSlug()+'.pdf');
     }
-    const J=window.jspdf&&window.jspdf.jsPDF; if(!J) throw new Error('PDF-onderdeel niet geladen');
-    const pdf=new J({orientation:'landscape',unit:'mm',format:[85.6,54]});
-    pdf.addImage(front.toDataURL('image/png'),'PNG',0,0,85.6,54);
-    pdf.addPage([85.6,54],'landscape');
-    pdf.addImage(back.toDataURL('image/png'),'PNG',0,0,85.6,54);
-    await shareOrDownload(pdf.output('blob'),'MHVwork-pinpas-'+nameSlug()+'.pdf','Mijn MHVwork pinpas');
+    toast('Pinpas gedownload','ok');
   }catch(e){ toast('Pinpas maken mislukt: '+(e.message||''),'err'); }
 }
 async function printQrCard(){
@@ -7372,11 +7387,9 @@ async function mountQr(canvasId){
 const QR_BTN_STYLE='margin-top:10px';
 function qrActionsHtml(){
   return `<button class="btn btn-yellow btn-full" style="${QR_BTN_STYLE}" onclick="saveQrCard()"><span class="ic" data-icon="mobile-down"></span> Opslaan in galerij</button>
-    <div style="display:flex;gap:8px;${QR_BTN_STYLE}">
-      <button class="btn btn-ghost" style="flex:1" onclick="savePassCard('pdf')">Pinpas · PDF</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="savePassCard('png')">Pinpas · afbeelding</button>
-    </div>
-    <div style="font-size:11.5px;color:var(--text3);margin-top:6px;line-height:1.45">Pinpas = bankpasformaat (85,6 × 54 mm), voor- en achterkant. Print de PDF op 100%, niet "passend maken".</div>
+    <button class="btn btn-blue btn-full" style="${QR_BTN_STYLE}" onclick="savePassCard('pdf')"><span class="ic" data-icon="mobile-down"></span> Download pinpas (PDF)</button>
+    <div style="text-align:center;margin-top:6px"><a href="#" onclick="savePassCard('png');return false" style="font-size:12.5px;color:var(--text3);text-decoration:underline">of download als afbeelding (PNG)</a></div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:6px;line-height:1.45;text-align:center">Bankpasformaat 85,6 × 54 mm, voor- en achterkant. Print de PDF op 100%.</div>
     <button class="btn btn-ghost btn-full" style="${QR_BTN_STYLE}" onclick="printQrCard()"><span class="ic" data-icon="note"></span> Printen (A4-kaartje)</button>`;
 }
 const QR_WARN='<div style="background:var(--red-dim);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--text);margin-top:14px"><b>Houd je QR geheim.</b> Wie hem scant, is meteen jou — met je hele account. Is hij toch uitgelekt? Vernieuw hem hieronder; de oude werkt dan direct niet meer.</div>';
@@ -7525,7 +7538,7 @@ async function paintQrSessions(){
       const list=by[uid].sort((a,b)=>b.ls-a.ls);
       return `<div style="padding:12px 16px;border-bottom:1px solid var(--separator)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <div style="font-weight:700">${userName(uid)} <span class="badge badge-blue" style="margin-left:4px">${list.length} ${list.length===1?'sessie':'sessies'}</span></div>
+          <div style="font-weight:700">${escAnn(userName(uid))} <span class="badge badge-blue" style="margin-left:4px">${list.length} ${list.length===1?'sessie':'sessies'}</span></div>
           <button class="btn btn-red btn-sm" onclick="devRevokeQrSessions('${uid}')">Overal uitloggen</button>
         </div>
         ${list.map(i=>`<div style="font-size:12.5px;color:var(--text3);margin-top:4px">${uaLabel(i.ua)} · laatst gezien ${new Date(i.ls).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>`).join('')}

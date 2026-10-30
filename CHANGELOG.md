@@ -8,12 +8,17 @@ Volledige beschrijving: zie [V1.6.md](./V1.6.md).
 - **QR-sessies in het Logboek** (dev): wie is er via QR ingelogd, met een knop *Overal uitloggen* per account.
 - **Inloggen met vingerafdruk of gezicht** (per toestel, aan te zetten in Profiel → Snelle toegang).
 - **QR schermvullend tonen**.
+- **Open dienst telt af**: elke aanmelding haalt één vrij plekje af (2 plekjes, 1 aanmelding = "1 plekje vrij", daarna "Vol"); de regels dwingen dat af.
+- **Pinpas: gewone downloadknop** (PDF direct, of PNG) naast *Opslaan in galerij*.
 
 ### 🗑️ Verwijderd
 - De knop/instelling **Niet-urgente e-mails** en alle logica daarachter: alle mails worden nu altijd verstuurd.
 
+### 🔒 Beveiliging
+- **Gat gedicht**: wie zelf een account aanmaakte, kon zichzelf een profiel met rol `admin` of `software` geven. Zelf-registratie werkt nu alleen nog met een geldige uitnodiging en precies de rol/e-mail/loon uit die uitnodiging. Het eerste admin-account maak je voortaan in de Firebase Console aan.
+
 ### ⚠️ Bij deze update
-- `firestore.rules` opnieuw publiceren. Geen nieuwe Firebase-instellingen nodig.
+- `firestore.rules` opnieuw publiceren en **direct testen of registreren met een uitnodiging nog werkt**. Geen nieuwe Firebase-instellingen nodig.
 
 ### ℹ️ Niet mogelijk op Spark
 - Apple/Google Wallet-pas (vraagt een server om te ondertekenen). Uitleg en alternatieven staan in V1.6.md.
