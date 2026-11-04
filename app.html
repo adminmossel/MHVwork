@@ -2478,8 +2478,15 @@ async function saveAppSettings(){
 // i.p.v. de matrix-vorm van de gewone dienstenexport. Bedoeld om zo in een boekhoudpakket
 // of bij de penningmeester aan te leveren.
 // ═══════════════════════════════════════════
-function exportBookkeeping(year,month){
+async function exportBookkeeping(year,month){
   const y=parseInt(year), m=parseInt(month);
+  // IBAN-gegevens (alleen leesbaar voor beheerders met uitbetaalrecht — zie firestore.rules)
+  const payMap={};
+  try{
+    const{db:_db,collection:_col,getDocs:_gd}=window._f;
+    (await _gd(_col(_db,'payoutDetails'))).forEach(d=>{payMap[d.id]=d.data();});
+  }catch(e){ console.warn('IBAN-gegevens niet leesbaar:',e); }
+  const payLabel=uid=>{const p=payMap[uid]; return p?(p.isVolunteer?'Vrijwilliger':ibanFmt(p.iban)):'Ontbreekt';};
   const monthShifts=allShifts.filter(s=>{const d=toDate(s.date);return d.getFullYear()===y&&d.getMonth()===m;})
     .sort((a,b)=>toDate(a.date)-toDate(b.date));
   const rows=[];
@@ -2491,16 +2498,16 @@ function exportBookkeeping(year,month){
       const{start,end}=getEffectiveTimes(s,uid);
       const uren=calcH(start,end);
       const bedrag=getApprovedPay(s,uid);
-      rows.push([dKey(s.date), u.name, start, dispTime(end), Number(uren.toFixed(2)), userWage(uid), Number(bedrag.toFixed(2)), st==='paid'?'Uitbetaald':'Goedgekeurd, nog te betalen']);
+      rows.push([dKey(s.date), u.name, start, dispTime(end), Number(uren.toFixed(2)), userWage(uid), Number(bedrag.toFixed(2)), st==='paid'?'Uitbetaald':'Goedgekeurd, nog te betalen', payLabel(uid)]);
     });
   });
   if(!rows.length){toast('Niets te exporteren — nog geen goedgekeurde diensten deze maand','err');return;}
   const monthLabel=`${MO[m]} ${y}`;
-  const aoa=[['Datum','Naam','Begin','Eind','Uren','Uurloon (€)','Bedrag (€)','Status'],...rows];
+  const aoa=[['Datum','Naam','Begin','Eind','Uren','Uurloon (€)','Bedrag (€)','Status','IBAN'],...rows];
   const totalBedrag=rows.reduce((sum,r)=>sum+r[6],0);
-  aoa.push(['','','','','','Totaal',Number(totalBedrag.toFixed(2)),'']);
+  aoa.push(['','','','','','Totaal',Number(totalBedrag.toFixed(2)),'','']);
   const ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[{wch:12},{wch:20},{wch:8},{wch:8},{wch:8},{wch:12},{wch:12},{wch:24}];
+  ws['!cols']=[{wch:12},{wch:20},{wch:8},{wch:8},{wch:8},{wch:12},{wch:12},{wch:24},{wch:28}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,monthLabel);
   XLSX.writeFile(wb,`MHVwork-boekhouding_${y}-${String(m+1).padStart(2,'0')}.xlsx`);
@@ -5437,6 +5444,8 @@ function renderProfile(){
       </div>
     </div>`:''}
 
+    ${payoutRowHtml()}
+
     <div class="section-label">Beveiliging</div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-row" style="cursor:pointer" onclick="openPwChangePage()">
@@ -5447,6 +5456,7 @@ function renderProfile(){
 
     <button class="btn btn-red btn-full" style="margin-top:8px" onclick="doLogout()">Uitloggen</button>
     <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:20px">MHVwork${appVersion?' '+appVersion:''} · MHV${isDev?' <span onclick="openSetVersion()" style="cursor:pointer;text-decoration:underline"><span class="ic" data-icon="edit"></span></span>':''}</p>
+    ${cwFooterHtml()}
   `;
 }
 // ═══════════════════════════════════════════
@@ -7789,6 +7799,124 @@ window.sendDevMsg = async function(){
   const db2=document.getElementById('devBody'); if(db2) db2.value='';
   toast('Verstuurd naar '+rcpts.length+' gebruiker(s)!','ok');
 };
+// ═══════════════════════════════════════════
+// companywork — footer (© + CW-logo) en IBAN / vrijwilliger
+// IBAN staat bewust NIET in users/{uid} maar in payoutDetails/{uid}: alleen de eigenaar en
+// beheerders met uitbetaalrecht mogen dat lezen (de dev-rol dus niet).
+// ═══════════════════════════════════════════
+const CW_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHJvbGU9ImltZyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHRpdGxlPmNvbXBhbnl3b3JrPC90aXRsZT4KCjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTAwIiBmaWxsPSIjRkZGRkZGIi8+Cgo8cmVjdCB4PSIxMTAiIHk9IjE2MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIyMzAiIHJ4PSIzMiIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjI0Ii8+Cgo8cGF0aCBkPSJNMzQwIDIxNSBDMzk1IDIxNSA0MTAgMjM4IDQxMCAyNzUgQzQxMCAzMTIgMzk1IDMzNSAzNDAgMzM1IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgoKPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI3MiIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIwIi8+Cgo8bGluZSB4MT0iMzQwIiB5MT0iMTMzIiB4Mj0iMzQwIiB5Mj0iMTQ4IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8bGluZSB4MT0iMzQwIiB5MT0iMjQyIiB4Mj0iMzQwIiB5Mj0iMjU3IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8bGluZSB4MT0iMjc4IiB5MT0iMTk1IiB4Mj0iMjkzIiB5Mj0iMTk1IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8bGluZSB4MT0iMzg3IiB5MT0iMTk1IiB4Mj0iNDAyIiB5Mj0iMTk1IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgoKPGxpbmUgeDE9IjM0MCIgeTE9IjE5NSIgeDI9IjM0MCIgeTI9IjE2NCIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGxpbmUgeDE9IjM0MCIgeTE9IjE5NSIgeDI9IjM2NiIgeTI9IjE5NSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCjxjaXJjbGUgY3g9IjM0MCIgY3k9IjE5NSIgcj0iMTYiIGZpbGw9IiNGRkZGRkYiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI4IiBmaWxsPSIjMDAwMDAwIi8+Cgo8L3N2Zz4K";
+function cwFooterHtml(){
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 8px;font-size:11px;color:var(--text3)">
+    <img src="${CW_LOGO}" alt="companywork" width="22" height="22" style="border-radius:6px;box-shadow:0 0 0 1px rgba(128,128,128,.35)">
+    <span>© ${new Date().getFullYear()} companywork · Made in Meppel</span>
+  </div>`;
+}
+
+function ibanClean(s){ return (s||'').replace(/\s+/g,'').toUpperCase(); }
+function ibanFmt(s){ return ibanClean(s).replace(/(.{4})/g,'$1 ').trim(); }
+function ibanMask(s){ const c=ibanClean(s); return c.length>8 ? c.slice(0,4)+' •••• •••• '+c.slice(-4) : c; }
+function ibanValid(raw){
+  const s=ibanClean(raw);
+  if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+  if(s.startsWith('NL') && s.length!==18) return false;
+  const r=s.slice(4)+s.slice(0,4);
+  let rem=0;
+  for(const ch of r){
+    const v=/[0-9]/.test(ch)?ch:String(ch.charCodeAt(0)-55);
+    for(const d of v) rem=(rem*10+parseInt(d,10))%97;
+  }
+  return rem===1;
+}
+
+window._payout = undefined;   // undefined = nog niet geladen · null = niet leesbaar · false = nog niet ingevuld
+window._payoutRequired = false;
+
+async function loadPayout(){
+  const{db,doc,getDoc}=window._f;
+  try{
+    const s=await getDoc(doc(db,'payoutDetails',window._user.uid));
+    window._payout = s.exists() ? s.data() : false;
+  }catch(e){
+    console.warn('payoutDetails niet leesbaar:',e);
+    window._payout = null;
+  }
+}
+
+function payoutRowHtml(){
+  if(!U || U.role==='software') return '';
+  const p=window._payout;
+  let sub;
+  if(p===false) sub='<span style="color:var(--orange)">Nog niet ingevuld — tik om in te vullen</span>';
+  else if(!p) sub='Niet beschikbaar';
+  else sub = p.isVolunteer ? 'Vrijwilliger — geen uitbetaling' : ibanMask(p.iban);
+  return `<div class="section-label">Uitbetaling</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-row" style="cursor:pointer" onclick="openPayoutModal(false)">
+        <div style="flex:1;padding-right:12px">
+          <div class="card-row-label">IBAN of vrijwilliger</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${sub}</div>
+        </div>
+        <div style="color:var(--text3)">›</div>
+      </div>
+    </div>`;
+}
+
+function openPayoutModal(required){
+  const p=(window._payout&&typeof window._payout==='object')?window._payout:{};
+  modal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">Uitbetaling</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.5;margin:0 0 14px">${required
+      ? 'Vul je IBAN in, zodat uitbetalingen op de goede rekening komen. Werk je als vrijwilliger en krijg je niets uitbetaald? Vink dat dan aan.'
+      : 'Je IBAN is alleen zichtbaar voor jezelf en voor beheerders die uitbetalen.'}</p>
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;cursor:pointer;font-size:14px;color:var(--text)">
+      <input type="checkbox" id="pyVol" ${p.isVolunteer?'checked':''} onchange="pyToggle()" style="width:18px;height:18px">
+      Ik ben vrijwilliger (geen uitbetaling)
+    </label>
+    <div class="form-section" id="pyIbanWrap"><label class="form-label">IBAN</label>
+      <input type="text" class="form-input" id="pyIban" value="${p.iban?ibanFmt(p.iban):''}" placeholder="NL00 BANK 0000 0000 00" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="pyFmt(this)"></div>
+    <button class="btn btn-yellow btn-full" style="margin-top:8px" onclick="savePayoutForm()">Opslaan</button>
+    ${required?'':'<button class="btn btn-full" style="margin-top:8px;background:var(--bg3);color:var(--text)" onclick="closeModal()">Annuleren</button>'}
+  `, {dismissible: !required});
+  pyToggle();
+}
+window.openPayoutModal = openPayoutModal;
+window.pyToggle = function(){
+  const vol=$('pyVol'), w=$('pyIbanWrap'); if(!vol||!w) return;
+  w.style.display = vol.checked ? 'none' : '';
+};
+window.pyFmt = function(el){ const p=el.selectionStart; el.value=ibanFmt(el.value); try{el.setSelectionRange(el.value.length,el.value.length);}catch(_){} };
+window.savePayoutForm = async function(){
+  const vol=$('pyVol').checked, raw=$('pyIban').value;
+  if(!vol && !ibanValid(raw)){ toast('Dit IBAN klopt niet — controleer het nummer','err'); return; }
+  const data={ iban: vol?'':ibanClean(raw), isVolunteer: vol };
+  try{
+    const{db,doc,setDoc,serverTimestamp}=window._f;
+    await setDoc(doc(db,'payoutDetails',window._user.uid),{...data,updatedAt:serverTimestamp()});
+    window._payout=data; window._payoutRequired=false;
+    closeModal(); toast(vol?'Opgeslagen: vrijwilliger':'IBAN opgeslagen','ok'); renderProfile();
+  }catch(e){ console.error('payoutDetails opslaan mislukt:',e); toast('Opslaan mislukt — probeer het opnieuw','err'); }
+};
+
+// Bij elke start: nog geen IBAN/vrijwilliger? Dan verschijnt een scherm dat niet weg te klikken is.
+window.addEventListener('mhv:ready', async ()=>{
+  try{
+    const u=window._user; if(!u || u.role==='software') return;   // dev krijgt geen uitbetaling
+    await loadPayout();
+    const v=$('view-profile'); if(v&&v.classList.contains('active')) renderProfile();
+    if(window._payout===false){
+      window._payoutRequired=true;
+      setTimeout(()=>{ if(window._payoutRequired) openPayoutModal(true); }, 1200);
+      // Andere pop-ups (aankondigingen, rondleiding) mogen het scherm tijdelijk vervangen; zodra
+      // het venster vrij is, komt het terug tot de gegevens zijn opgeslagen.
+      setInterval(()=>{
+        const mr=$('modal-root');
+        if(window._payoutRequired && mr && !mr.innerHTML.trim()) openPayoutModal(true);
+      }, 2000);
+    }
+  }catch(e){ console.warn('IBAN-controle mislukt:',e); }
+});
+
 document.addEventListener('click', function(e){
   const el=e.target.closest('[data-fn]');
   if(!el) return;

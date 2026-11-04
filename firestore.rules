@@ -80,6 +80,20 @@ service cloud.firestore {
     // Publieke, bewust minimale profielgegevens: alleen wat nodig is om iemand herkenbaar te
     // tonen elders in de app — géén e-mail, loon of andere gevoelige velden. 'role'/'verified'
     // zijn na aanmaken alleen door staff aan te passen (voorkomt een zelf-toegekende nep-badge).
+    // IBAN of "vrijwilliger" per account. Bewust apart van users/{uid}: dat document is ook
+    // leesbaar voor de dev-rol. Dit hier alleen voor de eigenaar en beheerders met uitbetaalrecht.
+    match /payoutDetails/{uid} {
+      allow read: if isAuth() && (me() == uid || (isAdmin() && !restr('payout')));
+      allow create, update: if isAuth() && me() == uid
+        && request.resource.data.keys().hasOnly(['iban','isVolunteer','updatedAt'])
+        && request.resource.data.keys().hasAll(['iban','isVolunteer'])
+        && request.resource.data.isVolunteer is bool
+        && request.resource.data.iban is string
+        && ( (request.resource.data.isVolunteer == true  && request.resource.data.iban == '')
+          || (request.resource.data.isVolunteer == false && request.resource.data.iban.matches('^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$')) );
+      allow delete: if false;
+    }
+
     match /publicProfiles/{uid} {
       allow read: if isAuthOrFast();
       allow create: if isAuth() && (me() == uid || isStaff());
