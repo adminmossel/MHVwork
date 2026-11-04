@@ -3915,6 +3915,7 @@ function openEditEmployee(uid){
     <div class="modal-title">${u.name} bewerken</div>
     <div class="form-section"><label class="form-label">Naam</label>
       <input type="text" class="form-input" id="eeName" value="${u.name||''}"></div>
+    ${payIbanField(u.uid)}
     <div class="form-section"><label class="form-label">Uurtarief (€)</label>
       <input type="number" class="form-input" id="eeWage" value="${u.wage||0}" step="0.01" min="0"></div>
     <div class="form-section"><label class="form-label">Rol</label>
@@ -4450,6 +4451,7 @@ async function saveAdminCorrect(shiftId,uid){
 
 // UITBETALING
 function renderUitbetaling(c){
+  refreshPayAll();
   const now=new Date();
   const months=[];
   for(let i=0;i<6;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth(),label:`${MO[d.getMonth()]} ${d.getFullYear()}`});}
@@ -4509,6 +4511,7 @@ function renderUitbetaling(c){
           <div style="flex:1">
             <div style="font-size:16px;font-weight:700">${u.name}</div>
             <div style="font-size:12px;color:var(--text3)">${u.myS.length} dienst(en) · ${fmtMoney(u.wage||0)}/uur</div>
+            ${payIbanLine(u.uid)}
           </div>
           <div style="text-align:right">
             ${u.approvedPay>0?`<div style="font-size:17px;font-weight:800;color:var(--red)">${fmtMoney(u.approvedPay)}</div><div style="font-size:11px;color:var(--text3)">schuldig</div>`:''}
@@ -7898,10 +7901,51 @@ window.savePayoutForm = async function(){
   }catch(e){ console.error('payoutDetails opslaan mislukt:',e); toast('Opslaan mislukt — probeer het opnieuw','err'); }
 };
 
+
+// ── Beheerders: IBAN's van alle accounts inzien (leesbaar volgens firestore.rules: payoutDetails) ──
+window._payAll = {}; window._payAllAt = 0;
+async function refreshPayAll(){
+  const u=window._user;
+  if(!u || u.role!=='admin' || (Date.now()-window._payAllAt)<30000) return;
+  window._payAllAt=Date.now();
+  try{
+    const{db,collection,getDocs}=window._f;
+    const m={}; (await getDocs(collection(db,'payoutDetails'))).forEach(d=>{m[d.id]=d.data();});
+    const changed=JSON.stringify(m)!==JSON.stringify(window._payAll);
+    window._payAll=m;
+    if(changed && typeof renderAdminTab==='function') renderAdminTab();
+  }catch(e){ console.warn('IBAN-overzicht niet leesbaar:',e); }
+}
+function payIbanLine(uid){
+  if(!U||U.role!=='admin'||restricted('payout')) return '';
+  const p=window._payAll[uid];
+  if(!p) return '<div style="font-size:12px;color:var(--orange);margin-top:2px">IBAN ontbreekt nog</div>';
+  if(p.isVolunteer) return '<div style="font-size:12px;color:var(--text3);margin-top:2px">Vrijwilliger — geen uitbetaling</div>';
+  return `<div style="font-size:12px;color:var(--text2);margin-top:2px;cursor:pointer;font-variant-numeric:tabular-nums" onclick="copyIban('${uid}')" title="Tik om te kopiëren">${ibanFmt(p.iban)} <span style="color:var(--text3)">· kopieer</span></div>`;
+}
+function payIbanField(uid){
+  if(!U||U.role!=='admin'||restricted('payout')) return '';
+  refreshPayAll();
+  const p=window._payAll[uid];
+  const txt=!p?'Nog niet ingevuld':(p.isVolunteer?'Vrijwilliger — geen uitbetaling':ibanFmt(p.iban));
+  return `<div class="form-section"><label class="form-label">IBAN</label>
+    <div class="form-input" style="display:flex;align-items:center;justify-content:space-between;opacity:.9">
+      <span style="font-variant-numeric:tabular-nums">${txt}</span>
+      ${p&&!p.isVolunteer?`<span style="cursor:pointer;color:var(--text3);font-size:12px" onclick="copyIban('${uid}')">kopieer</span>`:''}
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:6px">Alleen de medewerker zelf kan dit wijzigen.</p></div>`;
+}
+window.copyIban=async function(uid){
+  const p=window._payAll[uid]; if(!p||!p.iban) return;
+  try{ await navigator.clipboard.writeText(ibanClean(p.iban)); toast('IBAN gekopieerd','ok'); }
+  catch(e){ toast(ibanFmt(p.iban),''); }
+};
+
 // Bij elke start: nog geen IBAN/vrijwilliger? Dan verschijnt een scherm dat niet weg te klikken is.
 window.addEventListener('mhv:ready', async ()=>{
   try{
     const u=window._user; if(!u || u.role==='software') return;   // dev krijgt geen uitbetaling
+    refreshPayAll();
     await loadPayout();
     const v=$('view-profile'); if(v&&v.classList.contains('active')) renderProfile();
     if(window._payout===false){
