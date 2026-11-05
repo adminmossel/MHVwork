@@ -1,3 +1,23 @@
+# CHANGELOG — versie 1.7 (november 2026)
+
+### ✨ Nieuw
+- **Mini-rooster voor de beheerder** bovenin Rooster: maandkalender met stipjes bij dagen met diensten; tik op een dag om alleen die dag te zien.
+- **Statistieken**: grafiek *Uren deze maand* per medewerker op de beheerder-Home (met vorige/volgende maand, totaal, gemiddelde en aantal diensten).
+- **Grotere profielfoto** bij Beheer → Uitbetaling en Medewerkers; nieuwe betaalkaart met bedrag en *Uitbetaald*-knop rechts.
+- **Feestdagen-thema** (`holiday.js`): sneeuw + lichtslinger met Kerst, pepernoten (Sinterklaas), confetti (Oud & nieuw, Koningsdag), vleermuizen (Halloween), eitjes (Pasen). Automatisch op datum; dev kan forceren of uitzetten; iedereen kan het zelf uitzetten (Profiel → Weergave). Ook op de loginpagina.
+- **Taalschakelaar NL/EN** (Profiel → Weergave; `i18n.js` + `i18n-en.js`). Vertaalt live; wat nog niet in het woordenboek staat blijft Nederlands (`MHVI18N.missing()` in de console toont wat ontbreekt).
+- **Nieuwe loginpagina**: donker, logo gecentreerd, afgeronde velden, drie snelle-inlogtegels (biometrie / QR / snelcode), taalknop.
+- **Sluitchecklist opnieuw**: kaart op Home voor de sluitdienst (ook voor beheerders), direct afvinken zonder popup-flikkering, voortgangsring, naam + tijd per taak, *Alles gedaan*-melding. Beheer → Instellingen heeft nu een lijst-editor (taken toevoegen/verwijderen).
+- **Beschikbaarheid opnieuw**: raster van 14 dagen (groen = je kunt), *Opslaan*, sectie *Afwezigheid* met periodes en *Afwezig melden*. Beheerder ziet per dag wie niet kan + aankomende afwezigheid.
+- **Meldingen-instellingen** (Profiel → App → Meldingen, of het tandwiel bij Meldingen): dag van tevoren, een uur ervoor, na afloop van je dienst, push, e-mail. De herinneringen, push en e-mail volgen deze keuzes.
+- **Stijl zwart/wit (“Clean”)**: dev kiest globaal bij Beheer → Instellingen → Uiterlijk tussen Klassiek (blauw/geel, standaard) en Clean (zwart/wit). Het MHVwork-logo blijft altijd hetzelfde.
+
+### 🔧 Techniek
+- Nieuwe bestanden: `holiday.js`, `i18n.js`, `i18n-en.js`. Nieuwe iconen `globe` en `sparkles` in `icons.js`.
+- Nieuwe velden: `users/{uid}.notifPrefs`, `users/{uid}.lang`, `settings/general.skin`, `settings/general.holiday`. Geen wijziging in `firestore.rules` nodig.
+
+---
+
 # CHANGELOG — versie 1.6 (oktober 2026)
 
 Volledige beschrijving: zie [V1.6.md](./V1.6.md).

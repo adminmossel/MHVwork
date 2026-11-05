@@ -925,6 +925,193 @@ select.form-input option { background:var(--bg3); }
 .roster-pay  { font-size:13px; color:var(--green); font-weight:600; min-width:60px; text-align:right; }
 
 /* iOS safe area: al verwerkt in #tabbar en #toast zelf (env(safe-area-inset-bottom) direct in bottom:) */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v1.7 — nieuwe onderdelen
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── ZWART/WIT-stijl ("clean") — dev kiest globaal (Beheer → Instellingen → Uiterlijk). Alleen kleuren
+      veranderen; het MHVwork-logo blijft exact hetzelfde. Klassiek = blauw/geel (standaard). ── */
+html[data-skin="clean"]{
+  --mhv-yellow:#fff; --mhv-yellow-dim:rgba(255,255,255,.10);
+  --mhv-blue:#fff;   --mhv-blue-dim:rgba(255,255,255,.10);
+  --accent-text:#fff; --skin-on:#000; --skin-ink:#fff;
+}
+html[data-skin="clean"][data-theme="light"]{
+  --bg:#F3F2F8; --bg2:#fff; --bg3:#F3F2F8; --bg4:#E6E5EC;
+  --mhv-yellow:#000; --mhv-yellow-dim:rgba(0,0,0,.07);
+  --mhv-blue:#000;   --mhv-blue-dim:rgba(0,0,0,.07);
+  --accent-text:#000; --skin-on:#fff; --skin-ink:#000;
+  --separator:rgba(0,0,0,.09);
+}
+html[data-skin="clean"] .btn-yellow, html[data-skin="clean"] .btn-blue,
+html[data-skin="clean"][data-theme="light"] .btn-yellow, html[data-skin="clean"][data-theme="light"] .btn-blue{
+  background:var(--skin-ink); color:var(--skin-on); box-shadow:none; border:none; }
+html[data-skin="clean"] .btn{ border-radius:999px; }
+html[data-skin="clean"] .tab.active, html[data-skin="clean"][data-theme="light"] .tab.active{ color:var(--skin-ink); background:var(--glass2); }
+html[data-skin="clean"] .pill-tab.active{ background:var(--skin-ink); color:var(--skin-on); box-shadow:none; }
+html[data-skin="clean"][data-theme="light"] .pill-tab.active{ background:#000; color:#fff; box-shadow:none; }
+html[data-skin="clean"] .badge-blue{ background:var(--glass2); color:var(--text); }
+html[data-skin="clean"] .badge-yellow, html[data-skin="clean"][data-theme="light"] .badge-yellow{ background:var(--glass2); color:var(--text); }
+html[data-skin="clean"] .stat-tile.yellow, html[data-skin="clean"] .stat-tile.blue{ border-color:var(--separator); }
+html[data-skin="clean"] .stat-num.yellow{ color:var(--text); }
+html[data-skin="clean"] .avatar, html[data-skin="clean"] .chat-av, html[data-skin="clean"] .prof-avatar,
+html[data-skin="clean"] .avatar.yellow, html[data-skin="clean"] .chat-av.admin{ background:var(--skin-ink); color:var(--skin-on); }
+html[data-skin="clean"] .chat-row.me .chat-bubble, html[data-skin="clean"] .ts-msg.me{ background:var(--skin-ink); color:var(--skin-on); }
+html[data-skin="clean"] .chat-row.me .chat-mention{ color:var(--skin-on); text-decoration:underline; }
+html[data-skin="clean"] .chat-send{ background:var(--skin-ink); color:var(--skin-on); }
+html[data-skin="clean"] .cal-d.today{ background:var(--skin-ink); color:var(--skin-on); box-shadow:none; }
+html[data-skin="clean"] .cal-d .cal-dot.shift, html[data-skin="clean"] .cal-d .cal-dot.match{ background:#FF9F0A; box-shadow:none; }
+html[data-skin="clean"] .barricade-logo, html[data-skin="clean"] .barricade-step-n{ background:var(--skin-ink); color:var(--skin-on); }
+html[data-skin="clean"] #offlineBar{ background:var(--skin-ink); color:var(--skin-on); }
+html[data-skin="clean"] .form-input:focus, html[data-skin="clean"][data-theme="light"] .form-input:focus{ border-color:var(--skin-ink); box-shadow:none; }
+html[data-skin="clean"] .shift-card.open-shift{ border-color:var(--text3); }
+html[data-skin="clean"] .cl-ring{ --cl-on:#30D158; }
+html[data-skin="clean"] a{ color:inherit; }
+
+/* ── Mini-rooster bovenin (beheerder → Rooster) ── */
+.mc{ background:var(--bg2); border:1px solid var(--separator); border-radius:18px; padding:12px 12px 10px; margin-bottom:14px; }
+.mc-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.mc-title{ font-size:15px; font-weight:800; letter-spacing:-.2px; text-transform:capitalize; }
+.mc-nav{ display:flex; gap:4px; }
+.mc-nav button{ width:30px; height:30px; border-radius:50%; border:none; background:var(--glass2); color:var(--text); font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:inherit; }
+.mc-nav button:active{ transform:scale(.9); }
+.mc-grid{ display:grid; grid-template-columns:repeat(7,1fr); row-gap:2px; text-align:center; }
+.mc-dn{ font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--text3); text-transform:uppercase; padding:2px 0 4px; }
+.mc-d{ position:relative; height:34px; border:none; background:transparent; color:var(--text); font:600 13.5px/1 var(--font); border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+.mc-d.out{ visibility:hidden; pointer-events:none; }
+.mc-d.we{ color:var(--text2); }
+.mc-d.today{ background:var(--skin-ink,var(--mhv-yellow)); color:var(--skin-on,#1a1000); font-weight:800; }
+.mc-d.sel:not(.today){ box-shadow:inset 0 0 0 2px var(--mhv-yellow); }
+.mc-d.has::after{ content:''; position:absolute; bottom:3px; left:50%; width:5px; height:5px; margin-left:-2.5px; border-radius:50%; background:#FF9F0A; }
+.mc-d.has.many::after{ width:11px; margin-left:-5.5px; border-radius:3px; }
+.mc-d.today.has::after{ background:var(--skin-on,#1a1000); }
+.mc-d:active{ transform:scale(.92); }
+.mc-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px solid var(--separator); font-size:11.5px; color:var(--text3); gap:8px; }
+.mc-foot .mc-clear{ border:none; background:var(--glass2); color:var(--text); font:700 11.5px var(--font); border-radius:99px; padding:5px 11px; cursor:pointer; }
+.mc-leg{ display:inline-flex; align-items:center; gap:5px; }
+.mc-leg i{ width:7px; height:7px; border-radius:50%; background:#FF9F0A; display:inline-block; }
+
+/* ── Statistieken (beheerder) ── */
+.hrs{ background:var(--bg2); border:1px solid var(--separator); border-radius:18px; padding:14px 14px 12px; margin:4px 0 16px; }
+.hrs-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px; }
+.hrs-top .section-label{ margin:0; }
+.hrs-bars{ display:flex; align-items:flex-end; gap:10px; height:150px; padding:0 2px; overflow-x:auto; scrollbar-width:none; }
+.hrs-bars::-webkit-scrollbar{ display:none; }
+.hrs-col{ flex:1 0 54px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:54px; }
+.hrs-bw{ flex:1; width:100%; display:flex; align-items:flex-end; min-height:0; }
+.hrs-bar{ width:100%; border-radius:12px 12px 6px 6px; background:var(--skin-ink,var(--mhv-yellow)); min-height:8px; transform-origin:bottom; animation:hrsGrow .6s cubic-bezier(.22,.9,.3,1) both; }
+html:not([data-skin="clean"]) .hrs-bar{ background:linear-gradient(180deg,var(--mhv-yellow),#d9b000); }
+@keyframes hrsGrow{ from{ transform:scaleY(.05); opacity:.4 } to{ transform:scaleY(1); opacity:1 } }
+.hrs-lbl{ margin-top:7px; font-size:11.5px; color:var(--text3); text-align:center; line-height:1.25; white-space:nowrap; }
+.hrs-lbl b{ display:block; color:var(--text2); font-weight:600; max-width:64px; overflow:hidden; text-overflow:ellipsis; }
+.hrs-sum{ display:flex; gap:16px; margin-top:12px; padding-top:10px; border-top:1px solid var(--separator); font-size:12px; color:var(--text3); }
+.hrs-sum b{ color:var(--text); font-size:14px; }
+.hrs-empty{ padding:26px 0; text-align:center; color:var(--text3); font-size:13px; }
+
+/* ── Betalingskaart met grote profielfoto ── */
+.pay-av{ width:56px; height:56px; border-radius:50%; font-size:17px; flex-shrink:0; overflow:hidden; }
+.pay-av img{ width:100%; height:100%; object-fit:cover; }
+.pay-iban{ font-size:12.5px; color:var(--text3); letter-spacing:.02em; line-height:1.35; margin-top:3px; font-variant-numeric:tabular-nums; }
+.pay-amt{ font-size:19px; font-weight:800; letter-spacing:-.3px; }
+.pay-btn{ border:none; font:800 14px var(--font); border-radius:999px; padding:11px 20px; background:var(--skin-ink,var(--mhv-yellow)); color:var(--skin-on,#1a1000); cursor:pointer; margin-top:8px; }
+html:not([data-skin="clean"]) .pay-btn{ background:var(--green); color:#04210d; }
+.pay-btn:active{ transform:scale(.96); }
+.pay-top{ display:flex; align-items:center; gap:14px; padding:14px 16px; }
+
+/* ── Beschikbaarheid (14-dagen raster) ── */
+.av-hero{ margin:2px 0 14px; }
+.av-hero small{ display:block; font-size:13px; font-weight:600; color:var(--text3); margin-bottom:2px; }
+.av-hero h1{ font-size:30px; font-weight:800; letter-spacing:-.8px; line-height:1.1; }
+.av-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:7px; margin-bottom:12px; }
+.av-day{ border:none; cursor:pointer; font-family:var(--font); border-radius:15px; padding:8px 0 7px; background:var(--bg3); color:var(--text); display:flex; flex-direction:column; align-items:center; gap:3px; position:relative; transition:transform .1s, background .15s; }
+.av-day span{ font-size:10.5px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.04em; }
+.av-day b{ font-size:17px; font-weight:800; }
+.av-day.on{ background:var(--green); color:#04210d; }
+.av-day.on span{ color:rgba(4,33,13,.65); }
+.av-day.dirty{ outline:2px solid var(--text); outline-offset:1px; }
+.av-day.shift::after{ content:''; position:absolute; top:5px; right:6px; width:6px; height:6px; border-radius:50%; background:#FF9F0A; box-shadow:0 0 0 1.5px var(--bg2); }
+.av-day:active{ transform:scale(.93); }
+.av-range{ display:flex; align-items:center; justify-content:space-between; margin:-2px 0 10px; font-size:12.5px; color:var(--text3); }
+.av-range button{ border:none; background:var(--glass2); color:var(--text); border-radius:99px; width:30px; height:30px; font-size:16px; cursor:pointer; font-family:inherit; }
+.av-range button:disabled{ opacity:.3; }
+.av-info{ display:flex; gap:12px; align-items:flex-start; background:var(--bg2); border:1px solid var(--separator); border-radius:16px; padding:14px; font-size:13px; color:var(--text3); line-height:1.5; margin-bottom:14px; }
+.av-info .ic{ flex-shrink:0; margin-top:2px; }
+.av-save{ width:100%; padding:16px; border-radius:999px; border:none; background:var(--skin-ink,var(--mhv-yellow)); color:var(--skin-on,#1a1000); font:800 16px var(--font); cursor:pointer; transition:opacity .15s, transform .1s; }
+.av-save:disabled{ opacity:.35; cursor:default; }
+.av-save:not(:disabled):active{ transform:scale(.98); }
+.av-sec{ margin:26px 0 8px; font-size:12px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--text3); }
+.ab-card{ background:var(--bg2); border:1px solid var(--separator); border-radius:18px; overflow:hidden; }
+.ab-row{ display:flex; align-items:center; gap:14px; padding:15px 16px; cursor:pointer; border-bottom:1px solid var(--separator); width:100%; background:none; border-left:none; border-right:none; border-top:none; color:var(--text); font-family:var(--font); text-align:left; }
+.ab-row:last-child{ border-bottom:none; }
+.ab-row .ab-t{ font-size:16px; font-weight:700; }
+.ab-row .ab-s{ font-size:13px; color:var(--text3); margin-top:2px; }
+.ab-row .ab-ic{ color:var(--text2); display:flex; }
+.ab-row .ab-go{ margin-left:auto; color:var(--text3); font-size:18px; }
+.ab-row:active{ background:var(--glass); }
+.av-person{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--separator); }
+.av-person:last-child{ border-bottom:none; }
+.av-person .avatar{ width:38px; height:38px; font-size:13px; }
+.av-cnt{ position:absolute; top:-5px; right:-3px; min-width:18px; height:18px; border-radius:9px; background:#FF453A; color:#fff; font:800 10.5px/18px var(--font); text-align:center; padding:0 4px; }
+.av-day.ad{ background:var(--bg3); }
+.av-day.ad.sel{ box-shadow:inset 0 0 0 2px var(--text); }
+.av-day.ad.free{ background:var(--green-dim); }
+
+/* ── Meldingen-schakelaars (bottom sheet) ── */
+.ns-list{ background:var(--bg3); border-radius:18px; overflow:hidden; border:1px solid var(--separator); }
+.ns-row{ display:flex; align-items:center; gap:14px; padding:15px 16px; border-bottom:1px solid var(--separator); font-size:16px; font-weight:600; }
+.ns-row:last-child{ border-bottom:none; }
+.ns-row .ic{ color:var(--text3); display:flex; }
+.ns-row > span:nth-child(2){ flex:1; }
+.sw{ position:relative; width:52px; height:31px; flex-shrink:0; }
+.sw input{ position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; cursor:pointer; z-index:2; }
+.sw i{ position:absolute; inset:0; border-radius:99px; background:var(--bg4); transition:background .2s; }
+.sw i::after{ content:''; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.35); transition:transform .22s cubic-bezier(.3,1.4,.5,1); }
+.sw input:checked + i{ background:#30D158; }
+.sw input:checked + i::after{ transform:translateX(21px); }
+.sw input:focus-visible + i{ outline:2px solid var(--text); outline-offset:2px; }
+.ns-hint{ font-size:12px; color:var(--text3); margin:10px 4px 0; line-height:1.5; }
+
+/* ── Sluitchecklist (nieuw) ── */
+.cl-card{ background:var(--bg2); border:1px solid var(--separator); border-radius:20px; padding:16px 16px 14px; margin-bottom:16px; animation:fadeIn .25s ease both; }
+.cl-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.cl-ring{ --p:0; --cl-on:var(--green); width:46px; height:46px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font:800 13px var(--font);
+  background:conic-gradient(var(--cl-on) calc(var(--p)*1%), var(--bg4) 0); position:relative; }
+.cl-ring::before{ content:''; position:absolute; inset:5px; border-radius:50%; background:var(--bg2); }
+.cl-ring span{ position:relative; }
+.cl-title{ font-size:16.5px; font-weight:800; letter-spacing:-.2px; }
+.cl-sub{ font-size:12.5px; color:var(--text3); margin-top:2px; }
+.cl-list{ background:var(--bg3); border-radius:16px; overflow:hidden; }
+.cl-row{ display:flex; align-items:center; gap:12px; width:100%; padding:15px 14px; border:none; border-bottom:1px solid var(--separator); background:transparent; color:var(--text); font:600 15.5px var(--font); text-align:left; cursor:pointer; transition:background .12s; }
+.cl-row:last-child{ border-bottom:none; }
+.cl-row:active:not(:disabled){ background:var(--glass2); }
+.cl-row:disabled{ cursor:default; opacity:.7; }
+.cl-row .cl-t{ flex:1; min-width:0; }
+.cl-row small{ display:block; font-weight:500; font-size:11.5px; color:var(--green); margin-top:2px; }
+.cl-dot{ width:28px; height:28px; border-radius:50%; flex-shrink:0; border:2px solid var(--text4); display:flex; align-items:center; justify-content:center; color:transparent; font-size:15px; font-weight:800; transition:background .2s, border-color .2s, transform .25s cubic-bezier(.3,1.5,.5,1); }
+.cl-row.done .cl-dot{ background:#30D158; border-color:#30D158; color:#04210d; transform:scale(1.06); }
+.cl-row.done .cl-t{ color:var(--text3); }
+.cl-done{ display:flex; align-items:center; gap:10px; margin-top:12px; padding:12px 14px; border-radius:14px; background:var(--green-dim); color:var(--green); font-weight:700; font-size:14px; }
+.cl-note{ margin-top:10px; font-size:12px; color:var(--text3); line-height:1.5; }
+.cl-edit-row{ display:flex; gap:8px; margin-bottom:8px; }
+.cl-edit-row input{ flex:1; }
+.cl-edit-row button{ width:42px; flex-shrink:0; border:none; border-radius:12px; background:var(--red-dim); color:var(--red); font-size:16px; cursor:pointer; }
+
+/* ── Taalschakelaar + kleine schuifknoppen in Profiel ── */
+.seg{ display:flex; gap:3px; background:var(--bg3); border-radius:11px; padding:3px; }
+.seg button{ border:none; background:transparent; color:var(--text3); font:700 13px var(--font); padding:7px 14px; border-radius:8px; cursor:pointer; }
+.seg button.on{ background:var(--skin-ink,var(--mhv-yellow)); color:var(--skin-on,#1a1000); }
+html:not([data-skin="clean"]) .seg button.on{ background:var(--mhv-yellow); color:#1a1000; }
+
+/* ── Inlog-/loader: blauw/geel-accenten volgen de stijl (logo blijft zoals het is) ── */
+html[data-skin="clean"] .ld-word em, html[data-skin="clean"] #topbar .app-name span{ color:var(--text); }
+html[data-skin="clean"] .ld-bar span{ background:linear-gradient(90deg,transparent,var(--text),transparent); }
+
+.skin-opts{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.skin-opt{ border:2px solid var(--separator); background:var(--bg3); color:var(--text); border-radius:16px; padding:14px 10px; cursor:pointer; font-family:var(--font); display:flex; flex-direction:column; align-items:center; gap:4px; }
+.skin-opt.on{ border-color:var(--text); }
+.skin-opt small{ color:var(--text3); font-size:11.5px; }
+.skin-sw{ display:flex; margin-bottom:6px; } .skin-sw i{ width:30px; height:30px; border-radius:50%; display:block; } .skin-sw i + i{ margin-left:-8px; }
 </style>
 <script>
 // Thema zo vroeg mogelijk toepassen (vóór de eerste paint) om een flits van het verkeerde thema te voorkomen.
@@ -935,11 +1122,15 @@ select.form-input option { background:var(--bg3); }
     var pref = localStorage.getItem('mhv_theme') || 'dark';
     var eff = (pref==='light'||pref==='dark') ? pref : (pref==='system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref);
     document.documentElement.setAttribute('data-theme', eff);
+    document.documentElement.setAttribute('data-skin', localStorage.getItem('mhv_skin')==='clean'?'clean':'classic');
   }catch(e){}
 })();
 </script>
 <script src="icons.js"></script>
 <script src="qr.js"></script>
+<script src="i18n.js"></script>
+<script src="i18n-en.js"></script>
+<script src="holiday.js"></script>
 </head>
 <body>
 
@@ -1072,6 +1263,11 @@ select.form-input option { background:var(--bg3); }
 const LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTAwIiBmaWxsPSIjMUEzQkI1Ii8+CjxyZWN0IHg9IjExMCIgeT0iMTYwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjIzMCIgcng9IjMyIiBmaWxsPSIjMUEzQkI1IiBzdHJva2U9IiNGNUM4MDAiIHN0cm9rZS13aWR0aD0iMjQiLz4KPHBhdGggZD0iTTM0MCAyMTUgQzM5NSAyMTUgNDEwIDIzOCA0MTAgMjc1IEM0MTAgMzEyIDM5NSAzMzUgMzQwIDMzNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjVDODAwIiBzdHJva2Utd2lkdGg9IjI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI3MiIgZmlsbD0iIzFBM0JCNSIgc3Ryb2tlPSIjRjVDODAwIiBzdHJva2Utd2lkdGg9IjIwIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxMzMiIHgyPSIzNDAiIHkyPSIxNDgiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIyNDIiIHgyPSIzNDAiIHkyPSIyNTciIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIyNzgiIHkxPSIxOTUiIHgyPSIyOTMiIHkyPSIxOTUiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzODciIHkxPSIxOTUiIHgyPSI0MDIiIHkyPSIxOTUiIHN0cm9rZT0iI0Y1QzgwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxOTUiIHgyPSIzNDAiIHkyPSIxNjQiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSIzNDAiIHkxPSIxOTUiIHgyPSIzNjYiIHkyPSIxOTUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjM0MCIgY3k9IjE5NSIgcj0iMTgiIGZpbGw9IiMxQTNCQjUiLz4KPGNpcmNsZSBjeD0iMzQwIiBjeT0iMTk1IiByPSI5IiBmaWxsPSIjZmZmZmZmIi8+Cjwvc3ZnPg==";
 const MO   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
 const DN   = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
+const MO_NL=MO.slice(), DN_NL=DN.slice();
+const MO_EN=['January','February','March','April','May','June','July','August','September','October','November','December'], DN_EN=['Su','Mo','Tu','We','Th','Fr','Sa'];
+function LOC(){ return (window.MHVI18N&&window.MHVI18N.lang==='en')?'en-GB':'nl-NL'; }
+function syncLangData(){ const en=(window.MHVI18N&&window.MHVI18N.lang==='en'); MO.splice(0,12,...(en?MO_EN:MO_NL)); DN.splice(0,7,...(en?DN_EN:DN_NL)); }
+syncLangData();
 
 let U, allShifts=[], allUsers=[], allAvail=[], allNotifs=[];
 let idleExitCode=null, idleTimer=null, appVersion='';
@@ -1081,6 +1277,7 @@ const EMAIL_MONTH_LIMIT=200; // gratis EmailJS-plan
 let allDMs=[]; let unsubDMs; let activeDMThread=null;
 let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null;
 let rosterTab='mine', adminTab='medewerkers', adminRTab='all', payMonth=0, exportFormat='excel';
+let adminSelDay=null, adminCalY=new Date().getFullYear(), adminCalM=new Date().getMonth(), statMonthOff=0;
 let unsubShifts, unsubNotifs, unsubAvail;
 
 // ── INIT ──────────────────────────────────────
@@ -1120,7 +1317,7 @@ window.addEventListener('mhv:guestExpired', ()=>{
       </div>
       <div style="font-size:22px;font-weight:800;margin-bottom:10px;color:var(--text)">Gasttoegang verlopen</div>
       <p style="font-size:14px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:20px">
-        Dit was een tijdelijk gastaccount tot ${new Date(U.guestUntil).toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'})}. Die periode is voorbij.
+        Dit was een tijdelijk gastaccount tot ${new Date(U.guestUntil).toLocaleDateString(LOC(),{day:'numeric',month:'long',year:'numeric'})}. Die periode is voorbij.
       </p>
       <p style="font-size:13px;color:var(--text3);max-width:340px;line-height:1.6;margin-bottom:24px">Nog een keer nodig? Vraag een beheerder om de toegang te verlengen of een nieuwe uitnodiging te sturen.</p>
       <button onclick="window._f.signOut(window._f.auth).then(()=>window.location.href='index.html')" style="padding:13px 28px;border-radius:12px;background:var(--mhv-yellow);color:#000;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Uitloggen</button>
@@ -1166,6 +1363,7 @@ window.addEventListener('mhv:ready', async ()=>{
     try { subNotifs(); } catch(e){}
     try { subDMs(); } catch(e){}
     if(U.role!=='software'){ try { subAvail(); } catch(e){} }
+    try { if(U.lang&&window.MHVI18N&&U.lang!==MHVI18N.lang){ MHVI18N.set(U.lang); syncLangData(); } subSettingsLive(); } catch(e){ console.warn('v1.7 boot:',e); }
     try { render(U.role==='software'?'devacc':'home'); } catch(e){ console.warn('render:',e); }
     try { updateOfflineBanner(); } catch(e){}
     try { handleShortcutParam(); } catch(e){}
@@ -1476,7 +1674,7 @@ function appDevicesRowsHtml(){
   const rows=devs.map(d=>{
     const me=d.k===info.key;
     const inst=!!d.installed||(me&&isRunningStandalone());
-    const seen=d.lastSeen?new Date(d.lastSeen).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):'';
+    const seen=d.lastSeen?new Date(d.lastSeen).toLocaleDateString(LOC(),{day:'numeric',month:'short'}):'';
     return `<div class="card-row"><div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:600">${escAnn(d.label||'Apparaat')}${me?' <span style="font-size:11px;color:var(--text3);font-weight:500">(dit apparaat)</span>':''}</div>
         <div style="font-size:12px;margin-top:2px;color:${inst?'var(--green)':'var(--orange)'}">${inst?'Geïnstalleerd':'Niet geïnstalleerd'}<span style="color:var(--text3)">${seen?' · laatst gezien '+seen:''}</span></div>
@@ -1588,7 +1786,7 @@ function matchImportLogHtml(){
       const t=l.at&&l.at.toDate?l.at.toDate():null;
       return `<div style="padding:12px 14px;border-bottom:1px solid var(--separator)">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
-          <div style="font-size:13px;min-width:0"><b>${escAnn(l.byName||'onbekend')}</b><br><span style="color:var(--text3);font-size:11.5px">${t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span></div>
+          <div style="font-size:13px;min-width:0"><b>${escAnn(l.byName||'onbekend')}</b><br><span style="color:var(--text3);font-size:11.5px">${t?t.toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span></div>
           ${l.undone?'<span class="badge badge-gray" style="font-size:10px;flex-shrink:0">Ongedaan gemaakt</span>':`<button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="undoMatchImport('${l.id}')">Ongedaan maken</button>`}
         </div>
         <div style="font-size:12px;color:var(--text3);margin-top:3px">${l.createdCount||0} nieuw, ${l.updatedCount||0} bijgewerkt${l.skippedCount?', '+l.skippedCount+' overgeslagen':''}</div>
@@ -1625,7 +1823,7 @@ function localMs(k,hhmm){
   const[y,m,d]=k.split('-').map(Number); const[h,mi]=(hhmm||'00:00').split(':').map(Number);
   return new Date(y,m-1,d,h,mi||0,0,0).getTime();
 }
-function hmFromMs(ms){ return new Date(ms).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+function hmFromMs(ms){ return new Date(ms).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}); }
 function _slug(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
 function matchKey(date,home,away){ return `${date}__${_slug(home)}__${_slug(away)}`; }
 function matchEndMs(m){ return m.startMs+MATCH_MIN*60000; }
@@ -1731,18 +1929,34 @@ function canTickClosing(s){
   return (s.workers||[]).includes(U.uid)||U.role==='admin';
 }
 function closingItems(){ return (closingChecklist&&closingChecklist.items)||[]; }
-function checklistSectionHtml(s){
-  if(!isClosingShift(s)) return '';
+function closingWindowOk(s){ const w=shiftWindowMs(s), now=Date.now(); return now>=w.st&&now<=w.st+24*3600*1000; }
+function closingCardHtml(s){
   const items=closingItems();
-  if(!items.length) return U&&U.role==='admin'?'<div class="section-label">Sluitchecklist</div><p style="font-size:13px;color:var(--text3)">Nog geen taken ingesteld — dat doe je bij Beheer → Instellingen.</p>':'';
-  const w=shiftWindowMs(s), now=Date.now();
-  const inWindow=now>=w.st&&now<=w.st+24*3600*1000;
-  const can=canTickClosing(s)&&inWindow;
-  const checks=s.closingChecks||{};
-  const done=items.filter(it=>checks[it.id]).length;
-  return `<div class="section-label">Sluitchecklist · ${done}/${items.length}</div>
-    ${items.map(it=>{const c=checks[it.id];return `<label class="check-row${c?' done':''}"><input type="checkbox" ${c?'checked':''} ${can?'':'disabled'} onchange="toggleClosingCheck('${s.id}','${it.id}',this.checked)"><span>${escAnn(it.text)}${c?`<small>✓ ${escAnn(userName(c.uid))} · ${hmFromMs(c.at)}</small>`:''}</span></label>`;}).join('')}
-    ${can?'':`<p style="font-size:12px;color:var(--text3);margin-top:6px">${canTickClosing(s)?'Afvinken kan vanaf het begin van de dienst.':'Alleen voor wie de sluit- of laatste dienst heeft.'}</p>`}`;
+  if(!items.length) return U&&U.role==='admin'?`<div class="cl-card" data-cl="${s.id}"><div class="cl-title">Sluitchecklist</div><p class="cl-note">Nog geen taken ingesteld — dat doe je bij Beheer → Instellingen.</p></div>`:'';
+  const can=canTickClosing(s)&&closingWindowOk(s), checks=s.closingChecks||{};
+  const done=items.filter(it=>checks[it.id]).length, pct=Math.round(done/items.length*100), all=done===items.length;
+  const hm=ms=>{const d=new Date(ms);return _pad2(d.getHours())+':'+_pad2(d.getMinutes());};
+  return `<div class="cl-card" data-cl="${s.id}">
+    <div class="cl-head"><div class="cl-ring" style="--p:${pct}"><span>${done}/${items.length}</span></div>
+      <div><div class="cl-title">Sluitchecklist</div><div class="cl-sub">${fmtDate(s.date)} · ${s.startTime} – ${dispTime(s.endTime)}</div></div></div>
+    <div class="cl-list">${items.map(it=>{const c=checks[it.id];return `<button type="button" class="cl-row${c?' done':''}" ${can?'':'disabled'} onclick="toggleClosingCheck('${s.id}','${it.id}')" aria-pressed="${!!c}"><span class="cl-t">${escAnn(it.text)}${c?`<small>${escAnn((userName(c.uid)||'').split(' ')[0])} · ${hm(c.at)}</small>`:''}</span><span class="cl-dot">✓</span></button>`;}).join('')}</div>
+    ${all?`<div class="cl-done"><span>✓</span> Alles gedaan — fijne avond!</div>`:''}
+    ${can?'':`<p class="cl-note">${canTickClosing(s)?'Afvinken kan vanaf het begin van de dienst.':'Alleen voor wie de sluit- of laatste dienst heeft.'}</p>`}
+  </div>`;
+}
+function checklistSectionHtml(s){ return isClosingShift(s)?closingCardHtml(s):''; }
+// Kaart op Home: de sluitdienst van vandaag (of gisteravond, tot 24 uur na start) — direct afvinkbaar
+function closingHomeCardHtml(){
+  if(!U) return '';
+  const seen=new Set(), out=[];
+  allShifts.filter(s=>isClosingShift(s)&&canTickClosing(s)&&closingWindowOk(s)).sort((a,b)=>shiftWindowMs(a).st-shiftWindowMs(b).st).forEach(s=>{
+    const k=dKey(s.date); if(seen.has(k)) return; seen.add(k); out.push(closingCardHtml(s));
+  });
+  return out.join('');
+}
+function refreshClosingCards(id){
+  const s=allShifts.find(x=>x.id===id); if(!s) return;
+  document.querySelectorAll('[data-cl="'+id+'"]').forEach(el=>{ el.outerHTML=closingCardHtml(s); });
 }
 window.openShiftDetails=function(id){
   const s=allShifts.find(x=>x.id===id); if(!s) return;
@@ -1756,20 +1970,22 @@ window.openShiftDetails=function(id){
     ${checklistSectionHtml(s)}
     <button class="btn btn-ghost btn-full" style="margin-top:14px" onclick="closeModal()">Sluiten</button>`);
 };
-window.toggleClosingCheck=async function(shiftId,itemId,on){
-  const s=allShifts.find(x=>x.id===shiftId); if(!s||!canTickClosing(s)) return;
+window.toggleClosingCheck=async function(shiftId,itemId){
+  const s=allShifts.find(x=>x.id===shiftId); if(!s||!canTickClosing(s)||!closingWindowOk(s)) return;
+  const prev=s.closingChecks?{...s.closingChecks}:{}, on=!prev[itemId];
+  // optimistisch: meteen zichtbaar, daarna opslaan (bij fout terugdraaien)
+  s.closingChecks={...prev}; if(on) s.closingChecks[itemId]={uid:U.uid,at:Date.now()}; else delete s.closingChecks[itemId];
+  refreshClosingCards(shiftId);
   try{
     const {db,doc,updateDoc,deleteField}=window._f;
     await updateDoc(doc(db,'shifts',shiftId),{['closingChecks.'+itemId]: on?{uid:U.uid,at:Date.now()}:deleteField()});
-    const fresh=allShifts.find(x=>x.id===shiftId);
     const items=closingItems();
-    if(on&&fresh&&items.length&&items.every(it=>(fresh.closingChecks||{})[it.id])) toast('Sluitchecklist compleet ✓','ok');
-    openShiftDetails(shiftId);
-  }catch(e){ toast('Afvinken mislukt','err'); openShiftDetails(shiftId); }
+    if(on&&items.length&&items.every(it=>(s.closingChecks||{})[it.id])) toast('Sluitchecklist compleet ✓','ok');
+  }catch(e){ console.error(e); s.closingChecks=prev; refreshClosingCards(shiftId); toast('Afvinken mislukt — probeer opnieuw','err'); }
 };
 function hashId(t){ let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))|0; return 'c'+(h>>>0).toString(36); }
 window.saveClosingChecklist=async function(){
-  const lines=($('closingListIn')?.value||'').split('\n').map(t=>t.trim().slice(0,120)).filter(Boolean).slice(0,40);
+  const lines=[...document.querySelectorAll('#clEditList .cl-edit-in')].map(i=>i.value.trim().slice(0,120)).filter(Boolean).slice(0,40);
   const seen=new Set(), items=[];
   lines.forEach(t=>{ const id=hashId(t); if(!seen.has(id)){ seen.add(id); items.push({id,text:t}); } });
   try{
@@ -1778,6 +1994,150 @@ window.saveClosingChecklist=async function(){
     toast('Sluitchecklist opgeslagen','ok');
   }catch(e){ toast('Opslaan mislukt','err'); }
 };
+function clEditRow(t){ return `<div class="cl-edit-row"><input class="form-input cl-edit-in" maxlength="120" value="${(t||'').replace(/"/g,'&quot;')}" placeholder="Bijv. Kassa geteld"><button type="button" onclick="this.parentNode.remove()" aria-label="Verwijder taak">✕</button></div>`; }
+window.clAddRow=function(){ const l=$('clEditList'); if(!l) return; l.insertAdjacentHTML('beforeend',clEditRow('')); l.lastElementChild.querySelector('input').focus(); };
+window.clPreset=function(){ const l=$('clEditList'); if(!l) return; l.innerHTML=['Kassa afgesloten','Apparatuur uitgeschakeld','Afval buiten gezet','Deur op slot'].map(clEditRow).join(''); };
+
+// ═══════════════════════════════════════════════════════════════
+// v1.7 — Mini-rooster (beheerder) + Statistieken (uren per medewerker)
+// ═══════════════════════════════════════════════════════════════
+const _pad2=n=>String(n).padStart(2,'0');
+function adminMiniCalHtml(){
+  const y=adminCalY, m=adminCalM;
+  const first=new Date(y,m,1), dim=new Date(y,m+1,0).getDate();
+  const lead=(first.getDay()+6)%7; // week begint op maandag
+  const cnt={}; let total=0;
+  allShifts.forEach(s=>{const d=toDate(s.date); if(d.getFullYear()===y&&d.getMonth()===m){const k=dKey(d); cnt[k]=(cnt[k]||0)+1; total++;}});
+  const todayK=nowKey(), names=['Ma','Di','Wo','Do','Vr','Za','Zo'];
+  let cells=''; for(let i=0;i<lead;i++) cells+='<span class="mc-d out"></span>';
+  for(let d=1; d<=dim; d++){
+    const k=`${y}-${_pad2(m+1)}-${_pad2(d)}`, dow=(lead+d-1)%7;
+    cells+=`<button type="button" class="mc-d${dow>=5?' we':''}${k===todayK?' today':''}${adminSelDay===k?' sel':''}${cnt[k]?' has':''}${cnt[k]>1?' many':''}" onclick="adminCalPick('${k}')">${d}</button>`;
+  }
+  const title=new Date(y,m,1).toLocaleDateString(LOC(),{month:'long',year:'numeric'});
+  const selN=adminSelDay?(cnt[adminSelDay]||0):0;
+  const foot=adminSelDay
+    ?`<span>${selN} dienst(en) op ${fmtDate(adminSelDay)}</span><button type="button" class="mc-clear" onclick="adminCalPick(null)">Toon alles</button>`
+    :`<span class="mc-leg"><i></i> Dienst</span><span>${total} dienst(en) deze maand</span>`;
+  return `<div class="mc">
+    <div class="mc-head"><div class="mc-title">${title}</div>
+      <div class="mc-nav"><button type="button" onclick="adminCalNav(-1)" aria-label="Vorige maand">‹</button><button type="button" onclick="adminCalNav(1)" aria-label="Volgende maand">›</button></div></div>
+    <div class="mc-grid">${names.map(n=>`<div class="mc-dn">${n}</div>`).join('')}${cells}</div>
+    <div class="mc-foot">${foot}</div></div>`;
+}
+window.adminCalPick=function(k){ adminSelDay=(k&&adminSelDay!==k)?k:null; renderRoster(); };
+window.adminCalNav=function(d){ let m=adminCalM+d, y=adminCalY; if(m<0){m=11;y--;} if(m>11){m=0;y++;} adminCalM=m; adminCalY=y; adminSelDay=null; renderRoster(); };
+
+function monthHoursByUser(y,m){
+  const h={}, n={};
+  allShifts.forEach(s=>{
+    const d=toDate(s.date); if(d.getFullYear()!==y||d.getMonth()!==m) return;
+    (s.workers||[]).forEach(uid=>{ const{start,end}=getEffectiveTimes(s,uid); h[uid]=(h[uid]||0)+calcH(start,end); n[uid]=(n[uid]||0)+1; });
+  });
+  return {h,n};
+}
+function fmtHours(x){ return Number(x).toLocaleString(LOC(),{maximumFractionDigits:1}); }
+function adminHoursHtml(){
+  const now=new Date(), ref=new Date(now.getFullYear(),now.getMonth()+statMonthOff,1);
+  const{h,n}=monthHoursByUser(ref.getFullYear(),ref.getMonth());
+  const rows=Object.keys(h).filter(uid=>h[uid]>0).sort((a,b)=>h[b]-h[a]).slice(0,12);
+  const max=Math.max(1,...rows.map(u=>h[u])), total=rows.reduce((t,u)=>t+h[u],0), shifts=rows.reduce((t,u)=>t+n[u],0);
+  const label=statMonthOff===0?'Uren deze maand':('Uren in '+ref.toLocaleDateString(LOC(),{month:'long',year:'numeric'}));
+  const bars=rows.length?rows.map((uid,i)=>`<div class="hrs-col"><div class="hrs-bw"><div class="hrs-bar" style="height:${Math.max(7,Math.round(h[uid]/max*100))}%;animation-delay:${i*.05}s"></div></div>
+      <div class="hrs-lbl"><b>${escAnn((userName(uid)||'?').split(' ')[0])}</b>${fmtHours(h[uid])} h</div></div>`).join('')
+    :'<div class="hrs-empty">Nog geen uren in deze maand</div>';
+  return `<div class="hrs">
+    <div class="hrs-top"><div class="section-label">${label}</div>
+      <div class="mc-nav"><button type="button" onclick="statNav(-1)" aria-label="Vorige maand">‹</button><button type="button" onclick="statNav(1)" aria-label="Volgende maand" ${statMonthOff>=0?'disabled style="opacity:.3"':''}>›</button></div></div>
+    <div class="hrs-bars">${bars}</div>
+    ${rows.length?`<div class="hrs-sum"><div><b>${fmtHours(total)} h</b><br>totaal</div><div><b>${fmtHours(total/rows.length)} h</b><br>gemiddeld</div><div><b>${shifts}</b><br>diensten</div></div>`:''}
+  </div>`;
+}
+window.statNav=function(d){ statMonthOff=Math.max(-11,Math.min(0,statMonthOff+d)); renderHome(); };
+
+
+// ═══════════════════════════════════════════════════════════════
+// v1.7 — Meldingsvoorkeuren (bottom sheet met schakelaars)
+// Opslag: users/{uid}.notifPrefs  — ontbrekend = aan.
+// ═══════════════════════════════════════════════════════════════
+function notifPref(k){ return !(U&&U.notifPrefs&&U.notifPrefs[k]===false); }
+const NOTIF_ROWS=[
+  ['dayBefore','Dag van tevoren'],
+  ['hourBefore','Een uur ervoor'],
+  ['afterShift','Na afloop van je dienst'],
+  ['push','Pushmeldingen'],
+  ['email','E-mail']
+];
+function openNotifPrefs(){
+  modal(`<div class="modal-handle"></div>
+    <div class="modal-title">Meldingen</div>
+    <div class="ns-list">${NOTIF_ROWS.map(([k,l])=>`<label class="ns-row"><span class="ic" data-icon="bell"></span><span>${l}</span>
+      <span class="sw"><input type="checkbox" ${notifPref(k)?'checked':''} onchange="setNotifPref('${k}',this.checked)" aria-label="${l}"><i></i></span></label>`).join('')}</div>
+    <p class="ns-hint">Herinneringen worden verstuurd zodra je de app opent; pushmeldingen hebben toestemming van je toestel nodig. Belangrijke meldingen in de app (zoals aankondigingen) blijven altijd zichtbaar.</p>
+    <button class="btn btn-ghost btn-full" style="margin-top:14px" onclick="closeModal()">Sluiten</button>`);
+}
+async function setNotifPref(k,on){
+  const prefs={...(U.notifPrefs||{}),[k]:!!on}; U.notifPrefs=prefs;
+  try{
+    const{db,doc,updateDoc}=window._f; await updateDoc(doc(db,'users',U.uid),{notifPrefs:prefs});
+    if(k==='push'&&on&&'Notification' in window&&Notification.permission==='default'){
+      const p=await Notification.requestPermission(); if(p==='granted'&&window._f.registerPushToken) window._f.registerPushToken(U.uid);
+      else if(p==='denied') toast('Pushmeldingen zijn geblokkeerd in je toestelinstellingen','err');
+    }
+  }catch(e){ console.error(e); toast('Opslaan mislukt','err'); }
+}
+window.openNotifPrefs=openNotifPrefs; window.setNotifPref=setNotifPref;
+
+
+// ═══════════════════════════════════════════════════════════════
+// v1.7 — Stijl (klassiek ⇄ zwart/wit), feestdagen en taal
+// ═══════════════════════════════════════════════════════════════
+function applySkin(){
+  const sk=APP_SETTINGS.skin==='clean'?'clean':'classic';
+  document.documentElement.setAttribute('data-skin',sk);
+  try{ localStorage.setItem('mhv_skin',sk); }catch(e){}
+}
+function applyHolidayFromSettings(){
+  if(!window.MHVFX) return;
+  MHVFX.setForce(APP_SETTINGS.holiday||'auto'); MHVFX.start();
+}
+function subSettingsLive(){
+  const{db,doc,onSnapshot}=window._f; if(!onSnapshot) return;
+  applySkin(); applyHolidayFromSettings();
+  onSnapshot(doc(db,'settings','general'),snap=>{
+    if(!snap.exists()) return;
+    APP_SETTINGS={...APP_SETTINGS,...snap.data()};
+    applySkin(); applyHolidayFromSettings();
+  },e=>console.warn('settings live:',e));
+}
+function renderAppearancePanel(){
+  const sk=APP_SETTINGS.skin==='clean'?'clean':'classic', hol=APP_SETTINGS.holiday||'auto';
+  const opts=[['auto','Automatisch (op datum)'],['off','Uit'],...Object.entries(MHVFX.HOL).map(([k,v])=>[k,v.label+' (testen)'])];
+  return `<div class="section-label">Uiterlijk (voor iedereen)</div>
+    <div class="card" style="margin-bottom:16px"><div style="padding:16px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.5">Kies de stijl van de hele app. Het MHVwork-logo blijft altijd hetzelfde. Wijzigingen zijn direct zichtbaar voor alle gebruikers.</p>
+      <div class="skin-opts">
+        <button type="button" class="skin-opt${sk==='classic'?' on':''}" onclick="setSkin('classic')"><span class="skin-sw"><i style="background:#1D3FBB"></i><i style="background:#F5C800"></i></span><b>Klassiek</b><small>Blauw &amp; geel</small></button>
+        <button type="button" class="skin-opt${sk==='clean'?' on':''}" onclick="setSkin('clean')"><span class="skin-sw"><i style="background:#000;box-shadow:inset 0 0 0 1px #555"></i><i style="background:#fff"></i></span><b>Clean</b><small>Zwart &amp; wit</small></button>
+      </div>
+      <div class="form-section" style="margin-top:14px"><label class="form-label">Feestdagen-thema</label>
+        <select class="form-input" id="holidaySel" onchange="setHoliday(this.value)">${opts.map(([k,l])=>`<option value="${k}"${hol===k?' selected':''}>${l}</option>`).join('')}</select></div>
+      <p style="font-size:11.5px;color:var(--text3);line-height:1.5">Automatisch: Sinterklaas (15 nov–5 dec), Kerst (6–26 dec, met sneeuw en lichtjes), Oud &amp; nieuw, Koningsdag, Halloween en Pasen. Gebruikers kunnen de effecten zelf uitzetten bij Profiel → Weergave.</p>
+    </div></div>`;
+}
+async function saveGeneral(patch){
+  try{ const{db,doc,setDoc}=window._f; await setDoc(doc(db,'settings','general'),patch,{merge:true}); Object.assign(APP_SETTINGS,patch); applySkin(); applyHolidayFromSettings(); return true; }
+  catch(e){ console.error(e); toast('Opslaan mislukt','err'); return false; }
+}
+window.setSkin=async function(k){ if(await saveGeneral({skin:k})){ toast(k==='clean'?'Clean (zwart/wit) staat aan':'Klassiek (blauw/geel) staat aan','ok'); rerender(); } };
+window.setHoliday=async function(v){ if(await saveGeneral({holiday:v})){ toast('Opgeslagen!','ok'); rerender(); } };
+window.setFxPref=function(on){ MHVFX.setUserOff(!on); MHVFX.start(); };
+window.setAppLang=async function(l){
+  MHVI18N.set(l); syncLangData(); if(U) U.lang=l;
+  try{ const{db,doc,updateDoc}=window._f; await updateDoc(doc(db,'users',U.uid),{lang:l}); }catch(e){}
+  rerender();
+};
+
 // ═══════════════════════════════════════════
 // LISA-IMPORT — kopieer/plak-brug, met opzet GEEN automatische of rechtstreekse aanroep.
 //
@@ -1945,7 +2305,7 @@ function matchSyncStatusText(){
     if(lastM.updatedBy==='lisa-sync') who='automatische sync';
     else who=lastM.updatedByName||(allUsers.find(u=>u.uid===lastM.updatedBy)||{}).name||'';
   }
-  return `${allMatches.length} thuiswedstrijden ingevoerd${last?`, laatst bijgewerkt ${new Date(last).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${who?' · door '+who:''}`:''}.`;
+  return `${allMatches.length} thuiswedstrijden ingevoerd${last?`, laatst bijgewerkt ${new Date(last).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${who?' · door '+who:''}`:''}.`;
 }
 
 // ── Wedstrijden handmatig beheren (beheerder/dev, alleen zichtbaar zolang de functie aanstaat) ──
@@ -2088,7 +2448,7 @@ const $ = id => document.getElementById(id);
 const WAVE_ICON='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--mhv-yellow)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-6px;margin-left:2px"><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/><path d="M18 11V6a2 2 0 0 0-4 0v.5"/><path d="M14 10.5V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8.5"/><path d="M2 3c1.4 1.4 1.4 3.6 0 5" opacity=".55"/></svg>';
 function toast(m,t=''){const el=$('toast');el.textContent=m;el.className='show '+t;clearTimeout(el._t);el._t=setTimeout(()=>el.className='',2800);}
 function fmtMoney(n){return '€\u202F'+Number(n||0).toFixed(2).replace('.',',');}
-function fmtDate(d){const dt=toDate(d);return dt.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});}
+function fmtDate(d){const dt=toDate(d);return dt.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short'});}
 function toDate(d){
   if(!d)return new Date(NaN);
   if(d?.toDate)return d.toDate(); // Firestore Timestamp
@@ -2202,7 +2562,7 @@ function openNextShiftQuickView(){
     return;
   }
   const dt=toDate(sh.date);
-  const dateStr=dt.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const dateStr=dt.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'});
   const mates=(sh.workers||[]).filter(u=>u!==U.uid).map(u=>(allUsers.find(x=>x.uid===u)||{}).name).filter(Boolean);
   const warn=teamWarningLine?teamWarningLine(U.uid,dKey(sh.date)):'';
   modal(`<div class="modal-handle"></div><div class="modal-title">Jouw volgende dienst</div>
@@ -2598,7 +2958,7 @@ function exportMonthPDF(year,month){
   for(let p=1;p<=pageCount;p++){
     doc.setPage(p);
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150);
-    doc.text('MHVwork · gegenereerd op '+new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'}), 40, doc.internal.pageSize.getHeight()-24);
+    doc.text('MHVwork · gegenereerd op '+new Date().toLocaleDateString(LOC(),{day:'numeric',month:'long',year:'numeric'}), 40, doc.internal.pageSize.getHeight()-24);
     doc.text('Pagina '+p+' van '+pageCount, pageW-40, doc.internal.pageSize.getHeight()-24, {align:'right'});
   }
   doc.save(`MHVwork-maandoverzicht_${y}-${String(m+1).padStart(2,'0')}.pdf`);
@@ -2626,8 +2986,8 @@ function exportShiftsExcel(){
   const rowsUsers=uidsInRange.map(uid=>allUsers.find(u=>u.uid===uid)).filter(Boolean)
     .sort((a,b)=>a.name.localeCompare(b.name,'nl'));
 
-  const periodeLabel=`${from.toLocaleDateString('nl-NL',{day:'2-digit',month:'short'})} - ${to.toLocaleDateString('nl-NL',{day:'2-digit',month:'short'})}`;
-  const dateLabels=dateKeys.map(k=>{const[y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'});});
+  const periodeLabel=`${from.toLocaleDateString(LOC(),{day:'2-digit',month:'short'})} - ${to.toLocaleDateString(LOC(),{day:'2-digit',month:'short'})}`;
+  const dateLabels=dateKeys.map(k=>{const[y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString(LOC(),{day:'2-digit',month:'2-digit'});});
 
   // AOA = array-of-arrays, precies zoals gevraagd: linksboven periode, rechtsboven elke datum,
   // linkerkolom medewerkersnamen, kruisjes+tijden in de cellen.
@@ -2689,7 +3049,7 @@ async function checkShiftReminders(){
       if(!already[uid]){
         try{
           await updateDoc(doc(db,'shifts',s.id),{[`reminderSent.${uid}`]:true});
-          if(uid===U.uid) await notifyUsers([uid],'Hoe was je dienst?',`Je dienst op ${fmtDate(s.date)} is voorbij — bevestig je gewerkte tijd in de app.`,`Je dienst op ${fmtDate(s.date)} (${s.startTime}-${dispTime(s.endTime)}) is voorbij. Ga naar Rooster om je tijd te bevestigen.`,{type:'general'});
+          if(uid===U.uid && notifPref('afterShift')) await notifyUsers([uid],'Hoe was je dienst?',`Je dienst op ${fmtDate(s.date)} is voorbij — bevestig je gewerkte tijd in de app.`,`Je dienst op ${fmtDate(s.date)} (${s.startTime}-${dispTime(s.endTime)}) is voorbij. Ga naar Rooster om je tijd te bevestigen.`,{type:'general'});
         }catch(e){}
       } else if(hoursSince>=APP_SETTINGS.reminderHours && !already2[uid]){
         try{
@@ -2713,13 +3073,13 @@ async function checkShiftReminders(){
     if(hoursUntil<=24 && hoursUntil>0 && !dayFlag[U.uid]){
       try{
         await updateDoc(doc(db,'shifts',s.id),{[`dayBeforeSent.${U.uid}`]:true});
-        await notifyUsers([U.uid],'Morgen dienst!',`Je hebt morgen een dienst van ${s.startTime} tot ${dispTime(s.endTime)}.`,`Herinnering: je hebt morgen (${fmtDate(s.date)}) een dienst van ${s.startTime} tot ${dispTime(s.endTime)}.`,{type:'general',email:false});
+        if(notifPref('dayBefore')) await notifyUsers([U.uid],'Morgen dienst!',`Je hebt morgen een dienst van ${s.startTime} tot ${dispTime(s.endTime)}.`,`Herinnering: je hebt morgen (${fmtDate(s.date)}) een dienst van ${s.startTime} tot ${dispTime(s.endTime)}.`,{type:'general',email:false});
       }catch(e){}
     }
     if(hoursUntil<=1 && hoursUntil>0 && !hourFlag[U.uid]){
       try{
         await updateDoc(doc(db,'shifts',s.id),{[`hourBeforeSent.${U.uid}`]:true});
-        await notifyUsers([U.uid],'Bijna je dienst!',`Je dienst begint over ongeveer een uur (${s.startTime}).`,`Je dienst van vandaag begint over ongeveer een uur, om ${s.startTime}.`,{type:'general',email:false});
+        if(notifPref('hourBefore')) await notifyUsers([U.uid],'Bijna je dienst!',`Je dienst begint over ongeveer een uur (${s.startTime}).`,`Je dienst van vandaag begint over ongeveer een uur, om ${s.startTime}.`,{type:'general',email:false});
       }catch(e){}
     }
   }
@@ -2975,6 +3335,8 @@ async function renderAdminHome(c){
       </div>
     </div>
 
+    ${adminHoursHtml()}
+
     ${pendingApproval.length?`
     <div class="section-label"><span class="ic" data-icon="hourglass"></span> Wacht op goedkeuring (${pendingApproval.length})</div>
     ${pendingApproval.map(s=>{
@@ -3004,6 +3366,7 @@ async function renderAdminHome(c){
       </div>`;
     }).join('')}` : ''}
 
+    ${closingHomeCardHtml()}
     <div class="section-label"><span class="ic" data-icon="calendar"></span> Diensten vandaag</div>
     ${todayShifts.length?todayShifts.map(s=>renderAdminShiftCard(s)).join('')
       :`<div class="empty"><div class="empty-icon"><span class="ic" data-icon="hockey"></span></div><p>Geen diensten vandaag</p></div>`}
@@ -3121,6 +3484,7 @@ async function renderEmployeeHome(c){
       </div>
     `).join('')}` : ''}
 
+    ${closingHomeCardHtml()}
     <div class="section-label"><span class="ic" data-icon="calendar"></span> Volgende dienst</div>
     ${next?`
       <div class="shift-card mine">
@@ -3327,6 +3691,7 @@ function renderAdminRoster(c){
   let shifts=allShifts;
   if(adminRTab==='today') shifts=allShifts.filter(s=>dKey(s.date)===todayKey);
   if(adminRTab==='month') shifts=allShifts.filter(s=>{const d=toDate(s.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  if(adminSelDay) shifts=allShifts.filter(s=>dKey(s.date)===adminSelDay);
 
   // Group by day
   const days={};
@@ -3345,7 +3710,8 @@ function renderAdminRoster(c){
       <div class="page-title" style="margin:0">Rooster</div>
       <button class="btn btn-yellow btn-sm" onclick="openAddShift()" ${restricted('editShift')?'style="display:none"':''}>+ Dienst</button>
     </div>
-    ${tabs}
+    ${adminMiniCalHtml()}
+    ${adminSelDay?'':tabs}
     ${shiftAdviceHtml()}
     ${totalDebt>0?`<div class="stat-tile red" style="margin-bottom:14px"><div class="stat-num" style="color:var(--red);font-size:22px">${fmtMoney(totalDebt)}</div><div class="stat-lbl">Openstaande schuld</div></div>`:''}
     ${sorted.length?sorted.map(k=>{
@@ -3507,73 +3873,132 @@ function renderDayShifts(k){
 // ═══════════════════════════════════════════
 // BESCHIKBAARHEID
 // ═══════════════════════════════════════════
+// ── Beschikbaarheid v1.7 ─────────────────────────────────────
+// Groen = je kunt. Donker = je kunt niet. Opslaan schrijft alleen de wijzigingen (opt-out-model blijft hetzelfde:
+// één document in 'availability' per geblokkeerde dag).
+let avOff=0, avAdmOff=0, avSel={}, avAdmDay=null, _abGroups=[];
+const _avStart=off=>{ const t=new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+off*14); return t; };
+const _avKey=d=>`${d.getFullYear()}-${_pad2(d.getMonth()+1)}-${_pad2(d.getDate())}`;
+const _avWd=d=>DN[d.getDay()];
+function _rangeLabel(d1,d2){
+  const o={day:'numeric',month:'short'};
+  if(d1.getTime()===d2.getTime()) return d1.toLocaleDateString(LOC(),o);
+  if(d1.getMonth()===d2.getMonth()&&d1.getFullYear()===d2.getFullYear()) return `${d1.getDate()} – ${d2.toLocaleDateString(LOC(),o)}`;
+  return `${d1.toLocaleDateString(LOC(),o)} – ${d2.toLocaleDateString(LOC(),o)}`;
+}
+// groepeert opeenvolgende dagen (zelfde persoon + zelfde reden) tot één periode
+function groupAbsences(list){
+  const sorted=list.slice().sort((x,y)=>(x.uid||'').localeCompare(y.uid||'')||toDate(x.date)-toDate(y.date));
+  const out=[];
+  sorted.forEach(a=>{
+    const d=toDate(a.date), g=out[out.length-1];
+    if(g&&g.uid===a.uid&&(g.note||'')===(a.note||'')&&Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-g.end)/86400000)===1){ g.end=new Date(d.getFullYear(),d.getMonth(),d.getDate()); g.ids.push(a.id); g.days++; }
+    else out.push({uid:a.uid,note:a.note||'',start:new Date(d.getFullYear(),d.getMonth(),d.getDate()),end:new Date(d.getFullYear(),d.getMonth(),d.getDate()),ids:[a.id],days:1});
+  });
+  return out.sort((x,y)=>x.start-y.start);
+}
 function renderAvail(){
   const c=$('view-avail'); if(!c)return;
-  if(U.role==='admin') renderAdminAvail(c);
-  else renderEmployeeAvail(c);
-}
-
-function renderAdminAvail(c){
-  const now=new Date();
-  const upcoming=allAvail.filter(a=>toDate(a.date)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()));
-  c.innerHTML=`
-    <div class="page-title" style="margin-bottom:16px">Beschikbaarheid</div>
-    <p style="font-size:14px;color:var(--text3);margin-bottom:16px;line-height:1.6">Overzicht van medewerkers die niet beschikbaar zijn.</p>
-    ${upcoming.length?upcoming.map(a=>`
-      <div class="avail-row">
-        <div class="avatar">${userAvatarHtml(a.uid)}</div>
-        <div class="avail-info">
-          <div class="avail-name">${userName(a.uid)}</div>
-          <div class="avail-date">${fmtDate(a.date)}</div>
-          ${a.note?`<div class="avail-note">${a.note}</div>`:''}
-        </div>
-        <span class="badge badge-red"><span class="ic" data-icon="forbidden"></span> Niet beschikbaar</span>
-      </div>`).join('')
-    :`<div class="empty"><div class="empty-icon"><span class="ic" data-icon="check-circle"></span></div><p>Iedereen is beschikbaar</p></div>`}
-  `;
+  if(U.role==='admin') renderAdminAvail(c); else renderEmployeeAvail(c);
 }
 
 function renderEmployeeAvail(c){
-  const now=new Date();
-  const myAvail=allAvail.filter(a=>a.uid===U.uid);
-  const upcoming=myAvail.filter(a=>toDate(a.date)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()));
-  const past=myAvail.filter(a=>toDate(a.date)<new Date(now.getFullYear(),now.getMonth(),now.getDate()));
+  const today=new Date(); today.setHours(0,0,0,0);
+  const mine=allAvail.filter(a=>a.uid===U.uid), map={};
+  mine.forEach(a=>{ (map[dKey(a.date)]=map[dKey(a.date)]||[]).push(a.id); });
+  const st=_avStart(avOff), dirty=Object.keys(avSel).length;
+  let cells='';
+  for(let i=0;i<14;i++){
+    const d=new Date(st); d.setDate(st.getDate()+i); const k=_avKey(d);
+    const on=(k in avSel)?avSel[k]:!map[k];
+    const hasShift=allShifts.some(x=>dKey(x.date)===k&&(x.workers||[]).includes(U.uid));
+    cells+=`<button type="button" class="av-day${on?' on':''}${(k in avSel)?' dirty':''}${hasShift?' shift':''}" onclick="avToggle('${k}')" aria-pressed="${on}" aria-label="${fmtDate(k)}"><span>${_avWd(d)}</span><b>${d.getDate()}</b></button>`;
+  }
+  const absences=groupAbsences(mine.filter(a=>toDate(a.date)>=today)).filter(g=>g.note||g.days>=3);
+  _abGroups=absences;
+  const e1=new Date(st); e1.setDate(st.getDate()+13);
   c.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div class="page-title" style="margin:0">Beschikbaar</div>
-      <button class="btn btn-yellow btn-sm" onclick="openAvailModal()">+ Toevoegen</button>
-    </div>
-    <p style="font-size:14px;color:var(--text3);margin-bottom:20px;line-height:1.6">Geef aan wanneer je <strong style="color:var(--red)">niet</strong> kunt werken.</p>
-    ${upcoming.length?`<div class="section-label">Aankomend</div>`:''}
-    ${upcoming.map(a=>`
-      <div class="avail-row">
-        <div style="font-size:24px"><span class="ic" data-icon="forbidden"></span></div>
-        <div class="avail-info">
-          <div class="avail-date" style="font-size:15px;font-weight:600">${fmtDate(a.date)}</div>
-          ${a.note?`<div class="avail-note">${a.note}</div>`:''}
-        </div>
-        <button class="btn btn-ghost btn-sm avail-edit-btn" data-id="${a.id}"><span class="ic" data-icon="edit"></span></button>
-        <button class="btn btn-red btn-sm" onclick="deleteAvail('${a.id}')">Verwijder</button>
-      </div>`).join('')}
-    ${!myAvail.length?`<div class="empty"><div class="empty-icon"><span class="ic" data-icon="check-circle"></span></div><p>Geen blokkades ingevoerd</p></div>`:''}
-    ${past.length?`<div class="section-label" style="margin-top:20px">Verleden</div>${past.map(a=>`
-      <div class="avail-row" style="opacity:0.5">
-        <div style="font-size:24px"><span class="ic" data-icon="forbidden"></span></div>
-        <div class="avail-info">
-          <div class="avail-date" style="font-size:14px;font-weight:600">${fmtDate(a.date)}</div>
-          ${a.note?`<div class="avail-note">${a.note}</div>`:''}
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="deleteAvail('${a.id}')">✕</button>
-      </div>`).join('')}`:''}
-  `;
-  c.querySelectorAll('.avail-edit-btn').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      const id=this.getAttribute('data-id');
-      const a=allAvail.find(x=>x.id===id);
-      if(a) editAvailNote(id, a);
-    });
-  });
+    <div class="av-hero"><small>Aangeven wanneer je kunt</small><h1>Beschikbaar</h1></div>
+    <div class="av-range"><button type="button" onclick="avPage(-1)" ${avOff<=0?'disabled':''} aria-label="Vorige twee weken">‹</button><span>${_rangeLabel(st,e1)}</span><button type="button" onclick="avPage(1)" ${avOff>=8?'disabled':''} aria-label="Volgende twee weken">›</button></div>
+    <div class="av-grid">${cells}</div>
+    <div class="av-info"><span class="ic" data-icon="info"></span><div>Groen = je kunt. Tik op een dag om hem op niet-beschikbaar te zetten. De beheerder ziet dit bij het plannen van diensten. <span style="color:#FF9F0A">●</span> = je staat die dag al ingeroosterd.</div></div>
+    <button class="av-save" id="avSaveBtn" onclick="avSave()" ${dirty?'':'disabled'}>Opslaan</button>
+    <div class="av-sec">Afwezigheid</div>
+    <div class="ab-card">
+      ${absences.map((g,i)=>`<button type="button" class="ab-row" onclick="openAbsence(${i})"><span class="ab-ic"><span class="ic" data-icon="calendar"></span></span><div><div class="ab-t">${_rangeLabel(g.start,g.end)}</div><div class="ab-s">${g.note?escAnn(g.note):(g.days+' dagen')}</div></div><span class="ab-go">›</span></button>`).join('')}
+      <button type="button" class="ab-row" onclick="openAvailModal()"><div class="ab-t">Afwezig melden</div><span class="ab-go">›</span></button>
+    </div>`;
 }
+window.avPage=function(d){ avOff=Math.max(0,Math.min(8,avOff+d)); renderAvail(); };
+window.avToggle=function(k){
+  const mine=allAvail.filter(a=>a.uid===U.uid), saved=mine.some(a=>dKey(a.date)===k);
+  const curOn=(k in avSel)?avSel[k]:!saved, wantOn=!curOn;
+  if(wantOn===!saved) delete avSel[k]; else avSel[k]=wantOn;
+  if(!wantOn&&allShifts.some(x=>dKey(x.date)===k&&(x.workers||[]).includes(U.uid))) toast('Let op: je staat die dag al ingeroosterd','err');
+  renderAvail();
+};
+window.avSave=async function(){
+  const keys=Object.keys(avSel); if(!keys.length) return;
+  const btn=$('avSaveBtn'); if(btn){btn.disabled=true;btn.textContent='Opslaan…';}
+  const{db,collection,addDoc,doc,deleteDoc,Timestamp,serverTimestamp}=window._f;
+  try{
+    const mine=allAvail.filter(a=>a.uid===U.uid), ops=[];
+    keys.forEach(k=>{
+      if(avSel[k]) mine.filter(a=>dKey(a.date)===k).forEach(a=>ops.push(deleteDoc(doc(db,'availability',a.id))));
+      else { const[y,m,d]=k.split('-').map(Number); ops.push(addDoc(collection(db,'availability'),{uid:U.uid,date:Timestamp.fromDate(new Date(y,m-1,d)),note:'',createdAt:serverTimestamp()})); }
+    });
+    await Promise.all(ops); avSel={}; toast('Opgeslagen!','ok');
+  }catch(e){ console.error(e); toast('Opslaan mislukt','err'); }
+  renderAvail();
+};
+window.openAbsence=function(i){
+  const g=_abGroups[i]; if(!g) return;
+  modal(`<div class="modal-handle"></div>
+    <div class="modal-title">Afwezigheid</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px">${_rangeLabel(g.start,g.end)} <span style="color:var(--text3);font-weight:500">· ${g.days} dag(en)</span></div>
+    <div class="form-section"><label class="form-label">Reden</label>
+      <input type="text" class="form-input" id="abNote" value="${(g.note||'').replace(/"/g,'&quot;')}" placeholder="Vakantie, verjaardag…"></div>
+    <button class="btn btn-yellow btn-full" onclick="saveAbsence(${i})">Opslaan</button>
+    <button class="btn btn-red btn-full" style="margin-top:8px" onclick="deleteAbsence(${i})">Verwijderen</button>`);
+};
+window.saveAbsence=async function(i){
+  const g=_abGroups[i]; if(!g) return; const note=($('abNote')||{}).value||'';
+  const{db,doc,updateDoc}=window._f;
+  try{ await Promise.all(g.ids.map(id=>updateDoc(doc(db,'availability',id),{note}))); closeModal(); toast('Opgeslagen!','ok'); }catch(e){ toast('Opslaan mislukt','err'); }
+};
+window.deleteAbsence=async function(i){
+  const g=_abGroups[i]; if(!g) return;
+  const ok=await confirm2('Verwijderen','Deze afwezigheid verwijderen?','Verwijderen'); if(!ok) return;
+  const{db,doc,deleteDoc}=window._f;
+  try{ await Promise.all(g.ids.map(id=>deleteDoc(doc(db,'availability',id)))); closeModal(); toast('Verwijderd','ok'); }catch(e){ toast('Verwijderen mislukt','err'); }
+};
+
+function renderAdminAvail(c){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const upcoming=allAvail.filter(a=>toDate(a.date)>=today);
+  const byDay={}; upcoming.forEach(a=>{ (byDay[dKey(a.date)]=byDay[dKey(a.date)]||[]).push(a); });
+  const st=_avStart(avAdmOff), todayK=_avKey(today);
+  if(!avAdmDay) avAdmDay=todayK;
+  let cells='';
+  for(let i=0;i<14;i++){
+    const d=new Date(st); d.setDate(st.getDate()+i); const k=_avKey(d), n=(byDay[k]||[]).length;
+    cells+=`<button type="button" class="av-day ad${n?'':' free'}${avAdmDay===k?' sel':''}" onclick="avAdmPick('${k}')"><span>${_avWd(d)}</span><b>${d.getDate()}</b>${n?`<i class="av-cnt">${n}</i>`:''}</button>`;
+  }
+  const e1=new Date(st); e1.setDate(st.getDate()+13);
+  const sel=byDay[avAdmDay]||[];
+  const groups=groupAbsences(upcoming).slice(0,40);
+  c.innerHTML=`
+    <div class="av-hero"><small>Overzicht van het team</small><h1>Beschikbaarheid</h1></div>
+    <div class="av-range"><button type="button" onclick="avAdmPage(-1)" ${avAdmOff<=0?'disabled':''} aria-label="Vorige twee weken">‹</button><span>${_rangeLabel(st,e1)}</span><button type="button" onclick="avAdmPage(1)" ${avAdmOff>=8?'disabled':''} aria-label="Volgende twee weken">›</button></div>
+    <div class="av-grid">${cells}</div>
+    <div class="av-sec" style="margin-top:6px">${fmtDate(avAdmDay)}</div>
+    <div class="ab-card">${sel.length?sel.map(a=>`<div class="av-person"><div class="avatar">${userAvatarHtml(a.uid)}</div><div style="flex:1;min-width:0"><div style="font-weight:700">${escAnn(userName(a.uid))}</div>${a.note?`<div style="font-size:12.5px;color:var(--text3)">${escAnn(a.note)}</div>`:''}</div><span class="badge badge-red">Niet beschikbaar</span></div>`).join('')
+      :`<div class="av-person" style="color:var(--green);font-weight:700"><span class="ic" data-icon="check-circle"></span> Iedereen is beschikbaar</div>`}</div>
+    ${groups.length?`<div class="av-sec">Aankomende afwezigheid</div><div class="ab-card">${groups.map(g=>`<div class="av-person"><div class="avatar">${userAvatarHtml(g.uid)}</div><div style="flex:1;min-width:0"><div style="font-weight:700">${escAnn(userName(g.uid))}</div><div style="font-size:12.5px;color:var(--text3)">${_rangeLabel(g.start,g.end)}${g.note?' · '+escAnn(g.note):''}</div></div></div>`).join('')}</div>`:''}`;
+}
+window.avAdmPick=function(k){ avAdmDay=k; renderAvail(); };
+window.avAdmPage=function(d){ avAdmOff=Math.max(0,Math.min(8,avAdmOff+d)); renderAvail(); };
+
 function openAvailModal(){
   const todayStr=new Date().toISOString().split('T')[0];
   modal(`
@@ -3750,9 +4175,13 @@ function renderAdminSettings(c){
     ${matchesPanelHtml()}
     <div class="section-label">Sluitchecklist</div>
     <div class="card" style="margin-bottom:16px"><div style="padding:16px">
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Eén taak per regel. Wie de sluit- of laatste dienst van de dag heeft, kan deze lijst bij die dienst afvinken (bij Details) — met naam en tijdstip erbij.</p>
-      <textarea class="form-input" id="closingListIn" rows="5" placeholder="Koelkast dicht&#10;Kassa geteld&#10;Licht uit" style="resize:vertical">${closingItems().map(it=>it.text).join('\n')}</textarea>
-      <button class="btn btn-yellow btn-full" style="margin-top:10px" onclick="saveClosingChecklist()">Opslaan</button>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Wie de sluit- of laatste dienst van de dag heeft, ziet deze lijst op Home en bij Details van de dienst en vinkt hem af — met naam en tijdstip erbij.</p>
+      <div id="clEditList">${closingItems().map(it=>clEditRow(it.text)).join('')}</div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="clAddRow()">+ Taak toevoegen</button>
+        ${closingItems().length?'':`<button class="btn btn-ghost btn-sm" style="flex:1" onclick="clPreset()">Standaardtaken</button>`}
+      </div>
+      <button class="btn btn-yellow btn-full" style="margin-top:12px" onclick="saveClosingChecklist()">Opslaan</button>
     </div></div>
     <div class="section-label">Bevestigingsreminders</div>
     <div class="card"><div style="padding:16px">
@@ -3804,10 +4233,10 @@ function renderMedewerkers(c){
     ${emp.map(u=>`
       <div class="card" style="margin-bottom:10px">
         <div class="card-row">
-          <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
+          <div class="avatar pay-av" style="width:48px;height:48px;font-size:15px">${userAvatarHtml(u.uid)}</div>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:700">${u.name}${u.guestUntil?` <span class="badge ${u.guestUntil<Date.now()?'badge-red':'badge-yellow'}" style="font-size:10px;vertical-align:middle"><span class="ic" data-icon="hourglass"></span> Gast</span>`:''}</div>
-            <div style="font-size:13px;color:var(--text3)">${u.email||'—'}${u.guestUntil?` · tot ${new Date(u.guestUntil).toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}`:''}</div>
+            <div style="font-size:13px;color:var(--text3)">${u.email||'—'}${u.guestUntil?` · tot ${new Date(u.guestUntil).toLocaleDateString(LOC(),{day:'numeric',month:'short'})}`:''}</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(u.wage||0)}<span style="font-size:11px;color:var(--text3)">/u</span></div>
@@ -3833,7 +4262,7 @@ window.extendGuest=async function(uid){
   try{
     const{db,doc,updateDoc}=window._f;
     await updateDoc(doc(db,'users',uid),{guestUntil:until});
-    toast('Verlengd tot '+new Date(until).toLocaleDateString('nl-NL',{day:'numeric',month:'long'}),'ok');
+    toast('Verlengd tot '+new Date(until).toLocaleDateString(LOC(),{day:'numeric',month:'long'}),'ok');
   }catch(e){ toast('Verlengen mislukt','err'); }
 };
 function openAddEmployee(){
@@ -3885,7 +4314,7 @@ async function createInvite(){
   const ref=await addDoc(collection(db,'invites'),payload);
   if(guestUntil&&U.role!=='software'){
     const devs=allUsers.filter(u=>u.role==='software').map(u=>u.uid);
-    if(devs.length) sendNotifMulti(devs,'Gastaccount wacht op goedkeuring',U.name+' nodigde '+name+' uit als gast tot '+new Date(guestUntil).toLocaleDateString('nl-NL')+'. Keur goed bij Beheer → Gasten.').catch(()=>{});
+    if(devs.length) sendNotifMulti(devs,'Gastaccount wacht op goedkeuring',U.name+' nodigde '+name+' uit als gast tot '+new Date(guestUntil).toLocaleDateString(LOC())+'. Keur goed bij Beheer → Gasten.').catch(()=>{});
   }
   const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'');
   const link=`${base}/register.html?invite=${ref.id}`;
@@ -4143,7 +4572,7 @@ function readOpenFields(p){
 }
 function shiftLabel(s){
   const d=toDate(s.date);
-  return d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})+' '+s.startTime+'–'+dispTime(s.endTime);
+  return d.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'})+' '+s.startTime+'–'+dispTime(s.endTime);
 }
 // Vrije plekken = nog te vergeven plekken min het aantal aanmeldingen. Elke aanmelding haalt er dus direct
 // één af (bij 'direct toewijzen' gaat openSlots zelf omlaag, signups blijft dan leeg).
@@ -4154,7 +4583,7 @@ function openShiftsUpcoming(){
     .sort((a,b)=>toDate(a.date)-toDate(b.date)||minsFrom(a.startTime)-minsFrom(b.startTime));
 }
 function openShiftCardHtml(s,isAdmin){
-  const d=toDate(s.date), day=d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const d=toDate(s.date), day=d.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'});
   const slots=freeSlots(s), n=(s.signups||[]).length, signed=(s.signups||[]).includes(U.uid);
   const blocked=!isAdmin && blockedOn(dKey(s.date)).some(a=>a.uid===U.uid);
   const slotTxt=slots>0?slots+(slots===1?' plekje vrij':' plekjes vrij'):'Alle plekken zijn opgegeven';
@@ -4286,7 +4715,7 @@ async function saveShift(){
     createdBy:U.uid,createdAt:serverTimestamp()
   });
   window._shiftNoteImg=null;
-  const dateStr=new Date(y,m-1,d).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const dateStr=new Date(y,m-1,d).toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'});
   if(workers.length) await sendNotifMulti(workers,'Nieuwe dienst',`Je hebt een nieuwe dienst op ${dateStr} van ${startR}–${dispTime(endR)}.`+(note?`\n\n${note}`:''));
   if(op.open){
     // Open dienst: iedereen (die niet al op de dienst staat) krijgt een melding. Alleen in-app/push — geen mail,
@@ -4404,7 +4833,7 @@ async function deleteShift(shiftId){
   if(!ok)return;
   const{db,doc,deleteDoc}=window._f;
   const d=toDate(s.date);
-  const dateStr=d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  const dateStr=d.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'});
   if(s.workers?.length) await sendNotifMulti(s.workers,'Dienst vervallen',`Je dienst op ${dateStr} van ${s.startTime}–${dispTime(s.endTime)} is vervallen.`);
   await deleteDoc(doc(db,'shifts',shiftId));
   toast('Verwijderd','ok');
@@ -4506,16 +4935,17 @@ function renderUitbetaling(c){
     </div>`:''}
     ${payData.length?payData.map(u=>`
       <div class="card" style="margin-bottom:10px">
-        <div class="card-row">
-          <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:700">${u.name}</div>
-            <div style="font-size:12px;color:var(--text3)">${u.myS.length} dienst(en) · ${fmtMoney(u.wage||0)}/uur</div>
+        <div class="pay-top">
+          <div class="avatar pay-av">${userAvatarHtml(u.uid)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:17px;font-weight:800;letter-spacing:-.2px">${escAnn(u.name)}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:1px">${u.myS.length} dienst(en) · ${fmtMoney(u.wage||0)}/uur</div>
             ${payIbanLine(u.uid)}
           </div>
-          <div style="text-align:right">
-            ${u.approvedPay>0?`<div style="font-size:17px;font-weight:800;color:var(--red)">${fmtMoney(u.approvedPay)}</div><div style="font-size:11px;color:var(--text3)">schuldig</div>`:''}
-            ${u.paidPay>0?`<div style="font-size:13px;color:var(--green)">${fmtMoney(u.paidPay)} betaald</div>`:''}
+          <div style="text-align:right;flex-shrink:0">
+            ${u.approvedPay>0?`<div class="pay-amt" style="color:var(--red)">${fmtMoney(u.approvedPay)}</div><div style="font-size:11px;color:var(--text3)">schuldig</div>`:''}
+            ${u.paidPay>0?`<div style="font-size:13px;font-weight:700;color:var(--green)">${fmtMoney(u.paidPay)} betaald</div>`:''}
+            ${(u.approvedPay>0&&!restricted('payout'))?`<button class="pay-btn" onclick="markPaid('${u.uid}','${y}','${m}','${u.name.replace(/'/g,"\\'")}','${u.approvedPay.toFixed(2)}')">Uitbetaald</button>`:''}
           </div>
         </div>
         ${(u.reviewing.length&&!restricted('approve'))?`<div class="card-row" style="background:var(--orange-dim)">
@@ -4526,7 +4956,6 @@ function renderUitbetaling(c){
           <button class="btn btn-sm" style="background:var(--orange);color:#1a0f00" onclick="openReviewApprovals('${u.uid}','${y}','${m}')">Bekijken</button>
         </div>`:''}
         <div class="card-row" style="gap:8px">
-          ${(u.approvedPay>0&&!restricted('payout'))?`<button class="btn btn-green btn-sm" style="flex:1" onclick="markPaid('${u.uid}','${y}','${m}','${u.name}','${u.approvedPay.toFixed(2)}')">✓ Uitbetaald</button>`:''}
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showPayDetail('${u.uid}','${y}','${m}')">Details</button>
         </div>
       </div>`).join('')
@@ -4714,7 +5143,7 @@ function renderMeldingen(){
   c.innerHTML=`
     <div class="page-title" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
       <span><span class="ic" data-icon="bell"></span> Meldingen</span>
-      ${unreadNotif?`<button class="btn btn-ghost btn-sm" onclick="markAllRead()">Alles gelezen</button>`:''}
+      <span style="display:flex;gap:6px;align-items:center">${unreadNotif?`<button class="btn btn-ghost btn-sm" onclick="markAllRead()">Alles gelezen</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openNotifPrefs()" aria-label="Meldingsinstellingen"><span class="ic" data-icon="settings"></span></button></span>
     </div>
     <div class="pill-tabs">
       <button class="pill-tab ${window._meldTab!=='dm'?'active':''}" onclick="setMeldTab('sys',this)">Systeem${unreadNotif?' · '+unreadNotif:''}</button>
@@ -4740,7 +5169,7 @@ function _renderMeldContent(){
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:14px;${unread?'':'color:var(--text2)'}">${n.title}</div>
           <div style="font-size:13px;color:var(--text3);margin-top:2px;white-space:pre-wrap">${n.body}</div>
-          <div style="font-size:11px;color:var(--text4);margin-top:6px">${t.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:11px;color:var(--text4);margin-top:6px">${t.toLocaleDateString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
         </div>
       </div>
     </div>`;
@@ -4851,7 +5280,7 @@ function _renderDMMessages(t){
       lastDay=day; lastFrom=null;
     }
     const sameGroup=m.from===lastFrom && m.ts && (m.ts-lastTs)<5*60*1000 && m.type!=='logRequest';
-    const time=m.ts?new Date(m.ts).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';
+    const time=m.ts?new Date(m.ts).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}):'';
     if(m.type==='logRequest'){
       html+=`<div style="align-self:center;max-width:90%;background:var(--bg3);border:1px solid var(--separator);border-radius:14px;padding:12px 14px;font-size:13px;text-align:center;margin:6px 0">
         <div style="font-weight:700;margin-bottom:4px"><span class="ic" data-icon="lock"></span> Logboek aangevraagd</div>
@@ -4859,7 +5288,7 @@ function _renderDMMessages(t){
           (U.role==='software'?`<button class="btn btn-yellow btn-sm" style="margin-top:6px" onclick="openLogRequestReview('${t.id}',${i})">Bekijk & keur goed</button>`:'<div style="color:var(--text3)">Wacht op goedkeuring van dev…</div>')
           :m.status==='approved'?(m.expiresAt&&Date.now()>m.expiresAt
               ?`<div style="color:var(--text3)"><span class="ic" data-icon="hourglass"></span> Verlopen — vraag opnieuw aan</div>`
-              :`<div style="color:var(--green);margin-bottom:6px">✓ Goedgekeurd${m.expiresAt?' · beschikbaar tot '+new Date(m.expiresAt).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):''}</div><button class="btn btn-green btn-sm" onclick="downloadApprovedLog('${t.id}',${i})"><span class="ic" data-icon="inbox"></span> Download logboek.xlsx</button>`)
+              :`<div style="color:var(--green);margin-bottom:6px">✓ Goedgekeurd${m.expiresAt?' · beschikbaar tot '+new Date(m.expiresAt).toLocaleDateString(LOC(),{day:'numeric',month:'short'}):''}</div><button class="btn btn-green btn-sm" onclick="downloadApprovedLog('${t.id}',${i})"><span class="ic" data-icon="inbox"></span> Download logboek.xlsx</button>`)
           :`<div style="color:var(--red)">✕ Afgewezen</div>`}
       </div>`;
       lastFrom=null;
@@ -4886,7 +5315,7 @@ function fmtDayDivider(d){
   const dk=dKey(d);
   if(dk===today)return 'Vandaag';
   if(dk===dKey(y))return 'Gisteren';
-  return d.toLocaleDateString('nl-NL',{day:'numeric',month:'long'});
+  return d.toLocaleDateString(LOC(),{day:'numeric',month:'long'});
 }
 // Beheerder vraagt een logboek-export op bij de dev, via het gesprek zelf
 async function requestLogbook(devUid,devName){
@@ -4942,7 +5371,7 @@ async function approveLogRequest(threadId,msgIndex){
   messages[msgIndex]={...messages[msgIndex],status:'approved',logData:filtered,expiresAt};
   await updateDoc(doc(db,'dms',threadId),{messages,updatedAt:serverTimestamp()});
   const otherUid=data.participants.find(p=>p!==U.uid);
-  const expTxt=expiresAt?(' Beschikbaar tot '+new Date(expiresAt).toLocaleDateString('nl-NL',{day:'numeric',month:'long'})+'.'):'';
+  const expTxt=expiresAt?(' Beschikbaar tot '+new Date(expiresAt).toLocaleDateString(LOC(),{day:'numeric',month:'long'})+'.'):'';
   await notifyUsers([otherUid],'Logboek goedgekeurd',U.name+' heeft je logboekverzoek goedgekeurd — download het in het gesprek.',U.name+' heeft je logboekverzoek goedgekeurd.'+expTxt+' Open Meldingen om het te downloaden.',{type:'message'});
   closeModal(); toast('Goedgekeurd en verstuurd!','ok');
 }
@@ -4963,7 +5392,7 @@ function downloadApprovedLog(threadId,msgIndex){
   const aoa=[['Gebruiker','Type','Datum','Tijd','Apparaat','IP-adres']];
   msg.logData.forEach(l=>{
     const d=l.t?new Date(l.t):null;
-    aoa.push([l.name,l.type==='login'?'Ingelogd':'Uitgelogd',d?d.toLocaleDateString('nl-NL'):'',d?d.toLocaleTimeString('nl-NL'):'',l.device,l.ip||'onbekend']);
+    aoa.push([l.name,l.type==='login'?'Ingelogd':'Uitgelogd',d?d.toLocaleDateString(LOC()):'',d?d.toLocaleTimeString(LOC()):'',l.device,l.ip||'onbekend']);
   });
   const ws=XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols']=[{wch:18},{wch:10},{wch:12},{wch:10},{wch:22},{wch:16}];
@@ -5318,7 +5747,7 @@ function renderProfile(){
     <div class="section-label">Statistieken</div>
     <div class="stats-grid" style="margin-bottom:16px">
       <div class="stat-tile yellow">
-        <div class="stat-num yellow" style="font-size:15px">${memberSince?.toDate?memberSince.toDate().toLocaleDateString('nl-NL',{month:'short',year:'numeric'}):'—'}</div>
+        <div class="stat-num yellow" style="font-size:15px">${memberSince?.toDate?memberSince.toDate().toLocaleDateString(LOC(),{month:'short',year:'numeric'}):'—'}</div>
         <div class="stat-lbl">Lid sinds</div>
       </div>
       <div class="stat-tile green">
@@ -5333,7 +5762,7 @@ function renderProfile(){
     <div class="section-label">Dit apparaat & inloggen</div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-row"><div class="card-row-label">Huidig apparaat</div><div style="color:var(--text3);font-size:13px">${simpleDeviceLabel()}</div></div>
-      <div class="card-row"><div class="card-row-label">Eerste keer ingelogd</div><div style="color:var(--text3);font-size:13px">${U.firstLoginAt?.toDate?U.firstLoginAt.toDate().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}):'Nu'}</div></div>
+      <div class="card-row"><div class="card-row-label">Eerste keer ingelogd</div><div style="color:var(--text3);font-size:13px">${U.firstLoginAt?.toDate?U.firstLoginAt.toDate().toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric'}):'Nu'}</div></div>
       <div class="card-row"><div class="card-row-label">Bekende apparaten</div><div style="color:var(--text3);font-size:13px">${(U.knownDevices||[simpleDeviceLabel()]).length}</div></div>
     </div>`:''}
 
@@ -5387,10 +5816,25 @@ function renderProfile(){
           <button class="theme-opt ${U.navStyle==='bar'?'active':''}" onclick="setNavStyle('bar')" title="Klassieke balk"><span class="ic" data-icon="bar"></span></button>
         </div>
       </div>
+      <div class="card-row" style="border-top:1px solid var(--separator)">
+        <div class="card-row-label"><span class="ic" data-icon="globe"></span> Taal / Language</div>
+        <div class="seg" role="group" aria-label="Taal">
+          <button type="button" class="${MHVI18N.lang==='nl'?'on':''}" onclick="setAppLang('nl')">NL</button>
+          <button type="button" class="${MHVI18N.lang==='en'?'on':''}" onclick="setAppLang('en')">EN</button>
+        </div>
+      </div>
+      <div class="card-row" style="border-top:1px solid var(--separator)">
+        <div class="card-row-label"><span class="ic" data-icon="sparkles"></span> Feestdageneffecten</div>
+        <label class="sw"><input type="checkbox" ${MHVFX.userOff()?'':'checked'} onchange="setFxPref(this.checked)" aria-label="Feestdageneffecten"><i></i></label>
+      </div>
     </div>
 
     <div class="section-label">App</div>
     <div class="card">${appDevicesRowsHtml()}
+    <div class="card-row" style="cursor:pointer" onclick="openNotifPrefs()">
+      <div class="card-row-label"><span class="ic" data-icon="bell"></span> Meldingen</div>
+      <div style="color:var(--text3)">›</div>
+    </div>
     <div class="card-row" style="cursor:pointer" onclick="startAppTour()">
       <div class="card-row-label"><span class="ic" data-icon="compass"></span> Rondleiding door de app</div>
       <div style="color:var(--text3)">›</div>
@@ -5552,7 +5996,7 @@ function openColleaguesList(){
     <div class="modal-title">Andere gebruikers</div>
     ${others.length?others.map(u=>`
       <div class="card-row" style="cursor:pointer" onclick="openColleagueDetail('${u.uid}')">
-        <div class="avatar" style="width:40px;height:40px;font-size:15px;flex-shrink:0">${userAvatarHtml(u.uid)}</div>
+        <div class="avatar pay-av" style="width:48px;height:48px;font-size:15px">${userAvatarHtml(u.uid)}</div>
         <div style="flex:1"><div style="font-size:15px;font-weight:600">${u.name}${isUserVerified(u.uid)?VERIFIED_BADGE:''}</div></div>
         <div style="color:var(--text3)">›</div>
       </div>
@@ -5675,13 +6119,13 @@ async function notifyUsers(uids, title, body, emailBody, opts){
     });
   }
   // Push voor iedereen die de app open heeft
-  showBrowserNotif(title, body, notifType);
+  if(notifPref('push')) showBrowserNotif(title, body, notifType);
   // Email via EmailJS (uitgezet voor @tag-meldingen — die worden ALLEEN als pushmelding verstuurd)
   if(sendEmail && uids&&uids.length){
     const tplId=tplMap[notifType]||window._f.EMAILJS_TPL_NOTIF;
     for(const uid of uids){
       const u=allUsers.find(x=>x.uid===uid);
-      if(!u||!u.email||uid===U.uid) continue;
+      if(!u||!u.email||uid===U.uid||(u.notifPrefs&&u.notifPrefs.email===false)) continue;
       try{
         await trackedEmailSend(window._f.EMAILJS_SERVICE_ID,tplId,{
           to_email:u.email, to_name:u.name, title, body:emailBody||body,
@@ -5773,7 +6217,7 @@ window.openPinnedArchive=function(){
       const txt=m.text?_formatMentions(m.text):(m.imageData?'<span class="ic" data-icon="camera"></span> Foto':'');
       const t=m.createdAt&&m.createdAt.toDate?m.createdAt.toDate():null;
       return `<div style="padding:10px 0;border-bottom:1px solid var(--separator)">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:2px">${escAnn(m.name)}${t?' · '+t.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):''}</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:2px">${escAnn(m.name)}${t?' · '+t.toLocaleDateString(LOC(),{day:'numeric',month:'short'}):''}</div>
         <div style="font-size:14px;line-height:1.4">${txt}</div>
         ${canPin?`<button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pinChatMsg('${m.id}',true);closeModal();openPinnedArchive()">Losmaken</button>`:''}
       </div>`;
@@ -5918,7 +6362,7 @@ function _renderChatMsgs(){
     const verified=isUserVerified(msg.uid);
     const av=msg.role==='software'?('<img src="'+LOGO+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">')
       :(_userPhoto(msg.uid)?('<img src="'+_userPhoto(msg.uid)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'):getInitials(msg.name||'?'));
-    const ts=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    const ts=t.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'});
     const roleTag=msg.role==='admin'?'<span class="chat-role-tag tag-admin">Beheerder</span>'
       :msg.role==='software'?'<span class="chat-role-tag tag-sw">Dev</span>':'';
     const canDel=(U.role==='admin'||U.role==='software'||mine);
@@ -5972,7 +6416,7 @@ function _renderChatMsgs(){
   const lastMineIdx=rest.map(m=>m.uid).lastIndexOf(U.uid);
   rest.forEach(function(msg,idx){
     const t=msg.createdAt&&msg.createdAt.toDate?msg.createdAt.toDate():new Date();
-    const ds=t.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+    const ds=t.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'});
     let resetGroup=false;
     if(ds!==lastDate){ html+='<div class="chat-date-sep anim-in">'+ds+'</div>'; lastDate=ds; resetGroup=true; }
     const ts=t.getTime();
@@ -6475,7 +6919,7 @@ function renderDevAcc(){
     +'<button class="btn btn-yellow btn-full" onclick="sendDevMsg()">Versturen</button>'
     +'</div>'
     +'</div>'
-    +'\u0001'+'<div style="padding:0 16px 16px">'+renderFeatureFlagsPanel()+'</div>';
+    +'\u0001'+'<div style="padding:0 16px 16px">'+renderAppearancePanel()+renderFeatureFlagsPanel()+'</div>';
   const _p=_full.split('\u0001');
   // _p: 0 titel | 1 stats | 2 e-mailmeter | 3 accounts | 4 uitzending(+resterende sluit-div) | 5 functies
   const pend=allUsers.filter(u=>u.guestUntil&&u.guestPending).length;
@@ -6506,7 +6950,7 @@ window.setDevTab=function(t,btn){
 // ── Tijdelijke (gast)accounts: dev keurt goed en beheert ──
 function devGuestsHtml(){
   const g=allUsers.filter(u=>u.guestUntil).sort((a,b)=>(b.guestPending?1:0)-(a.guestPending?1:0)||a.guestUntil-b.guestUntil);
-  const fmt=ms=>new Date(ms).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+  const fmt=ms=>new Date(ms).toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric'});
   if(!g.length) return '<p style="font-size:13px;color:var(--text3);line-height:1.5">Geen tijdelijke accounts. Een beheerder maakt ze aan via Uitnodigen → Tijdelijk gastaccount; jij keurt ze hier goed.</p>';
   return '<div style="background:var(--bg2);border:1px solid var(--separator);border-radius:16px;overflow:hidden;margin-top:6px">'+g.map(u=>{
     const exp=u.guestUntil<Date.now();
@@ -6604,8 +7048,8 @@ function renderDevLog(){
         </div>
         <div style="font-size:11px;color:var(--text3);line-height:1.6">
           <div>${st.count}× ingelogd</div>
-          <div>1e keer: ${st.first?st.first.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):'—'}</div>
-          <div>Laatst: ${st.last?st.last.toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</div>
+          <div>1e keer: ${st.first?st.first.toLocaleDateString(LOC(),{day:'numeric',month:'short'}):'—'}</div>
+          <div>Laatst: ${st.last?st.last.toLocaleDateString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</div>
         </div>
       </div>`;
     }).join('');
@@ -6622,7 +7066,7 @@ function renderDevLog(){
           +'<div style="font-size:13px;font-weight:600">'+(l.type==='login'?'<span class="ic" data-icon="dot" style="color:var(--green)"></span>':'<span class="ic" data-icon="dot" style="color:var(--red)"></span>')+' '+name+' — '+(l.type==='login'?'ingelogd':'uitgelogd')+'</div>'
           +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(l.device||'?')+(l.ip?' · '+l.ip:' · IP onbekend')+'</div>'
           +'</div>'
-          +'<div style="font-size:11px;color:var(--text4);flex-shrink:0;text-align:right">'+(t?t.toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text4);flex-shrink:0;text-align:right">'+(t?t.toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'
           +'</div>';
       }).join('') || '<div class="empty" style="padding:24px"><p>Geen activiteit voor deze gebruiker</p></div>';
     }
@@ -6654,7 +7098,7 @@ function exportLoginLogsExcel(){
     const t=l.createdAt?.toDate?l.createdAt.toDate():null;
     aoa.push([
       u?u.name:userName(l.uid), u?u.role:'', l.type==='login'?'Ingelogd':'Uitgelogd',
-      t?t.toLocaleDateString('nl-NL'):'', t?t.toLocaleTimeString('nl-NL'):'',
+      t?t.toLocaleDateString(LOC()):'', t?t.toLocaleTimeString(LOC()):'',
       l.device||'', l.ip||'onbekend'
     ]);
   });
@@ -7155,8 +7599,8 @@ function exitIdleMode(){
 }
 function renderIdlePage(){
   const now=new Date();
-  $('idleClock').textContent=now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-  $('idleDate').textContent=now.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+  $('idleClock').textContent=now.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'});
+  $('idleDate').textContent=now.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'});
   const imEl=$('idleMatches'); if(imEl) imEl.innerHTML=idleMatchesHtml();
   const today=nowKey();
   // Losse dienst-blokken blijven bewust losse blokken (ook als ze overlappen in tijd, bv. een
@@ -7554,7 +7998,7 @@ async function paintQrSessions(){
           <div style="font-weight:700">${escAnn(userName(uid))} <span class="badge badge-blue" style="margin-left:4px">${list.length} ${list.length===1?'sessie':'sessies'}</span></div>
           <button class="btn btn-red btn-sm" onclick="devRevokeQrSessions('${uid}')">Overal uitloggen</button>
         </div>
-        ${list.map(i=>`<div style="font-size:12.5px;color:var(--text3);margin-top:4px">${uaLabel(i.ua)} · laatst gezien ${new Date(i.ls).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>`).join('')}
+        ${list.map(i=>`<div style="font-size:12.5px;color:var(--text3);margin-top:4px">${uaLabel(i.ua)} · laatst gezien ${new Date(i.ls).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>`).join('')}
       </div>`;
     }).join('')+'</div><div style="font-size:11.5px;color:var(--text3);margin:6px 2px 0;line-height:1.5">Overal uitloggen vernieuwt de QR van dat account: alle QR-sessies zijn direct ongeldig en de persoon krijgt een mail. Wachtwoord-logins staan hier niet in.</div>';
     if(window.hydrateIcons) window.hydrateIcons(box);
