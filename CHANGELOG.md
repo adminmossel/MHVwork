@@ -12,6 +12,10 @@
 - **Meldingen-instellingen** (Profiel → App → Meldingen, of het tandwiel bij Meldingen): dag van tevoren, een uur ervoor, na afloop van je dienst, push, e-mail. De herinneringen, push en e-mail volgen deze keuzes.
 - **Stijl zwart/wit (“Clean”)**: dev kiest globaal bij Beheer → Instellingen → Uiterlijk tussen Klassiek (blauw/geel, standaard) en Clean (zwart/wit). Het MHVwork-logo blijft altijd hetzelfde.
 
+### 🎨 v1.8 — verfijning
+- **Loginpagina opnieuw**: vlak zwart, één kolom, topbalk met logo + taalkeuze, duidelijke labels, gelijke velden, geen verlopen of gloed. De login-logica is niet aangeraakt.
+- **Clean-stijl rustiger**: neutrale kaarten en tegels, dunne randen, uitlijnbare staafjes, badges als dunne outline, geen gekleurde vlakken.
+
 ### 🔧 Techniek
 - Nieuwe bestanden: `holiday.js`, `i18n.js`, `i18n-en.js`. Nieuwe iconen `globe` en `sparkles` in `icons.js`.
 - Nieuwe velden: `users/{uid}.notifPrefs`, `users/{uid}.lang`, `settings/general.skin`, `settings/general.holiday`. Geen wijziging in `firestore.rules` nodig.

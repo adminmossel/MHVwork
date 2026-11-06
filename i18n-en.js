@@ -3,6 +3,15 @@
 (function(){
   if(!window.MHVI18N) return;
   var EN={
+ "of snel inloggen": "or log in quickly",
+ "Rooster, ruilen, chat en uitbetalingen op één plek.": "Schedule, swaps, chat and payouts in one place.",
+ "Bekijk de promovideo": "Watch the promo video",
+ "Wat is MHVwork?": "What is MHVwork?",
+ "Inloggen": "Log in",
+ "E-mailadres": "Email address",
+ "Snelcode": "Quick code",
+ "QR scannen": "Scan QR",
+ "Vingerafdruk of gezicht": "Fingerprint or face",
  "(dit apparaat)": "(this device)",
  "(onbekende eindtijd, tot de zaak dicht is)": "(unknown end time, until the venue closes)",
  "+ Dienst": "+ Shift",

@@ -378,64 +378,58 @@ body{ overflow-x:hidden; background:#EEF0F6; overscroll-behavior-y:none; }
 .scan-bar p{ font-size:14.5px; line-height:1.45; margin-bottom:14px; min-height:42px; }
 .scan-bar button{ font-family:inherit; font-size:15px; font-weight:700; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35); border-radius:13px; padding:12px 28px; cursor:pointer; }
 
-/* ═══ v1.7 — Nieuwe, donkere loginpagina (alle logica/id's ongewijzigd) ═══ */
-html,body{ background:#05070D; }
-body{ color:#fff; }
-.screen{ background:
-  radial-gradient(ellipse 80% 45% at 50% -8%, rgba(26,59,181,.55), transparent 70%),
-  radial-gradient(ellipse 60% 35% at 100% 100%, rgba(245,200,0,.07), transparent 70%), #05070D; }
-.brand-panel{ background:
-  radial-gradient(circle at 18% 10%, rgba(245,200,0,.14) 0%, transparent 45%),
-  linear-gradient(160deg,#102066 0%,#0a1440 55%,#05070D 100%) !important; }
-.form-panel{ background:transparent !important; display:flex; align-items:center; justify-content:center; }
-.form-card{ background:transparent !important; box-shadow:none !important; border:none !important; color:#fff; max-width:400px; width:100%; margin:0 auto; }
+/* ═══ v1.8 — Loginpagina: vlak, rustig, één kolom. Geen verlopen, geen gloed, vaste 8px-ritme. ═══ */
+:root{ --lg-bg:#000; --lg-surface:#0E0E0F; --lg-line:#262628; --lg-text:#F5F5F7; --lg-mute:#98989F; --lg-faint:#6B6B72; --lg-accent:#F5C800; --lg-on:#111; }
+html[data-skin="clean"]{ --lg-accent:#FFFFFF; --lg-on:#000; }
+html,body{ background:var(--lg-bg); color:var(--lg-text); }
+.screen{ display:block; min-height:100vh; background:var(--lg-bg); }
+.brand-panel{ display:none !important; }
+.form-panel{ background:transparent !important; width:100%; max-width:440px; margin:0 auto; min-height:100vh; padding:0 24px 28px !important; display:flex; flex-direction:column; }
+.form-card{ background:transparent !important; box-shadow:none !important; border:0 !important; border-radius:0 !important; padding:0 !important; max-width:none !important; width:100%; flex:1; display:flex; flex-direction:column; color:var(--lg-text); }
 .sheet-handle{ display:none !important; }
-.form-head h2,.form-head .eyebrow{ color:#fff !important; }
-.form-head p,.foot-note,.foot-note a{ color:rgba(255,255,255,.55) !important; }
-.form-head .eyebrow{ color:var(--mhv-yellow) !important; }
-.field label{ color:rgba(255,255,255,.6) !important; }
-.field-shell{ background:#14171F !important; border:1px solid #23262F !important; border-radius:18px !important; color:rgba(255,255,255,.45); box-shadow:none !important; }
-.field-shell:focus-within{ border-color:rgba(255,255,255,.55) !important; }
-.field-shell input{ color:#fff !important; background:transparent !important; }
-.field-shell input::placeholder{ color:rgba(255,255,255,.35) !important; }
-.field-shell svg{ color:rgba(255,255,255,.45) !important; }
-.link-btn{ color:rgba(255,255,255,.7) !important; font-weight:600 !important; }
-.cta-btn{ background:var(--mhv-yellow) !important; color:#111 !important; border-radius:18px !important; box-shadow:0 14px 30px -14px rgba(245,200,0,.7) !important; animation:none !important; }
-html[data-skin="clean"] .cta-btn{ background:#fff !important; box-shadow:none !important; }
-.error-box{ background:rgba(255,69,58,.12) !important; color:#ff8a80 !important; border-color:rgba(255,69,58,.35) !important; }
-.or-line{ display:flex; align-items:center; gap:12px; margin:22px 0 14px; color:rgba(255,255,255,.4); font-size:13px; }
-.or-line::before,.or-line::after{ content:''; flex:1; height:1px; background:rgba(255,255,255,.1); }
+#loginMainSection,#fastWrap,#forgotWrap{ margin:auto 0; padding:32px 0 8px; }
+.lg-top{ display:flex; align-items:center; justify-content:space-between; height:72px; padding-top:env(safe-area-inset-top,0px); }
+.lg-brand{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:-.3px; }
+.lg-brand em{ font-style:normal; color:var(--lg-accent); }
+.lg-logo{ width:34px; height:34px; border-radius:9px; display:block; }
+.lang-pill{ display:flex; gap:0; border:1px solid var(--lg-line); border-radius:99px; padding:2px; }
+.lang-pill button{ border:0; background:transparent; color:var(--lg-mute); font:600 12px 'Outfit',sans-serif; padding:5px 11px; border-radius:99px; cursor:pointer; }
+.lang-pill button.on{ background:var(--lg-text); color:#000; }
+.form-head{ margin-bottom:28px !important; }
+.form-head .eyebrow{ display:none !important; }
+.form-head h2{ font-size:34px !important; line-height:1.1; font-weight:700 !important; letter-spacing:-1px !important; color:var(--lg-text) !important; margin:0 0 10px !important; }
+.form-head p{ font-size:16px !important; line-height:1.45; color:var(--lg-mute) !important; margin:0 !important; }
+.field{ margin-bottom:16px !important; }
+.field label{ display:block; font-size:13px !important; font-weight:500 !important; color:var(--lg-mute) !important; margin:0 0 8px !important; letter-spacing:0 !important; text-transform:none !important; }
+.field-shell{ height:52px; background:var(--lg-surface) !important; border:1px solid var(--lg-line) !important; border-radius:12px !important; box-shadow:none !important; padding:0 14px !important; gap:12px; transition:border-color .15s; }
+.field-shell:focus-within{ border-color:var(--lg-text) !important; }
+.field-shell svg{ width:18px; height:18px; color:var(--lg-faint) !important; flex-shrink:0; }
+.field-shell input{ font-size:16px !important; color:var(--lg-text) !important; background:transparent !important; }
+.field-shell input::placeholder{ color:var(--lg-faint) !important; }
+.row-between{ display:flex; justify-content:flex-end; margin:-4px 0 20px !important; }
+.link-btn{ font-size:14px !important; font-weight:500 !important; color:var(--lg-mute) !important; }
+.link-btn:hover{ color:var(--lg-text) !important; }
+.cta-btn{ width:100%; height:52px; border:0; border-radius:12px !important; background:var(--lg-accent) !important; color:var(--lg-on) !important; font:600 16px 'Outfit',sans-serif !important; letter-spacing:0 !important; box-shadow:none !important; animation:none !important; transition:opacity .15s, transform .1s; }
+.cta-btn:active{ transform:scale(.99); opacity:.9; }
+.error-box{ background:transparent !important; border:1px solid #5a2a2a !important; color:#ff9b94 !important; border-radius:12px !important; font-size:14px; }
+.or-line{ display:flex; align-items:center; gap:14px; margin:28px 0 16px; color:var(--lg-faint); font-size:13px; }
+.or-line::before,.or-line::after{ content:''; flex:1; height:1px; background:var(--lg-line); }
 .alt-row{ display:grid !important; grid-template-columns:repeat(auto-fit,minmax(0,1fr)); gap:10px !important; margin:0 !important; }
-.alt-btn{ flex-direction:column !important; gap:9px !important; padding:18px 6px 15px !important; background:#14171F !important; border:1px solid #23262F !important; color:#fff !important; border-radius:18px !important; font-size:13.5px !important; font-weight:700 !important; text-align:center; line-height:1.2; box-shadow:none !important; }
-.alt-btn svg{ width:26px !important; height:26px !important; }
-.alt-btn:active{ transform:scale(.96); }
-.ghost-btn{ color:rgba(255,255,255,.7) !important; background:transparent !important; border:none !important; }
-.foot-links a{ color:rgba(255,255,255,.5) !important; }
-.m-hero{ display:none; text-align:center; padding:64px 0 26px; }
-.m-logo{ width:92px; height:92px; border-radius:26px; box-shadow:0 18px 50px -12px rgba(26,59,181,.9), 0 0 0 1px rgba(255,255,255,.08); animation:popIn .6s cubic-bezier(.2,.8,.3,1) both; }
-.m-hero h1{ font-size:34px; line-height:1.08; font-weight:800; letter-spacing:-1px; margin:22px 0 8px; color:#fff; }
-.m-hero h1 em{ font-style:normal; color:var(--mhv-yellow); }
-html[data-skin="clean"] .m-hero h1 em{ color:#fff; }
-.m-hero p{ color:rgba(255,255,255,.5); font-size:15px; }
-.lang-pill{ position:absolute; top:calc(16px + env(safe-area-inset-top,0px)); right:0; display:flex; gap:2px; background:rgba(255,255,255,.08); border-radius:99px; padding:3px; z-index:5; }
-.lang-pill button{ border:none; background:transparent; color:rgba(255,255,255,.6); font:700 12px 'Outfit',sans-serif; padding:6px 11px; border-radius:99px; cursor:pointer; }
-.lang-pill button.on{ background:#fff; color:#000; }
-.form-card{ position:relative; }
-.sr-only-l .field label{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
-@media (max-width:720px){
-  .brand-panel{ display:none !important; }
-  .screen{ flex-direction:column; justify-content:flex-start; }
-  .form-panel{ padding:0 22px 28px !important; align-items:flex-start; width:100%; flex:1; }
-  .form-card{ padding:0 !important; border-radius:0 !important; }
-  .m-hero{ display:block; }
-  .form-head{ display:none !important; }
-  .field label{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
-  .field{ margin-bottom:10px !important; }
-  .field-shell{ height:58px; }
-  .cta-btn{ height:58px; font-size:17px !important; margin-top:4px; }
-  .row-between{ margin:2px 0 14px !important; }
+.alt-btn{ display:flex !important; flex-direction:column !important; align-items:center; justify-content:center; gap:8px !important; min-height:80px; padding:12px 6px !important; background:transparent !important; border:1px solid var(--lg-line) !important; color:var(--lg-text) !important; border-radius:12px !important; font:500 13px/1.25 'Outfit',sans-serif !important; text-align:center; box-shadow:none !important; transition:background .15s; }
+.alt-btn:hover{ background:var(--lg-surface) !important; }
+#bioBtn[style*="none"]{ display:none !important; }
+.alt-btn:active{ transform:scale(.98); }
+.alt-btn svg{ width:22px !important; height:22px !important; stroke-width:1.75; color:var(--lg-text); }
+.ghost-btn{ display:block; width:auto; margin:32px auto 0 !important; padding:0 !important; background:transparent !important; border:0 !important; color:var(--lg-mute) !important; font:500 13px 'Outfit',sans-serif !important; }
+.ghost-btn:hover{ color:var(--lg-text) !important; }
+.foot-links{ margin:14px 0 0 !important; text-align:center; }
+.foot-links a,.foot-note a{ color:var(--lg-faint) !important; font-size:13px; font-weight:400 !important; text-decoration:none; }
+.foot-links a:hover,.foot-note a:hover{ color:var(--lg-mute) !important; }
+.foot-note{ margin:10px 0 0 !important; text-align:center; font-size:13px !important; line-height:1.5; color:var(--lg-faint) !important; }
+@media (min-width:721px){
+  .form-panel{ min-height:0; margin-top:6vh; margin-bottom:6vh; padding:0 36px 32px !important; background:var(--lg-surface) !important; border:1px solid var(--lg-line); border-radius:20px; }
+  html,body{ background:#000; }
 }
-@media (min-width:721px){ .lang-pill{ position:fixed; } }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="icons.js"></script>
@@ -512,9 +506,8 @@ html[data-skin="clean"] .m-hero h1 em{ color:#fff; }
     <div class="form-card">
       <div class="sheet-handle"></div>
 
-      <div class="lang-pill" role="group" aria-label="Taal"><button type="button" id="lgNl" onclick="MHVI18N.set('nl');lgSync()">NL</button><button type="button" id="lgEn" onclick="MHVI18N.set('en');lgSync()">EN</button></div>
-      <div class="m-hero">
-        <svg class="m-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MHVwork logo">
+      <header class="lg-top">
+        <div class="lg-brand"><svg class="lg-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MHVwork logo">
         <rect width="512" height="512" rx="100" fill="#1A3BB5"/>
         <rect x="110" y="160" width="230" height="230" rx="32" fill="#1A3BB5" stroke="#F5C800" stroke-width="24"/>
         <path d="M340 215 C395 215 410 238 410 275 C410 312 395 335 340 335" fill="none" stroke="#F5C800" stroke-width="24" stroke-linecap="round"/>
@@ -527,16 +520,14 @@ html[data-skin="clean"] .m-hero h1 em{ color:#fff; }
         <line x1="340" y1="195" x2="366" y2="195" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
         <circle cx="340" cy="195" r="16" fill="#1A3BB5"/>
         <circle cx="340" cy="195" r="8" fill="#ffffff"/>
-      </svg>
-        <h1>Welkom bij<br>MHV<em>work</em></h1>
-        <p>Log in om je rooster te zien</p>
-      </div>
+      </svg><span>MHV<em>work</em></span></div>
+        <div class="lang-pill" role="group" aria-label="Taal"><button type="button" id="lgNl" onclick="MHVI18N.set('nl');lgSync()">NL</button><button type="button" id="lgEn" onclick="MHVI18N.set('en');lgSync()">EN</button></div>
+      </header>
 
       <div id="loginMainSection">
         <div class="form-head">
-          <div class="eyebrow">Welkom terug</div>
           <h2>Inloggen</h2>
-          <p>Vul je gegevens in om je rooster te bekijken.</p>
+          <p>Rooster, ruilen, chat en uitbetalingen op één plek.</p>
         </div>
 
         <div class="error-box" id="errBox"></div>
@@ -565,7 +556,7 @@ html[data-skin="clean"] .m-hero h1 em{ color:#fff; }
           <span id="loginBtnLabel">Inloggen</span>
         </button>
 
-        <div class="or-line"><span>of log snel in</span></div>
+        <div class="or-line"><span>of snel inloggen</span></div>
         <div class="alt-row">
         <button class="alt-btn" id="bioBtn" style="display:none" onclick="bioLogin()">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v3a5 5 0 0 1-1 3"/><path d="M8 12a4 4 0 0 1 8 0v1a9 9 0 0 1-1.5 5"/><path d="M5 12a7 7 0 0 1 14 0v1c0 2-.4 3.5-1 5"/><path d="M12 7a2 2 0 0 0-2 2"/></svg>
@@ -582,13 +573,13 @@ html[data-skin="clean"] .m-hero h1 em{ color:#fff; }
           </button>
         </div>
 
-        <button onclick="openPromoModal()" class="ghost-btn">Wat is MHVwork? →</button>
+        <button onclick="openPromoModal()" class="ghost-btn">Wat is MHVwork?</button>
 
         <div class="foot-links">
           <a href="voorwaarden.html" target="_blank">Gebruiksvoorwaarden &amp; privacy</a>
         </div>
         <p class="foot-note">Geen account? Vraag je beheerder om een uitnodigingslink.</p>
-        <p class="foot-note"><a href="promo%20met%20muziek.mp4" target="_blank" rel="noopener">▶ Bekijk wat MHVwork is</a></p>
+        <p class="foot-note"><a href="promo%20met%20muziek.mp4" target="_blank" rel="noopener">Bekijk de promovideo</a></p>
       </div>
 
       <!-- Snel inloggen (verborgen tot je op de knop tikt) -->

@@ -1112,6 +1112,31 @@ html[data-skin="clean"] .ld-bar span{ background:linear-gradient(90deg,transpare
 .skin-opt.on{ border-color:var(--text); }
 .skin-opt small{ color:var(--text3); font-size:11.5px; }
 .skin-sw{ display:flex; margin-bottom:6px; } .skin-sw i{ width:30px; height:30px; border-radius:50%; display:block; } .skin-sw i + i{ margin-left:-8px; }
+
+/* ── v1.8 — Clean verfijnd: vlak, rustig, één kleur. Status-kleuren alleen als dun accent, geen gekleurde vlakken. ── */
+html[data-skin="clean"] .card, html[data-skin="clean"] .prof-card, html[data-skin="clean"] .stat-tile{ box-shadow:none; border:1px solid var(--separator); border-radius:16px; }
+html[data-skin="clean"] .stat-tile, html[data-skin="clean"] .stat-tile.yellow, html[data-skin="clean"] .stat-tile.blue,
+html[data-skin="clean"] .stat-tile.green, html[data-skin="clean"] .stat-tile.red{ background:var(--bg2); border-color:var(--separator); }
+html[data-skin="clean"] .stat-num.yellow, html[data-skin="clean"] .stat-num.blue, html[data-skin="clean"] .stat-num.green{ color:var(--text); }
+html[data-skin="clean"] .stat-tile-icon{ opacity:.28; }
+html[data-skin="clean"] .shift-card.mine, html[data-skin="clean"] .shift-card.pending, html[data-skin="clean"] .shift-card.done{ border-left-color:var(--separator); }
+html[data-skin="clean"] .badge-green, html[data-skin="clean"] .badge-orange, html[data-skin="clean"] .badge-red,
+html[data-skin="clean"] .badge-blue, html[data-skin="clean"] .badge-yellow{ background:transparent; border:1px solid var(--separator); }
+html[data-skin="clean"] .badge-blue, html[data-skin="clean"] .badge-yellow{ color:var(--text2); }
+html[data-skin="clean"] .shift-progress-fill.openend, html[data-skin="clean"] .idle-bar-fill.openend{ background:var(--text); opacity:.85; }
+html[data-skin="clean"] .shift-time, html[data-skin="clean"] .time-big{ color:var(--text); }
+html[data-skin="clean"] .hrs{ border-radius:16px; }
+html[data-skin="clean"] .hrs-bw{ justify-content:center; }
+html[data-skin="clean"] .hrs-bar{ max-width:34px; border-radius:8px 8px 3px 3px; opacity:.92; }
+html[data-skin="clean"] .mc, html[data-skin="clean"] .cl-card, html[data-skin="clean"] .ab-card, html[data-skin="clean"] .av-info{ border-radius:16px; }
+html[data-skin="clean"] .page-title, html[data-skin="clean"] .av-hero h1{ font-weight:700; letter-spacing:-.6px; }
+html[data-skin="clean"] .section-label{ font-weight:600; letter-spacing:.08em; }
+html[data-skin="clean"] .av-day.on{ background:var(--skin-ink); color:var(--skin-on); }
+html[data-skin="clean"] .av-day.on span{ color:var(--skin-on); opacity:.6; }
+html[data-skin="clean"] .av-day.shift::after{ background:#FF9F0A; }
+html[data-skin="clean"] .sw input:checked + i{ background:var(--skin-ink); }
+html[data-skin="clean"] .sw input:checked + i::after{ background:var(--skin-on); }
+html[data-skin="clean"][data-theme="light"] .card, html[data-skin="clean"][data-theme="light"] .prof-card, html[data-skin="clean"][data-theme="light"] .stat-tile{ background:#fff; }
 </style>
 <script>
 // Thema zo vroeg mogelijk toepassen (vóór de eerste paint) om een flits van het verkeerde thema te voorkomen.
