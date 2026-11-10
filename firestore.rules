@@ -110,8 +110,15 @@ service cloud.firestore {
             && !(restr('payout') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidFor']))
             && !(restr('approve') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['workerConfirmations']))
             && !(restr('editShift') && request.resource.data.diff(resource.data).affectedKeys().hasAny(['startTime','endTime','workers','date','note'])))
-        || (isAuth() && request.resource.data.diff(resource.data)
-              .affectedKeys().hasOnly(['workerConfirmations','finalTimes','workers','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent']))
+        // Eigen bevestiging/tijden doorgeven: alleen wie zelf op de dienst staat, en uitsluitend de
+        // eigen sleutel in workerConfirmations/finalTimes — niet die van een collega. 'workers' zit
+        // hier bewust NIET meer bij: wie er op een dienst staat mag alleen via een admin, of via de
+        // apart bewaakte signups/autoAssign-blokken hieronder, wijzigen.
+        || (isAuth() && (me() in resource.data.workers)
+              && request.resource.data.diff(resource.data)
+                   .affectedKeys().hasOnly(['workerConfirmations','finalTimes','reminderSent','reminder2Sent','confirmationLocked','dayBeforeSent','hourBeforeSent','unassignedReminderSent'])
+              && request.resource.data.get('workerConfirmations',{}).diff(resource.data.get('workerConfirmations',{})).affectedKeys().hasOnly([me()])
+              && request.resource.data.get('finalTimes',{}).diff(resource.data.get('finalTimes',{})).affectedKeys().hasOnly([me()]))
         // Open dienst ("vraag wie wil"): jezelf aanmelden of weer terugtrekken — alleen jezelf, alleen het veld 'signups'.
         || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signups'])
               && (request.resource.data.signups.size() <= resource.data.get('openSlots', 0)
@@ -131,7 +138,9 @@ service cloud.firestore {
     }
 
     match /availability/{id} {
-      allow read: if isAuth();
+      // Alleen de eigenaar zelf en staff (planners/beheerders) mogen beschikbaarheid + notities
+      // van een medewerker lezen. Voorheen kon elke ingelogde medewerker de hele collectie lezen.
+      allow read: if isAuth() && (resource.data.uid == me() || isStaff());
       allow create: if isAuth() && request.resource.data.uid == me();
       allow delete: if (isAuth() && resource.data.uid == me()) || isStaff();
       allow update: if isAdmin() || (isAuth() && resource.data.uid == me()
@@ -159,8 +168,16 @@ service cloud.firestore {
       allow create: if isAuthOrFast()
         && request.resource.data.uid == me()
         && request.resource.data.keys().hasAll(['uid','name','text','createdAt']);
-      allow update: if isAuth()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy','pinned','swapStatus','acceptedByName','interestedName','reactions']);
+      // Voorheen mocht elke ingelogde gebruiker 'deleted'/'pinned' van ELK bericht zetten. Nu per
+      // actie gesplitst: alleen de auteur (of staff) mag een bericht verbergen, alleen staff mag
+      // vastpinnen; reageren (emoji) en het claimen van een ruilverzoek blijven voor iedereen open.
+      allow update: if isAuth() && (
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['swapStatus','acceptedByName','interestedName'])
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deletedBy'])
+              && (resource.data.uid == me() || isStaff()))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pinned']) && isStaff())
+      );
       allow delete: if isStaff();
     }
 
@@ -183,8 +200,12 @@ service cloud.firestore {
       allow create: if isSoftware() || (isAdmin() && request.resource.data.role != 'software' && !restr('addEmployee'));
       // Alleen het 'used' veld mag gezet worden, en alleen zolang die nog niet gebruikt is
       // (voorkomt dat een link twee keer geclaimd kan worden, of dat iemand anders data wijzigt).
-      allow update: if !resource.data.used
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used','usedAt','uid']);
+      // isReal() + uid-check toegevoegd: voorheen stond hier GEEN authenticatie-eis, waardoor een
+      // willekeurige, zelfs niet-ingelogde cliënt elke nog-niet-gebruikte uitnodiging kon markeren
+      // als gebruikt (uitnodigingen onbruikbaar maken) of er een eigen 'uid' aan kon koppelen.
+      allow update: if isReal() && !resource.data.used
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used','usedAt','uid'])
+        && request.resource.data.get('uid', request.auth.uid) == request.auth.uid;
       allow delete: if isStaff();
     }
 
